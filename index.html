@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DIGIY Admin — Gestion Inscriptions</title>
+  
+  <style>
+    :root{
+      --bg:#0a0e1a;
+      --card:#1a1f2e;
+      --accent:#facc15;
+      --success:#22c55e;
+      --danger:#ef4444;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:rgba(148,163,184,0.2);
+    }
+    
+    *{box-sizing:border-box;margin:0;padding:0}
+    
+    body{
+      margin:0;min-height:100vh;
+      background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
+      color:var(--text);
+      font-family:system-ui,-apple-system,sans-serif;
+      padding:20px;
+    }
+    
+    .container{max-width:1200px;margin:0 auto}
+    
+    header{
+      background:rgba(26,31,46,0.8);
+      backdrop-filter:blur(10px);
+      padding:20px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      margin-bottom:24px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:16px;
+    }
+    
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    
+    .logo-icon{
+      width:48px;height:48px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;
+      box-shadow:0 0 20px rgba(250,204,21,0.3);
+    }
+    
+    h1{
+      font-size:24px;
+      font-weight:900;
+    }
+    
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:16px;
+      margin-bottom:24px;
+    }
+    
+    .stat-card{
+      background:var(--card);
+      padding:20px;
+      border-radius:14px;
+      border:1px solid var(--border);
+    }
+    
+    .stat-label{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:700;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+    
+    .stat-value{
+      font-size:32px;
+      font-weight:900;
+      color:var(--accent);
+    }
+    
+    .section{
+      background:var(--card);
+      border-radius:16px;
+      border:1px solid var(--border);
+      padding:24px;
+      margin-bottom:24px;
+    }
+    
+    .section-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    
+    h2{
+      font-size:18px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    
+    .inscription-card{
+      background:rgba(15,23,42,0.5);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:16px;
+      margin-bottom:12px;
+      transition:all .2s;
+    }
+    
+    .inscription-card:hover{
+      border-color:var(--accent);
+      transform:translateY(-2px);
+    }
+    
+    .inscription-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:start;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    
+    .inscription-info h3{
+      font-size:18px;
+      font-weight:900;
+      margin-bottom:4px;
+    }
+    
+    .inscription-details{
+      font-size:14px;
+      color:var(--muted);
+      line-height:1.6;
+    }
+    
+    .module-badge{
+      display:inline-block;
+      padding:6px 12px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      color:#0a0e1a;
+      border-radius:8px;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    
+    .btn{
+      padding:10px 16px;
+      border:none;
+      border-radius:10px;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+      transition:all .2s;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    
+    .btn-success{
+      background:var(--success);
+      color:#fff;
+    }
+    
+    .btn-success:hover{background:#16a34a}
+    
+    .btn-danger{
+      background:var(--danger);
+      color:#fff;
+    }
+    
+    .btn-danger:hover{background:#dc2626}
+    
+    .btn-secondary{
+      background:rgba(255,255,255,.1);
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+    
+    .btn-secondary:hover{background:rgba(255,255,255,.15)}
+    
+    .empty{
+      text-align:center;
+      padding:40px;
+      color:var(--muted);
+    }
+    
+    .empty-icon{
+      font-size:48px;
+      margin-bottom:16px;
+    }
+    
+    table{
+      width:100%;
+      border-collapse:collapse;
+    }
+    
+    th,td{
+      padding:12px;
+      text-align:left;
+      border-bottom:1px solid var(--border);
+    }
+    
+    th{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+    }
+    
+    td{
+      font-size:14px;
+    }
+    
+    .badge{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      font-weight:800;
+    }
+    
+    .badge-active{
+      background:rgba(34,197,94,0.2);
+      color:var(--success);
+    }
+    
+    .badge-pending{
+      background:rgba(250,204,21,0.2);
+      color:var(--accent);
+    }
+    
+    .loading{
+      text-align:center;
+      padding:40px;
+    }
+    
+    .spinner{
+      border:4px solid rgba(250,204,21,0.2);
+      border-top:4px solid var(--accent);
+      border-radius:50%;
+      width:40px;
+      height:40px;
+      animation:spin 1s linear infinite;
+      margin:0 auto 16px;
+    }
+    
+    @keyframes spin{
+      to{transform:rotate(360deg)}
+    }
+    
+    .refresh-btn{
+      background:rgba(250,204,21,0.1);
+      color:var(--accent);
+      border:1px solid rgba(250,204,21,0.3);
+    }
+    
+    .refresh-btn:hover{
+      background:rgba(250,204,21,0.2);
+    }
+    
+    @media(max-width:768px){
+      body{padding:12px}
+      header{padding:16px}
+      .section{padding:16px}
+      .stats{grid-template-columns:1fr}
+      table{font-size:12px}
+      th,td{padding:8px}
+    }
+  </style>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🦅</div>
+        <div>
+          <h1>DIGIY Admin</h1>
+          <div style="font-size:13px;color:var(--muted)">Gestion des inscriptions</div>
+        </div>
+      </div>
+      <button class="btn refresh-btn" id="refreshBtn" onclick="loadData()">
+        🔄 Actualiser
+      </button>
+    </header>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">En attente</div>
+        <div class="stat-value" id="statPending">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Actifs</div>
+        <div class="stat-value" id="statActive">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Revenus mois</div>
+        <div class="stat-value" id="statRevenue">-</div>
+      </div>
+    </div>
+
+    <!-- INSCRIPTIONS EN ATTENTE -->
+    <div class="section">
+      <div class="section-header">
+        <h2>⏳ Inscriptions en attente de paiement</h2>
+      </div>
+      <div id="pendingList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Chargement...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABONNEMENTS ACTIFS -->
+    <div class="section">
+      <div class="section-header">
+        <h2>✅ Abonnements actifs</h2>
+      </div>
+      <div id="activeList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Chargement...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+    const SUPABASE_CONFIG = {
+      url: "https://wesqmwjjtsefyjnluosj.supabase.co",
+      key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
+    };
+
+    const sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+
+    // ============================================
+    // CHARGEMENT DONNÉES
+    // ============================================
+    async function loadData() {
+      console.log('🔄 Chargement des données...');
+      await Promise.all([
+        loadPendingInscriptions(),
+        loadActiveSubscriptions(),
+        loadStats()
+      ]);
+    }
+
+    // ============================================
+    // INSCRIPTIONS EN ATTENTE
+    // ============================================
+    async function loadPendingInscriptions() {
+      const container = document.getElementById('pendingList');
+      
+      try {
+        const { data, error } = await sb
+          .from('pre_registrations')
+          .select('*')
+          .eq('status', 'pending_payment')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          container.innerHTML = `
+            <div class="empty">
+              <div class="empty-icon">✅</div>
+              <div>Aucune inscription en attente</div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.map(item => {
+          const price = item.partner_data?.price || 9900;
+          const createdDate = new Date(item.created_at).toLocaleDateString('fr-FR');
+          
+          return `
+            <div class="inscription-card">
+              <div class="inscription-header">
+                <div class="inscription-info">
+                  <h3>${item.full_name}</h3>
+                  <div class="inscription-details">
+                    📱 ${item.phone}<br>
+                    📍 ${item.city}${item.address ? ', ' + item.address : ''}<br>
+                    📅 ${createdDate}
+                  </div>
+                </div>
+                <div>
+                  <div class="module-badge">${item.preferred_module}</div>
+                  <div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">
+                    ${price.toLocaleString('fr-FR')} F/mois
+                  </div>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-success" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price})">
+                  ✅ Activer (1 mois)
+                </button>
+                <button class="btn btn-secondary" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price}, 3)">
+                  ✅ Activer (3 mois)
+                </button>
+                <button class="btn btn-danger" onclick="rejectInscription('${item.id}')">
+                  ❌ Refuser
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Erreur chargement pending:', err);
+        container.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">⚠️</div>
+            <div>Erreur : ${err.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    // ============================================
+    // ABONNEMENTS ACTIFS
+    // ============================================
+    async function loadActiveSubscriptions() {
+      const container = document.getElementById('activeList');
+      
+      try {
+        const { data, error } = await sb
+          .from('digiy_subscriptions')
+          .select('*')
+          .eq('status', 'active')
+          .order('current_period_end', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          container.innerHTML = `
+            <div class="empty">
+              <div class="empty-icon">📭</div>
+              <div>Aucun abonnement actif</div>
+            </div>
+          `;
+          return;
+        }
+
+        const html = `
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Téléphone</th>
+                  <th>Module</th>
+                  <th>Plan</th>
+                  <th>Prix</th>
+                  <th>Expire le</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.map(sub => {
+                  const expireDate = new Date(sub.current_period_end);
+                  const isExpired = expireDate < new Date();
+                  const daysLeft = Math.ceil((expireDate - new Date()) / (1000 * 60 * 60 * 24));
+                  
+                  return `
+                    <tr>
+                      <td><strong>${sub.phone}</strong></td>
+                      <td><span class="module-badge">${sub.module}</span></td>
+                      <td>${sub.plan}</td>
+                      <td><strong>${(sub.price_monthly || 0).toLocaleString('fr-FR')} F</strong></td>
+                      <td>
+                        ${expireDate.toLocaleDateString('fr-FR')}
+                        <br>
+                        <small style="color:${daysLeft < 7 ? 'var(--danger)' : 'var(--muted)'}">
+                          ${isExpired ? '⚠️ Expiré' : `${daysLeft} jours`}
+                        </small>
+                      </td>
+                      <td>
+                        <span class="badge ${isExpired ? 'badge-pending' : 'badge-active'}">
+                          ${isExpired ? '⚠️ Expiré' : '✅ Actif'}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        container.innerHTML = html;
+
+      } catch (err) {
+        console.error('Erreur chargement actifs:', err);
+        container.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">⚠️</div>
+            <div>Erreur : ${err.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    // ============================================
+    // STATS
+    // ============================================
+    async function loadStats() {
+      try {
+        // Pending
+        const { data: pending } = await sb
+          .from('pre_registrations')
+          .select('id', { count: 'exact' })
+          .eq('status', 'pending_payment');
+
+        document.getElementById('statPending').textContent = pending?.length || 0;
+
+        // Active
+        const { data: active } = await sb
+          .from('digiy_subscriptions')
+          .select('price_monthly')
+          .eq('status', 'active')
+          .gt('current_period_end', new Date().toISOString());
+
+        document.getElementById('statActive').textContent = active?.length || 0;
+
+        // Revenue
+        const revenue = active?.reduce((sum, s) => sum + (s.price_monthly || 0), 0) || 0;
+        document.getElementById('statRevenue').textContent = revenue.toLocaleString('fr-FR') + ' F';
+
+      } catch (err) {
+        console.error('Erreur stats:', err);
+      }
+    }
+
+    // ============================================
+    // ACTIVER ABONNEMENT
+    // ============================================
+    async function activateSubscription(phone, module, price, months = 1) {
+      if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
+
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Activation...';
+
+      try {
+        // Créer abonnement
+        const { error: subError } = await sb
+          .from('digiy_subscriptions')
+          .insert({
+            phone: phone,
+            module: module.toUpperCase(),
+            plan: module.toUpperCase() + '_MONTHLY',
+            status: 'active',
+            price_monthly: price,
+            current_period_start: new Date().toISOString(),
+            current_period_end: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+          });
+
+        if (subError) throw subError;
+
+        // Mettre à jour inscription
+        const { error: updateError } = await sb
+          .from('pre_registrations')
+          .update({
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('phone', phone)
+          .eq('status', 'pending_payment');
+
+        if (updateError) throw updateError;
+
+        alert(`✅ ${module} activé pour ${months} mois !`);
+        loadData();
+
+      } catch (err) {
+        console.error('Erreur activation:', err);
+        alert('❌ Erreur : ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '✅ Activer';
+      }
+    }
+
+    // ============================================
+    // REFUSER INSCRIPTION
+    // ============================================
+    async function rejectInscription(id) {
+      if (!confirm('Refuser cette inscription ?')) return;
+
+      try {
+        const { error } = await sb
+          .from('pre_registrations')
+          .update({
+            status: 'rejected',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        alert('✅ Inscription refusée');
+        loadData();
+
+      } catch (err) {
+        console.error('Erreur rejet:', err);
+        alert('❌ Erreur : ' + err.message);
+      }
+    }
+
+    // ============================================
+    // INIT
+    // ============================================
+    window.addEventListener('load', () => {
+      console.log('🦅 DIGIY Admin chargé');
+      loadData();
+      
+      // Auto-refresh toutes les 30 secondes
+      setInterval(loadData, 30000);
+    });
+  </script>
+</body>
+</html>
