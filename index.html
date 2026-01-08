@@ -643,25 +643,22 @@ async function rejectInscription(id) {
   }
 }
 
-<script>
 // ============================================
-// INIT
+// INIT (PAS DE <script> ICI !)
 // ============================================
 window.addEventListener('load', () => {
-  // 🔐 Protection mot de passe
-  const ADMIN_PASSWORD = "DIGIY2026"; // Change ce mot de passe !
+  const ADMIN_PASSWORD = "DIGIY2026";
 
   const pwd = prompt('🔐 Mot de passe admin DIGIY :');
-
   if (pwd !== ADMIN_PASSWORD) {
     alert('❌ Accès refusé');
     window.location.href = 'https://digiylyfe.com';
-    return; // ici c'est OK car on est dans une fonction
+    return;
   }
 
-  // ✅ Si bon mot de passe, le reste de ta page s'exécute normalement
+  loadData(); // 🔥 important: lance le chargement après login OK
 });
 </script>
+
 </body>
 </html>
-
