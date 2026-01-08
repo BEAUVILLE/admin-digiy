@@ -1,0 +1,429 @@
+# 🦅 DIGIYLYFE — Écosystème Digital Africain 0% Commission
+
+**Plateforme digitale souveraine connectant l'Afrique au monde**
+
+[![Version](https://img.shields.io/badge/version-1.0.0-facc15)](https://github.com/beauville/beauville.github.io)
+[![License](https://img.shields.io/badge/license-Proprietary-red)](LICENSE)
+[![Made in](https://img.shields.io/badge/made%20in-Sénégal%20🇸🇳-green)](https://digiylyfe.com)
+
+---
+
+## 📋 Table des matières
+
+- [Vision](#-vision)
+- [Architecture](#-architecture)
+- [Modules](#-modules)
+- [Installation](#-installation)
+- [Utilisation](#-utilisation)
+- [Sécurité](#-sécurité)
+- [Business Model](#-business-model)
+- [Roadmap](#-roadmap)
+- [Support](#-support)
+
+---
+
+## 🎯 Vision
+
+**DIGIYLYFE** est un écosystème digital africain révolutionnaire fonctionnant sur le principe **0% commission**.
+
+### Philosophie
+```
+L'Afrique enracinée, connectée au monde
+Direct. Simple. Pour le peuple.
+```
+
+### Principes fondamentaux
+
+- ✅ **0% commission** sur toutes les transactions
+- ✅ **Paiement direct** entre clients et professionnels
+- ✅ **Souveraineté digitale** africaine
+- ✅ **Technologie accessible** à tous
+- ✅ **Terrain first** — optimisé pour Android bas de gamme et réseaux faibles
+
+---
+
+## 🏗️ Architecture
+
+### Structure du projet
+```
+beauville.github.io/
+├── digiy-hub/              # Hub central (navigation)
+├── digiy-driver/           # VTC sans commission
+├── digiy-resto/            # Gestion restaurant
+├── digiy-pay/              # Wallet & paiements
+├── digiy-loc/              # Location courte durée
+├── digiy-market/           # Marketplace locale
+├── digiy-jobs/             # Emploi & recrutement
+├── digiy-build/            # Services construction
+├── digiy-pos/              # Point de vente
+├── digiy-resa/             # Réservations
+├── digiy-fret/             # Livraisons
+├── digiy-admin/            # Interface admin
+├── page-inscription-digiy/ # Formulaire inscription PRO
+├── commencer-a-payer/      # Page paiement Wave
+└── guard.js                # Système d'authentification universel
+```
+
+### Séparation des responsabilités
+
+#### 🌍 Public (sans authentification)
+- Vitrine marketing (digiylyfe.com)
+- Hub de navigation
+- Formulaire d'inscription
+- Page de paiement
+- Interface client (commander une course)
+
+#### 🔒 Protégé (avec guard.js)
+- Tous les modules PRO (digiy-xxx/)
+- Outils de gestion métier
+- Interfaces professionnelles
+
+---
+
+## 🎯 Modules
+
+### 🚗 DIGIY DRIVER
+**VTC sans commission · 9,900 FCFA/mois**
+
+- GPS temps réel
+- Paiement direct client → chauffeur
+- Interface chauffeur + interface client
+- 0% commission (vs 25% Uber)
+
+### 🍽️ DIGIY RESTO PRO
+**Gestion restaurant complète · 9,900 FCFA/mois**
+
+- Commandes & Kitchen Display System (KDS)
+- Point de vente intégré
+- Gestion multi-zones
+- Réservations Supabase
+- Impression tickets 58mm
+- Mode offline
+
+### 💳 DIGIY PAY
+**Wallet & encaissement · 9,900 FCFA/mois**
+
+- Wallet digital
+- Transferts instantanés
+- Intégration Wave/Orange Money
+- Historique transactions
+- QR Code paiement
+
+### 🏠 DIGIY LOC
+**Location courte durée · À partir de 9,900 FCFA/mois**
+
+- Gestion logements (1-5 = 9,900 F, 6-9 = 15,000 F, etc.)
+- Calendrier disponibilités
+- Réservations directes
+- 0% commission (vs 15% Airbnb)
+
+### 🛒 DIGIY MARKET
+**Marketplace locale · 12,900 FCFA/mois**
+
+- Boutique en ligne
+- Gestion stock
+- Commandes & livraisons
+- Paiement direct
+
+### 💼 DIGIY JOBS
+**Emploi & recrutement · 7,900 FCFA/mois**
+
+- Offres illimitées
+- Base CV qualifiés
+- Matching candidats
+- Recrutement local
+
+### 🏗️ DIGIY BUILD
+**Services construction · 9,900 FCFA/mois**
+
+- Devis & planning
+- Suivi chantiers
+- Réseau artisans
+- Gestion projets
+
+### 📦 DIGIY FRET
+**Livraisons & transport · À partir de 14,900 FCFA/mois**
+
+- LOCAL (14,900 F)
+- RÉGIONAL (29,900 F)
+- NATIONAL (49,900 F)
+- INTERNATIONAL (99,900 F)
+
+### 💰 DIGIY POS
+**Point de vente · 9,900 FCFA/mois**
+
+- Caisse enregistreuse
+- Gestion stock
+- Rapports ventes
+- Multi-caisses
+
+### 🍽️ DIGIY RÉSA
+**Réservations restaurant · À partir de 9,900 FCFA/mois**
+
+- Par nombre de tables (1-5, 6-9, 10-20, etc.)
+- Calendrier en ligne
+- Gestion couverts
+- Confirmations automatiques
+
+---
+
+## 🚀 Installation
+
+### Prérequis
+
+- Compte GitHub
+- Compte Supabase (gratuit)
+- Compte Wave (Sénégal)
+
+### Déploiement
+```bash
+# 1. Cloner le repo
+git clone https://github.com/beauville/beauville.github.io.git
+cd beauville.github.io
+
+# 2. Configuration Supabase
+# Créer les tables (voir /docs/database.sql)
+
+# 3. Déploiement GitHub Pages
+git add .
+git commit -m "Deploy DIGIYLYFE"
+git push origin main
+
+# 4. Activer GitHub Pages
+# Settings → Pages → Source: main branch → Save
+```
+
+### Configuration
+
+1. **Supabase** : Exécuter `/docs/database.sql`
+2. **Guard.js** : Vérifier les credentials dans chaque module
+3. **Wave** : Configurer le numéro de paiement
+
+---
+
+## 🔐 Sécurité
+
+### Système Guard
+
+Tous les modules PRO sont protégés par `guard.js` :
+```javascript
+// Vérification automatique à chaque chargement
+await window.DIGIY.guardOrPay("MODULE_CODE", "/login.html");
+```
+
+### Protection données
+
+- ✅ Row Level Security (RLS) Supabase
+- ✅ Authentification phone-based
+- ✅ Cache sécurisé (60 secondes)
+- ✅ Fail-closed (pas d'accès si erreur)
+
+### Module Codes
+
+| Module | Code DB | Status |
+|--------|---------|--------|
+| Driver | DRIVER_PRO | Actif |
+| Resto | RESTO_PRO | Actif |
+| Pay | PAY_PRO | Actif |
+| Loc | LOC | Actif |
+| Market | MARKET | Actif |
+| Jobs | JOBS | Actif |
+| Build | BUILD | Actif |
+| POS | POS_PRO | Actif |
+| Résa | RESA | Actif |
+| Fret | FRET_CHAUFFEUR | Actif |
+
+---
+
+## 💰 Business Model
+
+### Prix mensuels
+
+| Module | Prix | Commission traditionnelle |
+|--------|------|---------------------------|
+| DRIVER | 9,900 F | vs 25% Uber |
+| RESTO PRO | 9,900 F | vs 30% Deliveroo |
+| LOC | 9,900 F+ | vs 15% Airbnb |
+| MARKET | 12,900 F | vs 15% Jumia |
+| Autres | 7,900-9,900 F | - |
+
+### Packs
+
+- 📦 **STARTER** : 2 modules → 19,900 F/mois
+- ⭐ **PRO** : 4 modules → 29,900 F/mois
+- 💎 **BUSINESS** : Tous modules → 49,900 F/mois
+
+### Paiement
+
+- Wave (Sénégal)
+- Orange Money
+- Free Money
+- Espèces (agents)
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Phase 1 — MVP (Terminé)
+- [x] Architecture complète
+- [x] 10 modules opérationnels
+- [x] Système guard universel
+- [x] Interface admin
+- [x] Formulaire inscription
+- [x] Intégration Supabase
+
+### 🔄 Phase 2 — Beta (En cours)
+- [ ] Tests utilisateurs Saly/Dakar
+- [ ] Optimisations performance
+- [ ] Documentation complète
+- [ ] Formation partenaires
+- [ ] Campagne acquisition
+
+### 🚀 Phase 3 — Scale (Q2 2026)
+- [ ] API Wave automatique
+- [ ] Extension Thiès/Mbour
+- [ ] Programme ambassadeurs
+- [ ] Partnerships stratégiques
+- [ ] Mobile apps (iOS/Android)
+
+### 🌍 Phase 4 — Expansion (Q3-Q4 2026)
+- [ ] Sénégal national
+- [ ] Côte d'Ivoire
+- [ ] Mali
+- [ ] Guinée
+- [ ] Pan-Africain
+
+---
+
+## 📞 Support
+
+### Pour les professionnels
+
+- 📱 WhatsApp : +221 77 134 28 89
+- 📧 Email : pro@digiylyfe.com
+- 🌐 Site : https://digiylyfe.com
+
+### Pour les développeurs
+
+- 📚 Documentation : https://docs.digiylyfe.com
+- 💬 Discord : https://discord.gg/digiylyfe
+- 🐛 Issues : https://github.com/beauville/beauville.github.io/issues
+
+### Horaires support
+
+- Lun-Ven : 8h-20h GMT
+- Sam-Dim : 9h-18h GMT
+- Urgences : 24/7 (WhatsApp)
+
+---
+
+## 🤝 Contribution
+
+DIGIYLYFE est un projet **propriétaire** pour le moment.
+
+Contributions externes acceptées sur invitation uniquement.
+
+Contact : dev@digiylyfe.com
+
+---
+
+## 📄 License
+
+Copyright © 2025-2026 DIGIYLYFE
+
+Tous droits réservés.
+
+---
+
+## 🙏 Remerciements
+
+### Inspirations
+
+- Wave (Sénégal) — Pour le modèle NO FRICTION
+- M-Pesa (Kenya) — Pour la révolution mobile money
+- Jumia — Pour avoir ouvert la voie e-commerce africain
+
+### Technologies
+
+- Supabase (Backend as a Service)
+- GitHub Pages (Hébergement)
+- Leaflet (Cartographie)
+- Python-docx (Documents)
+
+### Communauté
+
+Merci à tous les early adopters, testeurs, et croyants de la première heure.
+
+**L'Afrique n'attend pas les permissions. L'Afrique construit.** 🦅
+
+---
+
+## 📊 Statistiques
+```
+Modules développés : 10
+Lignes de code : ~50,000
+Commits : 500+
+Jours de dev : 300+
+Cafés consommés : ∞
+```
+
+---
+
+## 🎯 Mission
+
+> "Créer un écosystème digital africain souverain où les professionnels gardent 100% de leurs revenus et où la technologie sert le peuple, pas l'inverse."
+
+---
+
+**Made with 🦅 in Sénégal**
+
+**DIGIYLYFE ♾️ — Direct. Simple. Pour le peuple.**
+
+---
+
+### Quick Links
+
+- 🌐 [Site web](https://digiylyfe.com)
+- 🦅 [Hub](https://beauville.github.io/digiy-hub/)
+- 📝 [Inscription PRO](https://beauville.github.io/page-inscription-digiy/)
+- 🔧 [Admin](https://beauville.github.io/digiy-admin/)
+- 📚 [Documentation](https://docs.digiylyfe.com)
+
+---
+
+**Version 1.0.0** · Dernière mise à jour : Janvier 2026
+```
+
+---
+
+## 🎯 **RÉCAPITULATIF**
+
+### **Protection Admin**
+
+1. Trouve la section `// INIT` (ligne ~570)
+2. Remplace le code par celui avec le mot de passe
+3. Change `"DIGIY2026"` par ton mot de passe secret
+4. Commit & push
+
+### **README.md**
+
+1. Crée le fichier à la racine : `README.md`
+2. Copie tout le markdown ci-dessus
+3. Commit & push
+4. Visible sur GitHub automatiquement
+
+---
+
+## 📂 **STRUCTURE FINALE**
+```
+beauville.github.io/
+├── README.md                    ← TON NOUVEAU FICHIER
+├── digiy-admin/
+│   └── index.html              ← AVEC PROTECTION
+├── digiy-driver/
+│   ├── guard.js
+│   └── index.html
+├── digiy-resto/
+│   ├── guard.js
+│   └── index.html
+└── ... (autres modules)
