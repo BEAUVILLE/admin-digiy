@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Admin DIGIY</title>
+  
+  <style>
+    :root{
+      --bg:#0a0e1a;
+      --accent:#facc15;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+    }
+    
+    *{box-sizing:border-box;margin:0;padding:0}
+    
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
+      color:var(--text);
+      font-family:system-ui,sans-serif;
+      padding:20px;
+    }
+    
+    .login-card{
+      background:rgba(26,31,46,0.95);
+      backdrop-filter:blur(10px);
+      padding:40px 30px;
+      border-radius:20px;
+      border:1px solid rgba(148,163,184,0.2);
+      max-width:400px;
+      width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    }
+    
+    .logo{
+      width:80px;
+      height:80px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      border-radius:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:40px;
+      margin:0 auto 24px;
+      box-shadow:0 0 30px rgba(250,204,21,0.4);
+    }
+    
+    h1{
+      text-align:center;
+      font-size:28px;
+      font-weight:900;
+      margin-bottom:8px;
+    }
+    
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      font-size:14px;
+      margin-bottom:32px;
+    }
+    
+    .form-group{
+      margin-bottom:20px;
+    }
+    
+    label{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      color:var(--muted);
+      margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+    }
+    
+    input{
+      width:100%;
+      padding:16px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.3);
+      background:rgba(15,23,42,0.8);
+      color:var(--text);
+      font-size:16px;
+      font-weight:600;
+      outline:none;
+      transition:all .2s;
+    }
+    
+    input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(250,204,21,0.2);
+      background:rgba(15,23,42,0.95);
+    }
+    
+    .btn{
+      width:100%;
+      padding:18px;
+      border:none;
+      border-radius:12px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      color:#0a0e1a;
+      font-size:16px;
+      font-weight:900;
+      cursor:pointer;
+      text-transform:uppercase;
+      letter-spacing:0.08em;
+      transition:all .2s;
+      margin-top:8px;
+    }
+    
+    .btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 28px rgba(250,204,21,0.4);
+    }
+    
+    .btn:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+      transform:none;
+    }
+    
+    .error{
+      background:rgba(239,68,68,0.1);
+      border:1px solid rgba(239,68,68,0.3);
+      color:#ef4444;
+      padding:12px;
+      border-radius:10px;
+      font-size:14px;
+      font-weight:600;
+      margin-bottom:20px;
+      display:none;
+    }
+    
+    .error.show{
+      display:block;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    
+    @media(max-width:500px){
+      .login-card{padding:30px 20px}
+      h1{font-size:24px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-card">
+    <div class="logo">🦅</div>
+    <h1>DIGIY Admin</h1>
+    <div class="subtitle">Connexion sécurisée</div>
+    
+    <div class="error" id="errorMsg">❌ Mot de passe incorrect</div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input 
+          type="password" 
+          id="password" 
+          placeholder="Entrez le mot de passe"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+      
+      <button type="submit" class="btn" id="loginBtn">
+        🔓 Se connecter
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "DIGIY2026"; // ← CHANGE CE MOT DE PASSE !
+    
+    const form = document.getElementById('loginForm');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    
+    // Vérifier si déjà connecté
+    const isLoggedIn = sessionStorage.getItem('digiy_admin_auth');
+    if (isLoggedIn === 'true') {
+      window.location.href = 'index.html';
+    }
+    
+    // Focus automatique sur le champ
+    passwordInput.focus();
+    
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const password = passwordInput.value.trim();
+      
+      if (password === ADMIN_PASSWORD) {
+        // Connexion réussie
+        sessionStorage.setItem('digiy_admin_auth', 'true');
+        loginBtn.textContent = '✅ Connexion...';
+        loginBtn.disabled = true;
+        
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 500);
+      } else {
+        // Erreur
+        errorMsg.classList.add('show');
+        passwordInput.value = '';
+        passwordInput.focus();
+        
+        // Secouer l'input
+        passwordInput.style.animation = 'shake 0.5s';
+        setTimeout(() => {
+          passwordInput.style.animation = '';
+        }, 500);
+        
+        // Cacher l'erreur après 3s
+        setTimeout(() => {
+          errorMsg.classList.remove('show');
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
