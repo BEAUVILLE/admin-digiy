@@ -63,6 +63,12 @@
       font-weight:900;
     }
     
+    .header-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    
     .stats{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
@@ -293,6 +299,8 @@
       .stats{grid-template-columns:1fr}
       table{font-size:12px}
       th,td{padding:8px}
+      .header-actions{width:100%}
+      .header-actions .btn{flex:1}
     }
   </style>
   
@@ -309,12 +317,16 @@
           <div style="font-size:13px;color:var(--muted)">Gestion des inscriptions</div>
         </div>
       </div>
-      <button class="btn refresh-btn" id="refreshBtn" onclick="loadData()">
-        🔄 Actualiser
-      </button>
+      <div class="header-actions">
+        <button class="btn refresh-btn" onclick="loadData()">
+          🔄 Actualiser
+        </button>
+        <button class="btn btn-danger" onclick="logout()">
+          🚪 Déconnexion
+        </button>
+      </div>
     </header>
 
-    <!-- STATS -->
     <div class="stats">
       <div class="stat-card">
         <div class="stat-label">En attente</div>
@@ -330,7 +342,6 @@
       </div>
     </div>
 
-    <!-- INSCRIPTIONS EN ATTENTE -->
     <div class="section">
       <div class="section-header">
         <h2>⏳ Inscriptions en attente de paiement</h2>
@@ -343,7 +354,6 @@
       </div>
     </div>
 
-    <!-- ABONNEMENTS ACTIFS -->
     <div class="section">
       <div class="section-header">
         <h2>✅ Abonnements actifs</h2>
@@ -358,307 +368,148 @@
   </div>
 
   <script>
-// ============================================
-// CONFIGURATION
-// ============================================
-const SUPABASE_CONFIG = {
-  url: "https://wesqmwjjtsefyjnluosj.supabase.co",
-  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
-};
+    const SUPABASE_CONFIG = {
+      url: "https://wesqmwjjtsefyjnluosj.supabase.co",
+      key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
+    };
 
-const sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    const sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
 
-// ============================================
-// CHARGEMENT DONNÉES
-// ============================================
-async function loadData() {
-  console.log('🔄 Chargement des données...');
-  await Promise.all([
-    loadPendingInscriptions(),
-    loadActiveSubscriptions(),
-    loadStats()
-  ]);
-}
-
-// ============================================
-// INSCRIPTIONS EN ATTENTE
-// ============================================
-async function loadPendingInscriptions() {
-  const container = document.getElementById('pendingList');
-  
-  try {
-    const { data, error } = await sb
-      .from('pre_registrations')
-      .select('*')
-      .eq('status', 'pending_payment')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="empty">
-          <div class="empty-icon">✅</div>
-          <div>Aucune inscription en attente</div>
-        </div>
-      `;
-      return;
+    async function loadData() {
+      console.log('🔄 Chargement...');
+      await Promise.all([
+        loadPendingInscriptions(),
+        loadActiveSubscriptions(),
+        loadStats()
+      ]);
     }
 
-    container.innerHTML = data.map(item => {
-      const price = item.partner_data?.price || 9900;
-      const createdDate = new Date(item.created_at).toLocaleDateString('fr-FR');
-      
-      return `
-        <div class="inscription-card">
-          <div class="inscription-header">
-            <div class="inscription-info">
-              <h3>${item.full_name}</h3>
-              <div class="inscription-details">
-                📱 ${item.phone}<br>
-                📍 ${item.city}${item.address ? ', ' + item.address : ''}<br>
-                📅 ${createdDate}
-              </div>
-            </div>
-            <div>
-              <div class="module-badge">${item.preferred_module}</div>
-              <div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">
-                ${price.toLocaleString('fr-FR')} F/mois
-              </div>
-            </div>
-          </div>
-          <div class="actions">
-            <button class="btn btn-success" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price})">
-              ✅ Activer (1 mois)
-            </button>
-            <button class="btn btn-secondary" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price}, 3)">
-              ✅ Activer (3 mois)
-            </button>
-            <button class="btn btn-danger" onclick="rejectInscription('${item.id}')">
-              ❌ Refuser
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-  } catch (err) {
-    console.error('Erreur chargement pending:', err);
-    container.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">⚠️</div>
-        <div>Erreur : ${err.message}</div>
-      </div>
-    `;
-  }
-}
-
-// ============================================
-// ABONNEMENTS ACTIFS
-// ============================================
-async function loadActiveSubscriptions() {
-  const container = document.getElementById('activeList');
-  
-  try {
-    const { data, error } = await sb
-      .from('digiy_subscriptions')
-      .select('*')
-      .eq('status', 'active')
-      .order('current_period_end', { ascending: true });
-
-    if (error) throw error;
-
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="empty">
-          <div class="empty-icon">📭</div>
-          <div>Aucun abonnement actif</div>
-        </div>
-      `;
-      return;
+    async function loadPendingInscriptions() {
+      const container = document.getElementById('pendingList');
+      try {
+        const { data, error } = await sb.from('pre_registrations').select('*').eq('status', 'pending_payment').order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>Aucune inscription en attente</div></div>';
+          return;
+        }
+        container.innerHTML = data.map(item => {
+          const price = item.partner_data?.price || 9900;
+          const createdDate = new Date(item.created_at).toLocaleDateString('fr-FR');
+          return `<div class="inscription-card"><div class="inscription-header"><div class="inscription-info"><h3>${item.full_name}</h3><div class="inscription-details">📱 ${item.phone}<br>📍 ${item.city}${item.address ? ', ' + item.address : ''}<br>📅 ${createdDate}</div></div><div><div class="module-badge">${item.preferred_module}</div><div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">${price.toLocaleString('fr-FR')} F/mois</div></div></div><div class="actions"><button class="btn btn-success" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price})">✅ Activer (1 mois)</button><button class="btn btn-secondary" onclick="activateSubscription('${item.phone}', '${item.preferred_module}', ${price}, 3)">✅ Activer (3 mois)</button><button class="btn btn-danger" onclick="rejectInscription('${item.id}')">❌ Refuser</button></div></div>`;
+        }).join('');
+      } catch (err) {
+        console.error('Erreur:', err);
+        container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur : ' + err.message + '</div></div>';
+      }
     }
 
-    const html = `
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Téléphone</th>
-              <th>Module</th>
-              <th>Plan</th>
-              <th>Prix</th>
-              <th>Expire le</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(sub => {
-              const expireDate = new Date(sub.current_period_end);
-              const isExpired = expireDate < new Date();
-              const daysLeft = Math.ceil((expireDate - new Date()) / (1000 * 60 * 60 * 24));
-              
-              return `
-                <tr>
-                  <td><strong>${sub.phone}</strong></td>
-                  <td><span class="module-badge">${sub.module}</span></td>
-                  <td>${sub.plan}</td>
-                  <td><strong>${(sub.price_monthly || 0).toLocaleString('fr-FR')} F</strong></td>
-                  <td>
-                    ${expireDate.toLocaleDateString('fr-FR')}
-                    <br>
-                    <small style="color:${daysLeft < 7 ? 'var(--danger)' : 'var(--muted)'}">
-                      ${isExpired ? '⚠️ Expiré' : daysLeft + ' jours'}
-                    </small>
-                  </td>
-                  <td>
-                    <span class="badge ${isExpired ? 'badge-pending' : 'badge-active'}">
-                      ${isExpired ? '⚠️ Expiré' : '✅ Actif'}
-                    </span>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+    async function loadActiveSubscriptions() {
+      const container = document.getElementById('activeList');
+      try {
+        const { data, error } = await sb.from('digiy_subscriptions').select('*').eq('status', 'active').order('current_period_end', { ascending: true });
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>Aucun abonnement actif</div></div>';
+          return;
+        }
+        const html = '<div style="overflow-x:auto"><table><thead><tr><th>Téléphone</th><th>Module</th><th>Plan</th><th>Prix</th><th>Expire le</th><th>Status</th></tr></thead><tbody>' + data.map(sub => {
+          const expireDate = new Date(sub.current_period_end);
+          const isExpired = expireDate < new Date();
+          const daysLeft = Math.ceil((expireDate - new Date()) / (1000 * 60 * 60 * 24));
+          return `<tr><td><strong>${sub.phone}</strong></td><td><span class="module-badge">${sub.module}</span></td><td>${sub.plan}</td><td><strong>${(sub.price_monthly || 0).toLocaleString('fr-FR')} F</strong></td><td>${expireDate.toLocaleDateString('fr-FR')}<br><small style="color:${daysLeft < 7 ? 'var(--danger)' : 'var(--muted)'}">${isExpired ? '⚠️ Expiré' : daysLeft + ' jours'}</small></td><td><span class="badge ${isExpired ? 'badge-pending' : 'badge-active'}">${isExpired ? '⚠️ Expiré' : '✅ Actif'}</span></td></tr>`;
+        }).join('') + '</tbody></table></div>';
+        container.innerHTML = html;
+      } catch (err) {
+        console.error('Erreur:', err);
+        container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur : ' + err.message + '</div></div>';
+      }
+    }
 
-    container.innerHTML = html;
+    async function loadStats() {
+      try {
+        const { data: pending } = await sb.from('pre_registrations').select('id', { count: 'exact' }).eq('status', 'pending_payment');
+        document.getElementById('statPending').textContent = pending?.length || 0;
+        const { data: active } = await sb.from('digiy_subscriptions').select('price_monthly').eq('status', 'active').gt('current_period_end', new Date().toISOString());
+        document.getElementById('statActive').textContent = active?.length || 0;
+        const revenue = active?.reduce((sum, s) => sum + (s.price_monthly || 0), 0) || 0;
+        document.getElementById('statRevenue').textContent = revenue.toLocaleString('fr-FR') + ' F';
+      } catch (err) {
+        console.error('Erreur stats:', err);
+      }
+    }
 
-  } catch (err) {
-    console.error('Erreur chargement actifs:', err);
-    container.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">⚠️</div>
-        <div>Erreur : ${err.message}</div>
-      </div>
-    `;
-  }
-}
+    async function activateSubscription(phone, module, price, months = 1) {
+      if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Activation...';
+      try {
+        const { error: subError } = await sb.from('digiy_subscriptions').insert({ phone: phone, module: module.toUpperCase(), plan: module.toUpperCase() + '_MONTHLY', status: 'active', price_monthly: price, current_period_start: new Date().toISOString(), current_period_end: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString(), created_at: new Date().toISOString() });
+        if (subError) throw subError;
+        const { error: updateError } = await sb.from('pre_registrations').update({ status: 'active', updated_at: new Date().toISOString() }).eq('phone', phone).eq('status', 'pending_payment');
+        if (updateError) throw updateError;
+        alert(`✅ ${module} activé pour ${months} mois !`);
+        loadData();
+      } catch (err) {
+        console.error('Erreur:', err);
+        alert('❌ Erreur : ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '✅ Activer';
+      }
+    }
 
-// ============================================
-// STATS
-// ============================================
-async function loadStats() {
-  try {
-    // Pending
-    const { data: pending } = await sb
-      .from('pre_registrations')
-      .select('id', { count: 'exact' })
-      .eq('status', 'pending_payment');
+    async function rejectInscription(id) {
+      if (!confirm('Refuser cette inscription ?')) return;
+      try {
+        const { error } = await sb.from('pre_registrations').update({ status: 'rejected', updated_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        alert('✅ Inscription refusée');
+        loadData();
+      } catch (err) {
+        console.error('Erreur:', err);
+        alert('❌ Erreur : ' + err.message);
+      }
+    }
 
-    document.getElementById('statPending').textContent = pending?.length || 0;
+    function logout() {
+      if (confirm('Se déconnecter ?')) {
+        sessionStorage.removeItem('digiy_admin_auth');
+        window.location.href = 'login.html';
+      }
+    }
 
-    // Active
-    const { data: active } = await sb
-      .from('digiy_subscriptions')
-      .select('price_monthly')
-      .eq('status', 'active')
-      .gt('current_period_end', new Date().toISOString());
-
-    document.getElementById('statActive').textContent = active?.length || 0;
-
-    // Revenue
-    const revenue = active?.reduce((sum, s) => sum + (s.price_monthly || 0), 0) || 0;
-    document.getElementById('statRevenue').textContent = revenue.toLocaleString('fr-FR') + ' F';
-
-  } catch (err) {
-    console.error('Erreur stats:', err);
-  }
-}
-
-// ============================================
-// ACTIVER ABONNEMENT
-// ============================================
-async function activateSubscription(phone, module, price, months = 1) {
-  if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
-
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = '⏳ Activation...';
-
-  try {
-    // Créer abonnement
-    const { error: subError } = await sb
-      .from('digiy_subscriptions')
-      .insert({
-        phone: phone,
-        module: module.toUpperCase(),
-        plan: module.toUpperCase() + '_MONTHLY',
-        status: 'active',
-        price_monthly: price,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString()
-      });
-
-    if (subError) throw subError;
-
-    // Mettre à jour inscription
-    const { error: updateError } = await sb
-      .from('pre_registrations')
-      .update({
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('phone', phone)
-      .eq('status', 'pending_payment');
-
-    if (updateError) throw updateError;
-
-    alert(`✅ ${module} activé pour ${months} mois !`);
-    loadData();
-
-  } catch (err) {
-    console.error('Erreur activation:', err);
-    alert('❌ Erreur : ' + err.message);
-    btn.disabled = false;
-    btn.textContent = '✅ Activer';
-  }
-}
-
-// ============================================
-// REFUSER INSCRIPTION
-// ============================================
-async function rejectInscription(id) {
-  if (!confirm('Refuser cette inscription ?')) return;
-
-  try {
-    const { error } = await sb
-      .from('pre_registrations')
-      .update({
-        status: 'rejected',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
-
-    if (error) throw error;
-
-    alert('✅ Inscription refusée');
-    loadData();
-
-  } catch (err) {
-    console.error('Erreur rejet:', err);
-    alert('❌ Erreur : ' + err.message);
-  }
-}
-
-// ============================================
-// INIT (PAS DE <script> ICI !)
-// ============================================
-window.addEventListener('load', () => {
-  const ADMIN_PASSWORD = "DIGIY2026";
-
-  const pwd = prompt('🔐 Mot de passe admin DIGIY :');
-  if (pwd !== ADMIN_PASSWORD) {
-    alert('❌ Accès refusé');
-    window.location.href = 'https://digiylyfe.com';
-    return;
-  }
-
-  loadData(); // 🔥 important: lance le chargement après login OK
-});
-</script>
-
+    window.addEventListener('load', () => {
+      const isLoggedIn = sessionStorage.getItem('digiy_admin_auth');
+      if (isLoggedIn !== 'true') {
+        window.location.href = 'login.html';
+        return;
+      }
+      console.log('🦅 DIGIY Admin chargé');
+      loadData();
+      setInterval(loadData, 30000);
+    });
+  </script>
 </body>
 </html>
+```
+
+---
+
+## 📂 **STRUCTURE FINALE**
+```
+digiy-admin/
+├── login.html     ← NOUVEAU (page login mobile-friendly)
+└── index.html     ← MODIFIÉ (avec vérification + déconnexion)
+```
+
+---
+
+## 🎯 **CE QUE TU AS MAINTENANT**
+```
+✅ Page login mobile-friendly
+✅ Clavier tactile fonctionne
+✅ Session persistante (pas de re-login)
+✅ Bouton déconnexion
+✅ Protection complète
+✅ Design DIGIY pro
