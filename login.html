@@ -21,13 +21,16 @@
       box-shadow:0 20px 60px rgba(0,0,0,0.5);
     }
     .logo{
-      width:80px;height:80px;background:linear-gradient(135deg,#facc15,#eab308);
-      border-radius:20px;display:flex;align-items:center;justify-content:center;
+      width:80px;height:80px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      border-radius:20px;
+      display:flex;align-items:center;justify-content:center;
       font-size:40px;margin:0 auto 24px;
       box-shadow:0 0 30px rgba(250,204,21,0.4);
     }
     h1{text-align:center;font-size:28px;font-weight:900;margin-bottom:8px;}
     .subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:22px;line-height:1.35;}
+
     label{
       display:block;font-size:13px;font-weight:700;color:var(--muted);
       margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;
@@ -36,8 +39,8 @@
       width:100%; padding:16px; border-radius:12px;
       border:1px solid rgba(148,163,184,0.3);
       background:rgba(15,23,42,0.8);
-      color:var(--text); font-size:16px; font-weight:700; outline:none; transition:all .2s;
-      letter-spacing:.1em;
+      color:var(--text); font-size:16px; font-weight:700;
+      outline:none; transition:all .2s; letter-spacing:.1em;
     }
     input:focus{
       border-color:var(--accent);
@@ -47,20 +50,38 @@
     .btn{
       width:100%; padding:18px; border:none; border-radius:12px;
       background:linear-gradient(135deg,#facc15,#eab308);
-      color:#0a0e1a; font-size:16px; font-weight:900; cursor:pointer;
-      text-transform:uppercase; letter-spacing:0.08em; transition:all .2s; margin-top:10px;
+      color:#0a0e1a; font-size:16px; font-weight:900;
+      cursor:pointer; text-transform:uppercase;
+      letter-spacing:0.08em; transition:all .2s; margin-top:10px;
     }
-    .btn:hover{ transform:translateY(-2px); box-shadow:0 12px 28px rgba(250,204,21,0.4); }
-    .btn:disabled{ opacity:0.65; cursor:not-allowed; transform:none; box-shadow:none; }
+    .btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 28px rgba(250,204,21,0.4);
+    }
+    .btn:disabled{opacity:0.65;cursor:not-allowed;transform:none;box-shadow:none;}
+
     .msg{
-      padding:12px; border-radius:10px; font-size:14px; font-weight:700;
+      padding:12px; border-radius:10px;
+      font-size:14px; font-weight:700;
       margin-bottom:16px; display:none; line-height:1.35;
     }
-    .msg.show{ display:block; }
-    .msg.err{ background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
-    .msg.ok{ background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); color:#22c55e; }
+    .msg.show{display:block}
+    .msg.err{
+      background:rgba(239,68,68,0.1);
+      border:1px solid rgba(239,68,68,0.3);
+      color:#ef4444;
+    }
+    .msg.ok{
+      background:rgba(34,197,94,0.1);
+      border:1px solid rgba(34,197,94,0.3);
+      color:#22c55e;
+    }
 
-    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+    @keyframes shake{
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-10px)}
+      75%{transform:translateX(10px)}
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -77,44 +98,55 @@
 
     <form id="f">
       <label for="pin">PIN Admin</label>
-      <input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="••••" required>
+      <input id="pin" type="password" inputmode="numeric"
+             autocomplete="one-time-code" placeholder="••••" required>
       <button class="btn" id="btn" type="submit">🔓 Se connecter</button>
     </form>
   </div>
 
   <script>
-    // ===== Supabase (clé complète)
+    /* =============================
+       SUPABASE
+    ============================== */
     const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
     const SUPABASE_ANON_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
 
-    const sb = window.__digiy_sb || (window.__digiy_sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
+    const sb = window.__digiy_sb_admin
+      || (window.__digiy_sb_admin = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
 
-    // ===== Storage
-    const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
+    /* =============================
+       STORAGE KEYS
+    ============================== */
+    const KEY = {
+      token: "digiy_admin_token",
+      exp:   "digiy_admin_exp",
+      role:  "digiy_admin_role",
+      label: "digiy_admin_label"
+    };
 
     const $ = (id)=>document.getElementById(id);
     const f = $("f"), pin = $("pin"), btn = $("btn"), err = $("err"), ok = $("ok");
 
-    function show(el, text){
-      el.textContent = text || "—";
-      el.classList.add("show");
-    }
+    function show(el, text){ el.textContent=text||"—"; el.classList.add("show"); }
     function hide(el){ el.classList.remove("show"); }
 
     function hasValidToken(){
       const tok = localStorage.getItem(KEY.token) || "";
       const exp = Number(localStorage.getItem(KEY.exp) || "0");
-      return !!tok && !!exp && Date.now() < exp;
+      return !!tok && Date.now() < exp;
     }
 
-    // déjà connecté → index
+    // Déjà connecté
     if(hasValidToken()){
       location.replace("index.html");
     }
 
     pin.focus();
 
+    /* =============================
+       LOGIN SUBMIT
+    ============================== */
     f.addEventListener("submit", async (e)=>{
       e.preventDefault();
       hide(err); hide(ok);
@@ -122,7 +154,7 @@
       const p = (pin.value||"").trim();
       if(!p || p.length < 4){
         show(err, "PIN invalide (4+ chiffres).");
-        pin.value = ""; pin.focus();
+        pin.value=""; pin.focus();
         return;
       }
 
@@ -133,32 +165,34 @@
       try{
         const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: p });
         if(error) throw error;
-        localStorage.setItem("digiy_admin_role", data.role || "OPS");
-localStorage.setItem("digiy_admin_label", data.label || "—");
+
         if(!data || data.ok !== true || !data.token || !data.exp){
-          show(err, "❌ Mauvais PIN ou RPC invalide.");
-          pin.value = ""; pin.focus();
-          pin.style.animation = "shake .5s";
-          setTimeout(()=>pin.style.animation="", 520);
-          btn.disabled = false;
-          btn.textContent = "🔓 Se connecter";
+          show(err, "❌ Mauvais PIN.");
+          pin.value=""; pin.focus();
+          pin.style.animation="shake .5s";
+          setTimeout(()=>pin.style.animation="",520);
+          btn.disabled=false;
+          btn.textContent="🔓 Se connecter";
           hide(ok);
           return;
         }
 
+        /* ===== STOCKAGE PROPRE ===== */
         localStorage.setItem(KEY.token, String(data.token));
-        localStorage.setItem(KEY.exp, String(data.exp));
+        localStorage.setItem(KEY.exp,   String(data.exp));
+        localStorage.setItem(KEY.role,  String(data.role || "OPS"));
+        localStorage.setItem(KEY.label, String(data.label || "—"));
 
         show(ok, "✅ OK. Redirection…");
-        btn.textContent = "✅ Connexion…";
+        btn.textContent="✅ Connexion…";
+        setTimeout(()=>location.replace("index.html"),350);
 
-        setTimeout(()=> location.replace("index.html"), 350);
       }catch(ex){
         console.error(ex);
         hide(ok);
-        show(err, "⚠️ Erreur: " + String(ex?.message || ex));
-        btn.disabled = false;
-        btn.textContent = "🔓 Se connecter";
+        show(err,"⚠️ Erreur: "+String(ex?.message||ex));
+        btn.disabled=false;
+        btn.textContent="🔓 Se connecter";
       }
     });
   </script>
