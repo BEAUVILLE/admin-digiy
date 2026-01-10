@@ -289,350 +289,223 @@
   </div>
 
   <script>
-    // =============================
-    // SUPABASE
-    // =============================
-    const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
 
-    // =============================
-    // ADMIN TOKEN STORAGE
-    // =============================
-    const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
+  const sb = window.__digiy_sb_admin || (window.__digiy_sb_admin = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
 
-    const SUPPORT_WA = "+221771342889"; // signature support DIGIY
+  const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
 
-    const $ = (id)=>document.getElementById(id);
-
-    function fmtXOF(n){
-      n = Number(n||0);
-      if(!isFinite(n) || n<=0) return "-";
-      return n.toLocaleString("fr-FR") + " F";
+  function getTokenOrKick(){
+    const tok = localStorage.getItem(KEY.token) || "";
+    const exp = Number(localStorage.getItem(KEY.exp) || "0");
+    if(!tok || !exp || Date.now() > exp){
+      location.replace("login.html");
+      return "";
     }
-    function nowMs(){ return Date.now(); }
-    function hasValidToken(){
-      const tok = localStorage.getItem(KEY.token) || "";
-      const exp = Number(localStorage.getItem(KEY.exp) || "0");
-      return !!tok && !!exp && nowMs() < exp;
-    }
-    function getToken(){
-      if(!hasValidToken()) return "";
-      return localStorage.getItem(KEY.token) || "";
-    }
+    return tok;
+  }
 
-    function toast(id, msg){ $(id).textContent = msg || "—"; }
+  async function loadStats(){
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
 
-    function showPinModal(show){
-      $("pinModal").style.display = show ? "flex" : "none";
-      if(show) setTimeout(()=> $("pin").focus(), 50);
-    }
-
-    async function loginPin(){
-      const pin = ($("pin").value || "").trim();
-      if(!pin || pin.length < 4){
-        toast("pinMsg", "❌ PIN invalide (4+ chiffres).");
-        return;
-      }
-      toast("pinMsg", "⏳ Connexion...");
-      try{
-        const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: pin });
-        if(error) throw error;
-        if(!data || data.ok !== true){
-          toast("pinMsg", "❌ Mauvais PIN.");
-          return;
-        }
-        localStorage.setItem(KEY.token, String(data.token));
-        localStorage.setItem(KEY.exp, String(data.exp));
-        $("pin").value = "";
-        toast("pinMsg", "✅ Connecté. Token 8h.");
-        showPinModal(false);
-        await loadData();
-      }catch(e){
-        console.log("DEBUG:", JSON.stringify(data, null, 2));
-        toast("pinMsg", "🔴 Erreur: " + String(e?.message || e));
-      }
-    }
-
-    function logout(){
-      try{ localStorage.removeItem(KEY.token); localStorage.removeItem(KEY.exp); }catch(_){}
-      toast("toastPending", "Déconnecté.");
-      toast("toastActive", "Déconnecté.");
-      showPinModal(true);
-    }
-
-    function wa(phone, msg){
-      const url = "https://wa.me/" + String(phone||"").replace(/\+/g,"") + "?text=" + encodeURIComponent(msg);
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-
-    // =============================
-    // LOAD DATA (RPC ONLY)
-    // =============================
-    async function loadStats(){
-      const tok = getToken();
       const { data, error } = await sb.rpc("digiy_admin_stats", { p_token: tok });
       if(error) throw error;
-      if(!data || data.ok !== true) throw new Error(data?.reason || "NOT_ADMIN");
+      if(!data?.ok) throw new Error(data?.reason || "stats_failed");
 
-      $("statPending").textContent = data.pending ?? 0;
-      $("statActive").textContent = data.active ?? 0;
-      $("statRevenue").textContent = fmtXOF(data.revenue_month ?? 0);
+      document.getElementById("statPending").textContent = data.pending_count ?? 0;
+      document.getElementById("statActive").textContent  = data.active_count ?? 0;
+      document.getElementById("statRevenue").textContent =
+        Number(data.revenue_month ?? 0).toLocaleString("fr-FR") + " F";
+
+      console.log("✅ stats OK", data);
+    }catch(err){
+      console.error("❌ stats error:", err);
     }
+  }
 
-    async function loadPending(){
-      const container = $("pendingList");
-      container.innerHTML = `<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>`;
-      const tok = getToken();
+  async function loadPendingInscriptions(){
+    const container = document.getElementById("pendingList");
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>';
+
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
 
       const { data, error } = await sb.rpc("digiy_admin_list_requests", {
         p_token: tok,
-        p_status: "pending",
-        p_limit: 120
+        p_status: "pending_payment",
+        p_limit: 200
       });
       if(error) throw error;
 
-      const list = Array.isArray(data) ? data : [];
-      toast("toastPending", `✅ ${list.length} demande(s) en attente.`);
-
-      if(!list.length){
-        container.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div>Aucune demande en attente</div></div>`;
+      if(!data || data.length === 0){
+        container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>Aucune demande en attente</div></div>';
         return;
       }
 
-      container.innerHTML = list.map(item=>{
-        const createdDate = new Date(item.created_at).toLocaleString('fr-FR');
-        const price = item.amount_xof || 0;
-        const mod = (item.module || "—");
-        const plan = (item.plan || "—");
+      container.innerHTML = data.map(item => {
+        const price = (item?.partner_data?.price) ? Number(item.partner_data.price) : 9900;
+        const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString("fr-FR") : "—";
+        const module = (item.preferred_module || "—");
 
         return `
           <div class="inscription-card">
             <div class="inscription-header">
               <div class="inscription-info">
-                <h3>${item.phone || "—"}</h3>
+                <h3>${item.full_name || "—"}</h3>
                 <div class="inscription-details">
-                  📦 <b>${mod}</b> • plan: ${plan}<br>
-                  🏷️ ${item.slug || "—"}<br>
-                  🧾 preuve: ${item.proof_text || "—"}<br>
+                  📱 ${item.phone || "—"}<br>
+                  📍 ${item.city || "—"}${item.address ? ", " + item.address : ""}<br>
                   📅 ${createdDate}
                 </div>
               </div>
               <div>
-                <div class="module-badge">${mod}</div>
-                <div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">
-                  ${fmtXOF(price)}
-                </div>
+                <div class="module-badge">${module}</div>
+                <div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">${price.toLocaleString("fr-FR")} F/mois</div>
               </div>
             </div>
 
             <div class="actions">
-              <button class="btn btn-success" data-act="approve" data-id="${item.id}" data-phone="${item.phone}" data-module="${mod}" data-plan="${plan}" data-months="1">
-                ✅ Activer (1 mois)
-              </button>
-              <button class="btn btn-secondary" data-act="approve" data-id="${item.id}" data-phone="${item.phone}" data-module="${mod}" data-plan="${plan}" data-months="3">
-                ✅ Activer (3 mois)
-              </button>
-              <button class="btn btn-danger" data-act="reject" data-id="${item.id}">
-                ❌ Refuser
-              </button>
-              <button class="btn btn-secondary" data-act="wa" data-phone="${item.phone}" data-module="${mod}" data-plan="${plan}">
-                💬 WhatsApp
-              </button>
+              <button class="btn btn-success" onclick="approveReq('${item.phone}','${module}',${price},1)">✅ Activer (1 mois)</button>
+              <button class="btn btn-secondary" onclick="approveReq('${item.phone}','${module}',${price},3)">✅ Activer (3 mois)</button>
+              <button class="btn btn-danger" onclick="rejectReq('${item.id}')">❌ Refuser</button>
             </div>
-          </div>
-        `;
-      }).join('');
-
-      container.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async (ev)=>{
-          const act = btn.getAttribute("data-act");
-          const id = btn.getAttribute("data-id");
-          const phone = btn.getAttribute("data-phone");
-          const mod = btn.getAttribute("data-module");
-          const plan = btn.getAttribute("data-plan");
-          const months = Number(btn.getAttribute("data-months") || "1");
-
-          if(act === "wa"){
-            const msg =
-`DIGIY • Paiement en cours
-
-📦 Module: ${mod}
-🧾 Plan: ${plan}
-📱 Téléphone: ${phone}
-
-Envoie le reçu Wave ici et on active.
-
-— DIGIY`;
-            wa(phone, msg);
-            return;
-          }
-
-          if(act === "reject"){
-            const note = prompt("Motif (optionnel) :", "Paiement non trouvé / reçu illisible / montant incorrect");
-            btn.disabled = true;
-            btn.textContent = "⏳ Refus...";
-            try{
-              const tok = getToken();
-              const { data, error } = await sb.rpc("digiy_admin_reject_request", {
-                p_token: tok,
-                p_request_id: id,
-                p_note: note || null
-              });
-              if(error) throw error;
-              if(!data || data.ok !== true) throw new Error(data?.reason || "REJECT_FAILED");
-              await loadData();
-            }catch(e){
-              console.error(e);
-              alert("❌ Erreur: " + String(e?.message || e));
-              btn.disabled = false;
-              btn.textContent = "❌ Refuser";
-            }
-            return;
-          }
-
-          if(act === "approve"){
-            const ok = confirm(`Activer ${mod} pour ${phone} (${months} mois) ?`);
-            if(!ok) return;
-
-            btn.disabled = true;
-            btn.textContent = "⏳ Activation...";
-            try{
-              const tok = getToken();
-
-              // 1) approve request -> creates access
-              const note = "Paiement vérifié Wave ✅";
-              const { data, error } = await sb.rpc("digiy_admin_approve_request", {
-                p_token: tok,
-                p_request_id: id,
-                p_note: note,
-                p_active_until: null
-              });
-              if(error) throw error;
-              if(!data || data.ok !== true) throw new Error(data?.reason || "APPROVE_FAILED");
-
-              // 2) set active_until (1/3 mois)
-              const { data: d2, error: e2 } = await sb.rpc("digiy_admin_set_active_until", {
-                p_token: tok,
-                p_phone: phone,
-                p_module: mod,
-                p_months: months
-              });
-              if(e2) throw e2;
-              if(!d2 || d2.ok !== true) throw new Error(d2?.reason || "SET_UNTIL_FAILED");
-
-              // 3) WhatsApp pro (option)
-              const send = confirm("Envoyer WhatsApp au pro (Activation OK) ?");
-              if(send){
-                const msg =
-`DIGIY • Activation OK ✅
-
-📦 Module: ${mod}
-🧾 Plan: ${plan}
-📱 Téléphone: ${phone}
-
-Ton accès est ACTIVÉ.
-Retourne dans l’app → “Rafraîchir statut” → ACTIF.
-
-— DIGIY`;
-                wa(phone, msg);
-              }
-
-              await loadData();
-            }catch(e){
-              console.error(e);
-              alert("❌ Erreur: " + String(e?.message || e));
-              btn.disabled = false;
-              btn.textContent = months === 3 ? "✅ Activer (3 mois)" : "✅ Activer (1 mois)";
-            }
-          }
-        });
-      });
+          </div>`;
+      }).join("");
+    }catch(err){
+      console.error("❌ pending error:", err);
+      container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur: '+(err.message||err)+'</div></div>';
     }
+  }
 
-    async function loadActive(){
-      const container = $("activeList");
-      container.innerHTML = `<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>`;
-      const tok = getToken();
+  async function loadActiveSubscriptions(){
+    const container = document.getElementById("activeList");
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>';
 
-      const { data, error } = await sb.rpc("digiy_admin_list_active", { p_token: tok, p_limit: 200 });
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
+
+      const { data, error } = await sb.rpc("digiy_admin_list_active", { p_token: tok, p_limit: 500 });
       if(error) throw error;
 
-      const list = Array.isArray(data) ? data : [];
-      toast("toastActive", `✅ ${list.length} accès actif(s).`);
-
-      if(!list.length){
-        container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div>Aucun accès actif</div></div>`;
+      if(!data || data.length === 0){
+        container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>Aucun abonnement actif</div></div>';
         return;
       }
 
-      const html =
-        `<div style="overflow-x:auto">
+      const now = new Date();
+      const rows = data.map(sub=>{
+        const expDate = sub.current_period_end ? new Date(sub.current_period_end) : null;
+        const isExpired = expDate ? (expDate < now) : false;
+        const daysLeft = expDate ? Math.ceil((expDate - now) / (1000*60*60*24)) : null;
+
+        return `
+          <tr>
+            <td><strong>${sub.phone}</strong></td>
+            <td><span class="module-badge">${sub.module}</span></td>
+            <td>${sub.plan || "—"}</td>
+            <td><strong>${Number(sub.price_monthly||0).toLocaleString("fr-FR")} F</strong></td>
+            <td>
+              ${expDate ? expDate.toLocaleDateString("fr-FR") : "—"}<br>
+              <small style="color:${(daysLeft!==null && daysLeft<7) ? "var(--danger)" : "var(--muted)"}">
+                ${isExpired ? "⚠️ Expiré" : (daysLeft!==null ? (daysLeft+" jours") : "—")}
+              </small>
+            </td>
+            <td>
+              <span class="badge ${isExpired ? "badge-pending" : "badge-active"}">
+                ${isExpired ? "⚠️ Expiré" : "✅ Actif"}
+              </span>
+            </td>
+          </tr>`;
+      }).join("");
+
+      container.innerHTML = `
+        <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr>
-                <th>Téléphone</th>
-                <th>Module</th>
-                <th>Plan</th>
-                <th>Expire le</th>
-                <th>Status</th>
-              </tr>
+              <tr><th>Téléphone</th><th>Module</th><th>Plan</th><th>Prix</th><th>Expire le</th><th>Status</th></tr>
             </thead>
-            <tbody>
-              ${list.map(a=>{
-                const exp = a.active_until ? new Date(a.active_until) : null;
-                const expTxt = exp ? exp.toLocaleDateString("fr-FR") : "—";
-                const active = true;
-                return `
-                  <tr>
-                    <td><strong>${a.phone}</strong></td>
-                    <td><span class="module-badge">${a.module}</span></td>
-                    <td>${a.plan || "—"}</td>
-                    <td>${expTxt}</td>
-                    <td><span class="badge badge-active">✅ Actif</span></td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
+            <tbody>${rows}</tbody>
           </table>
         </div>`;
-
-      container.innerHTML = html;
+    }catch(err){
+      console.error("❌ active error:", err);
+      container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur: '+(err.message||err)+'</div></div>';
     }
+  }
 
-    async function loadData(){
-      if(!hasValidToken()){
-        showPinModal(true);
-        return;
-      }
-      try{
-        await loadStats();
-        await loadPending();
-        await loadActive();
-      }catch(e){
-        console.error(e);
-        toast("toastPending", "🔴 Erreur: " + String(e?.message || e));
-        toast("toastActive", "🔴 Erreur: " + String(e?.message || e));
-        // token invalide -> re-login
-        showPinModal(true);
-      }
-    }
+  async function approveReq(phone, module, price, months){
+    if(!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
 
-    // Buttons
-    $("btnRefresh").addEventListener("click", loadData);
-    $("btnLogout").addEventListener("click", ()=>{ if(confirm("Se déconnecter ?")) logout(); });
+      const { data, error } = await sb.rpc("digiy_admin_approve_request", {
+        p_token: tok,
+        p_phone: phone,
+        p_module: module,
+        p_price_monthly: price,
+        p_months: months
+      });
+      if(error) throw error;
+      if(!data?.ok) throw new Error(data?.reason || "approve_failed");
 
-    $("btnCancelPin").addEventListener("click", ()=>{ /* stay locked */ });
-    $("btnLoginPin").addEventListener("click", loginPin);
-    $("pin").addEventListener("keydown", (e)=>{ if(e.key==="Enter") loginPin(); });
-
-    // Boot
-    window.addEventListener("load", ()=>{
-      if(!hasValidToken()) showPinModal(true);
+      alert("✅ Activé (" + (data.mode || "ok") + ")");
       loadData();
-      setInterval(loadData, 30000); // auto-refresh 30s
-    });
-  </script>
+    }catch(err){
+      console.error("❌ approve error:", err);
+      alert("❌ Erreur: " + (err.message||err));
+    }
+  }
+
+  async function rejectReq(id){
+    if(!confirm("Refuser cette demande ?")) return;
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
+
+      const { data, error } = await sb.rpc("digiy_admin_reject_request", { p_token: tok, p_id: id });
+      if(error) throw error;
+      if(!data?.ok) throw new Error(data?.reason || "reject_failed");
+
+      alert("✅ Refusé");
+      loadData();
+    }catch(err){
+      console.error("❌ reject error:", err);
+      alert("❌ Erreur: " + (err.message||err));
+    }
+  }
+
+  async function loadData(){
+    console.log("🔄 loadData", new Date().toISOString());
+    await Promise.all([
+      loadPendingInscriptions(),
+      loadActiveSubscriptions(),
+      loadStats()
+    ]);
+  }
+
+  function logout(){
+    if(confirm("Se déconnecter ?")){
+      localStorage.removeItem(KEY.token);
+      localStorage.removeItem(KEY.exp);
+      location.replace("login.html");
+    }
+  }
+  window.logout = logout;
+
+  window.addEventListener("load", ()=>{
+    getTokenOrKick();
+    console.log("🦅 DIGIY Admin (RPC) chargé");
+    loadData();
+    setInterval(loadData, 30000);
+  });
+</script>
+
 </body>
 </html>
