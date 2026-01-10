@@ -41,7 +41,10 @@
       padding:10px 16px;border:none;border-radius:10px;
       font-size:14px;font-weight:800;cursor:pointer;
       display:inline-flex;align-items:center;gap:6px;
+      transition:transform .08s ease, opacity .12s ease;
     }
+    .btn:active{transform:translateY(1px)}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
     .btn-success{background:var(--success);color:#fff;}
     .btn-danger{background:var(--danger);color:#fff;}
     .btn-secondary{
@@ -58,7 +61,7 @@
       border-radius:16px;border:1px solid var(--border);
       padding:24px;margin-bottom:24px;
     }
-    .actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
     .empty{text-align:center;padding:40px;color:var(--muted);}
     .err{
       margin-top:10px;
@@ -71,6 +74,16 @@
       line-height:1.35;
       white-space:pre-wrap;
     }
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-weight:800;font-size:13px;
+      margin-top:10px;
+    }
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -115,10 +128,7 @@ const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
    SUPABASE CLIENT (UNIQUE)
 ========================================================= */
 const sb = window.__digiy_sb_admin
-  || (window.__digiy_sb_admin = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  ));
+  || (window.__digiy_sb_admin = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
 
 /* =========================================================
    UTILS
@@ -155,6 +165,12 @@ function logout(){
   }
 }
 
+function disableAllActionButtons(disabled){
+  document.querySelectorAll("[data-action-btn='1']").forEach(b=>{
+    b.disabled = !!disabled;
+  });
+}
+
 /* =========================================================
    🔐 ADMIN CHECK (TOKEN-BASED)
 ========================================================= */
@@ -174,6 +190,72 @@ async function checkAdmin(){
   IS_ADMIN = (data === true);
   return IS_ADMIN;
 }
+
+/* =========================================================
+   ACTIONS (RPC)
+========================================================= */
+window.approveReq = async function(phone, module, price, months){
+  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
+  if(!confirm(`Activer ${String(module||"").toUpperCase()} pour ${phone} (${months} mois) ?`)) return;
+
+  disableAllActionButtons(true);
+  showErr("pendingErr", null);
+
+  try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
+    const { data, error } = await sb.rpc("digiy_admin_approve_request", {
+      p_token: tok,
+      p_phone: phone,
+      p_module: module,
+      p_price_monthly: Number(price || 9900),
+      p_months: Number(months || 1)
+    });
+
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.reason || "approve_failed");
+
+    alert("✅ Activé");
+    await loadPending();
+
+  }catch(err){
+    console.error("approveReq error:", err);
+    alert("❌ " + (err?.message || err));
+  }finally{
+    disableAllActionButtons(false);
+  }
+};
+
+window.rejectReq = async function(id){
+  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
+  if(!confirm("Refuser cette demande ?")) return;
+
+  disableAllActionButtons(true);
+  showErr("pendingErr", null);
+
+  try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
+    const { data, error } = await sb.rpc("digiy_admin_reject_request", {
+      p_token: tok,
+      p_id: id
+    });
+
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.reason || "reject_failed");
+
+    alert("✅ Refusé");
+    await loadPending();
+
+  }catch(err){
+    console.error("rejectReq error:", err);
+    alert("❌ " + (err?.message || err));
+  }finally{
+    disableAllActionButtons(false);
+  }
+};
 
 /* =========================================================
    DATA
@@ -205,16 +287,66 @@ async function loadPending(){
     return;
   }
 
-  $("pendingList").innerHTML = data.map(item => `
-    <div class="section">
-      <b>${item.full_name || "—"}</b><br>
-      📱 ${item.phone || "—"}<br>
-      <div class="actions">
-        <button class="btn btn-success">Activer</button>
-        <button class="btn btn-danger">Refuser</button>
+  $("pendingList").innerHTML = data.map(item => {
+    const name   = item.full_name || item.business_name || item.slug || "—";
+    const phone  = item.phone || "—";
+    const module = (item.preferred_module || item.module || "LOC");
+    const price  = Number(item?.partner_data?.price || item.price_monthly || 9900);
+    const reqId  = item.id || item.request_id || item.inscription_id || null;
+
+    return `
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div>
+            <div style="font-weight:900;font-size:18px">${escapeHtml(String(name))}</div>
+            <div class="chip">📱 <span class="mono">${escapeHtml(String(phone))}</span></div>
+            <div class="chip">📦 <span class="mono">${escapeHtml(String(module).toUpperCase())}</span> • 💰 <span class="mono">${price.toLocaleString("fr-FR")} F</span></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button data-action-btn="1" class="btn btn-success"
+            onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},1)">
+            Activer (1 mois)
+          </button>
+
+          <button data-action-btn="1" class="btn btn-secondary"
+            onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},3)">
+            Activer (3 mois)
+          </button>
+
+          <button data-action-btn="1" class="btn btn-danger"
+            onclick="rejectReq('${escapeAttr(String(reqId || ""))}')"
+            ${reqId ? "" : "disabled"}
+            title="${reqId ? "Refuser" : "ID manquant dans le retour RPC"}">
+            Refuser
+          </button>
+        </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
+
+  // si non-admin, on masque les boutons sensibles (sécurité UX)
+  if(!IS_ADMIN){
+    document.querySelectorAll(".btn-success,.btn-danger,.btn-secondary").forEach(b=>{
+      b.style.display = "none";
+    });
+  }
+}
+
+/* =========================================================
+   SAFETY HELPERS (anti injection dans HTML)
+========================================================= */
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(s){
+  return escapeHtml(s).replaceAll("`","&#096;");
 }
 
 /* =========================================================
@@ -226,7 +358,7 @@ window.addEventListener("load", async ()=>{
   await checkAdmin();
 
   if(!IS_ADMIN){
-    document.querySelectorAll(".btn-success,.btn-danger").forEach(b=>{
+    document.querySelectorAll(".btn-success,.btn-danger,.btn-secondary").forEach(b=>{
       b.style.display = "none";
     });
   }
