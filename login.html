@@ -133,7 +133,8 @@
       try{
         const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: p });
         if(error) throw error;
-
+        localStorage.setItem("digiy_admin_role", data.role || "OPS");
+localStorage.setItem("digiy_admin_label", data.label || "—");
         if(!data || data.ok !== true || !data.token || !data.exp){
           show(err, "❌ Mauvais PIN ou RPC invalide.");
           pin.value = ""; pin.focus();
