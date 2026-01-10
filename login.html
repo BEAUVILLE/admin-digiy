@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login Admin DIGIY</title>
-  
+
   <style>
     :root{
       --bg:#0a0e1a;
@@ -12,9 +12,9 @@
       --text:#e5e7eb;
       --muted:#9ca3af;
     }
-    
+
     *{box-sizing:border-box;margin:0;padding:0}
-    
+
     body{
       margin:0;
       min-height:100vh;
@@ -26,7 +26,7 @@
       font-family:system-ui,sans-serif;
       padding:20px;
     }
-    
+
     .login-card{
       background:rgba(26,31,46,0.95);
       backdrop-filter:blur(10px);
@@ -37,7 +37,7 @@
       width:100%;
       box-shadow:0 20px 60px rgba(0,0,0,0.5);
     }
-    
+
     .logo{
       width:80px;
       height:80px;
@@ -50,25 +50,32 @@
       margin:0 auto 24px;
       box-shadow:0 0 30px rgba(250,204,21,0.4);
     }
-    
+
     h1{
       text-align:center;
       font-size:28px;
       font-weight:900;
       margin-bottom:8px;
     }
-    
+
     .subtitle{
       text-align:center;
       color:var(--muted);
       font-size:14px;
-      margin-bottom:32px;
+      margin-bottom:22px;
+      line-height:1.35;
     }
-    
-    .form-group{
-      margin-bottom:20px;
+
+    .hint{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:18px;
+      opacity:.9;
     }
-    
+
+    .form-group{ margin-bottom:18px; }
+
     label{
       display:block;
       font-size:13px;
@@ -78,7 +85,7 @@
       text-transform:uppercase;
       letter-spacing:0.05em;
     }
-    
+
     input{
       width:100%;
       padding:16px;
@@ -87,17 +94,18 @@
       background:rgba(15,23,42,0.8);
       color:var(--text);
       font-size:16px;
-      font-weight:600;
+      font-weight:700;
       outline:none;
       transition:all .2s;
+      letter-spacing:.1em;
     }
-    
+
     input:focus{
       border-color:var(--accent);
       box-shadow:0 0 0 3px rgba(250,204,21,0.2);
       background:rgba(15,23,42,0.95);
     }
-    
+
     .btn{
       width:100%;
       padding:18px;
@@ -113,18 +121,19 @@
       transition:all .2s;
       margin-top:8px;
     }
-    
+
     .btn:hover{
       transform:translateY(-2px);
       box-shadow:0 12px 28px rgba(250,204,21,0.4);
     }
-    
+
     .btn:disabled{
-      opacity:0.6;
+      opacity:0.65;
       cursor:not-allowed;
       transform:none;
+      box-shadow:none;
     }
-    
+
     .error{
       background:rgba(239,68,68,0.1);
       border:1px solid rgba(239,68,68,0.3);
@@ -132,105 +141,166 @@
       padding:12px;
       border-radius:10px;
       font-size:14px;
-      font-weight:600;
-      margin-bottom:20px;
+      font-weight:700;
+      margin-bottom:16px;
+      display:none;
+      line-height:1.35;
+    }
+    .error.show{ display:block; }
+
+    .ok{
+      background:rgba(34,197,94,0.1);
+      border:1px solid rgba(34,197,94,0.3);
+      color:#22c55e;
+      padding:12px;
+      border-radius:10px;
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:16px;
       display:none;
     }
-    
-    .error.show{
-      display:block;
-    }
-    
+    .ok.show{ display:block; }
+
     @media(max-width:500px){
       .login-card{padding:30px 20px}
       h1{font-size:24px}
     }
+
+    @keyframes shake{
+      0%,100%{ transform:translateX(0); }
+      25%{ transform:translateX(-10px); }
+      75%{ transform:translateX(10px); }
+    }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="login-card">
     <div class="logo">🦅</div>
     <h1>DIGIY Admin</h1>
-    <div class="subtitle">Connexion sécurisée</div>
-    
-    <div class="error" id="errorMsg">Mot de passe incorrect</div>
-    
+    <div class="subtitle">Connexion sécurisée (PIN Admin)</div>
+    <div class="hint">Token valable 8h • Ne partage pas ce PIN</div>
+
+    <div class="error" id="errorMsg">PIN incorrect</div>
+    <div class="ok" id="okMsg">✅ Connexion…</div>
+
     <form id="loginForm">
       <div class="form-group">
-        <label for="password">Mot de passe</label>
-        <input 
-          type="password" 
-          id="password" 
-          placeholder="Entrez le mot de passe"
-          autocomplete="current-password"
+        <label for="pin">PIN Admin</label>
+        <input
+          type="password"
+          id="pin"
+          placeholder="••••"
+          inputmode="numeric"
+          autocomplete="one-time-code"
           required
         >
       </div>
-      
-      <button type="submit" class="btn" id="loginBtn">
-        🔓 Se connecter
-      </button>
+
+      <button type="submit" class="btn" id="loginBtn">🔓 Se connecter</button>
     </form>
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "DIGIY2026"; // Change ce mot de passe !
-    
+    // =============================
+    // SUPABASE
+    // =============================
+    const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
+    const SUPABASE_ANON_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // =============================
+    // TOKEN STORAGE (8h)
+    // =============================
+    const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
+
     const form = document.getElementById('loginForm');
-    const passwordInput = document.getElementById('password');
+    const pinInput = document.getElementById('pin');
     const loginBtn = document.getElementById('loginBtn');
     const errorMsg = document.getElementById('errorMsg');
-    
-    // Vérifier si déjà connecté
-    const isLoggedIn = sessionStorage.getItem('digiy_admin_auth');
-    if (isLoggedIn === 'true') {
+    const okMsg = document.getElementById('okMsg');
+
+    function hasValidToken(){
+      const tok = localStorage.getItem(KEY.token) || "";
+      const exp = Number(localStorage.getItem(KEY.exp) || "0");
+      return !!tok && !!exp && Date.now() < exp;
+    }
+
+    // déjà connecté -> go index
+    if (hasValidToken()) {
       window.location.href = 'index.html';
     }
-    
-    // Focus automatique sur le champ
-    passwordInput.focus();
-    
-    form.addEventListener('submit', (e) => {
+
+    // Focus auto
+    pinInput.focus();
+
+    function showError(msg){
+      errorMsg.textContent = msg || "PIN incorrect";
+      errorMsg.classList.add('show');
+      okMsg.classList.remove('show');
+    }
+    function clearError(){
+      errorMsg.classList.remove('show');
+    }
+    function showOk(msg){
+      okMsg.textContent = msg || "✅ Connexion…";
+      okMsg.classList.add('show');
+      errorMsg.classList.remove('show');
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const password = passwordInput.value.trim();
-      
-      if (password === ADMIN_PASSWORD) {
-        // Connexion réussie
-        sessionStorage.setItem('digiy_admin_auth', 'true');
-        loginBtn.textContent = '✅ Connexion...';
-        loginBtn.disabled = true;
-        
+      clearError();
+
+      const pin = (pinInput.value || "").trim();
+      if(!pin || pin.length < 4){
+        showError("PIN invalide (4+ chiffres).");
+        pinInput.value = "";
+        pinInput.focus();
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = "⏳ Vérification…";
+      showOk("⏳ Connexion sécurisée…");
+
+      try{
+        const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: pin });
+        if(error) throw error;
+
+        if(!data || data.ok !== true){
+          showError("❌ Mauvais PIN.");
+          pinInput.value = "";
+          pinInput.focus();
+          pinInput.style.animation = 'shake 0.5s';
+          setTimeout(()=> pinInput.style.animation = '', 500);
+          loginBtn.disabled = false;
+          loginBtn.textContent = "🔓 Se connecter";
+          return;
+        }
+
+        // store token + exp (ms)
+        localStorage.setItem(KEY.token, String(data.token));
+        localStorage.setItem(KEY.exp, String(data.exp));
+
+        showOk("✅ OK. Redirection…");
+        loginBtn.textContent = "✅ Connexion…";
+
         setTimeout(() => {
           window.location.href = 'index.html';
-        }, 500);
-      } else {
-        // Erreur
-        errorMsg.classList.add('show');
-        passwordInput.value = '';
-        passwordInput.focus();
-        
-        // Secouer l'input
-        passwordInput.style.animation = 'shake 0.5s';
-        setTimeout(() => {
-          passwordInput.style.animation = '';
-        }, 500);
-        
-        // Cacher l'erreur après 3s
-        setTimeout(() => {
-          errorMsg.classList.remove('show');
-        }, 3000);
+        }, 450);
+
+      }catch(err){
+        console.error(err);
+        showError("⚠️ Erreur réseau / Supabase: " + String(err?.message || err));
+        loginBtn.disabled = false;
+        loginBtn.textContent = "🔓 Se connecter";
       }
     });
   </script>
-  
-  <style>
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
-  </style>
 </body>
 </html>
