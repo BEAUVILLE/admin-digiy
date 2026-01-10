@@ -7,14 +7,9 @@
 
   <style>
     :root{
-      --bg:#0a0e1a;
-      --card:#1a1f2e;
-      --accent:#facc15;
-      --success:#22c55e;
-      --danger:#ef4444;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --border:rgba(148,163,184,0.2);
+      --bg:#0a0e1a; --card:#1a1f2e; --accent:#facc15;
+      --success:#22c55e; --danger:#ef4444; --text:#e5e7eb;
+      --muted:#9ca3af; --border:rgba(148,163,184,0.2);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
@@ -29,24 +24,16 @@
     header{
       background:rgba(26,31,46,0.8);
       backdrop-filter:blur(10px);
-      padding:20px;
-      border-radius:16px;
-      border:1px solid var(--border);
+      padding:20px;border-radius:16px;border:1px solid var(--border);
       margin-bottom:24px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:16px;
+      display:flex;justify-content:space-between;align-items:center;
+      flex-wrap:wrap;gap:16px;
     }
     .logo{display:flex;align-items:center;gap:12px;}
     .logo-icon{
-      width:48px;height:48px;
-      background:linear-gradient(135deg,#facc15,#eab308);
-      border-radius:12px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:24px;
-      box-shadow:0 0 20px rgba(250,204,21,0.3);
+      width:48px;height:48px;background:linear-gradient(135deg,#facc15,#eab308);
+      border-radius:12px;display:flex;align-items:center;justify-content:center;
+      font-size:24px;box-shadow:0 0 20px rgba(250,204,21,0.3);
     }
     h1{font-size:24px;font-weight:900;}
     .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
@@ -54,18 +41,10 @@
     .stats{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-      gap:16px;
-      margin-bottom:24px;
+      gap:16px;margin-bottom:24px;
     }
-    .stat-card{
-      background:var(--card);
-      padding:20px;
-      border-radius:14px;
-      border:1px solid var(--border);
-    }
-    .stat-label{
-      font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;
-    }
+    .stat-card{background:var(--card);padding:20px;border-radius:14px;border:1px solid var(--border);}
+    .stat-label{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;}
     .stat-value{font-size:32px;font-weight:900;color:var(--accent);}
 
     .section{
@@ -98,14 +77,10 @@
     .inscription-details{font-size:14px;color:var(--muted);line-height:1.6;}
 
     .module-badge{
-      display:inline-block;
-      padding:6px 12px;
+      display:inline-block;padding:6px 12px;
       background:linear-gradient(135deg,#facc15,#eab308);
-      color:#0a0e1a;
-      border-radius:8px;
-      font-size:12px;
-      font-weight:900;
-      text-transform:uppercase;
+      color:#0a0e1a;border-radius:8px;
+      font-size:12px;font-weight:900;text-transform:uppercase;
     }
 
     .actions{display:flex;gap:8px;flex-wrap:wrap;}
@@ -115,7 +90,7 @@
       display:inline-flex;align-items:center;gap:6px;
     }
     .btn:hover{transform:translateY(-1px)}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
     .btn-success{background:var(--success);color:#fff;}
     .btn-success:hover{background:#16a34a}
     .btn-danger{background:var(--danger);color:#fff;}
@@ -144,6 +119,7 @@
     .badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;}
     .badge-active{background:rgba(34,197,94,0.2);color:var(--success);}
     .badge-pending{background:rgba(250,204,21,0.2);color:var(--accent);}
+    .badge-soon{background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.25);}
 
     .loading{text-align:center;padding:40px;}
     .spinner{
@@ -157,9 +133,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
     .toast{
-      margin-top:12px;
-      padding:12px 14px;
-      border-radius:12px;
+      margin-top:12px;padding:12px 14px;border-radius:12px;
       border:1px solid var(--border);
       background:rgba(15,23,42,.45);
       color:var(--muted);
@@ -167,36 +141,6 @@
       line-height:1.35;
     }
 
-    .modalBack{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.6);
-      display:flex; align-items:center; justify-content:center;
-      padding:16px;
-    }
-    .modal{
-      width:100%;
-      max-width:460px;
-      background:rgba(26,31,46,0.95);
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
-    }
-    .modal h3{font-size:18px;font-weight:900;margin-bottom:10px;}
-    .modal input{
-      width:100%;
-      padding:12px 14px;
-      border-radius:12px;
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.22);
-      color:var(--text);
-      outline:none;
-      font-size:16px;
-      margin-top:8px;
-    }
-    .modal .help{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35;}
-    .modal .row{display:flex;gap:10px;margin-top:12px;}
-    .modal .row .btn{flex:1;}
     @media(max-width:768px){
       body{padding:12px}
       header{padding:16px}
@@ -247,10 +191,7 @@
         <h2>⏳ Demandes en attente</h2>
       </div>
       <div id="pendingList">
-        <div class="loading">
-          <div class="spinner"></div>
-          <div>Chargement...</div>
-        </div>
+        <div class="loading"><div class="spinner"></div><div>Chargement...</div></div>
       </div>
       <div class="toast" id="toastPending">—</div>
     </div>
@@ -260,42 +201,40 @@
         <h2>✅ Accès actifs</h2>
       </div>
       <div id="activeList">
-        <div class="loading">
-          <div class="spinner"></div>
-          <div>Chargement...</div>
-        </div>
+        <div class="loading"><div class="spinner"></div><div>Chargement...</div></div>
       </div>
       <div class="toast" id="toastActive">—</div>
     </div>
-  </div>
 
-  <!-- PIN MODAL -->
-  <div class="modalBack" id="pinModal" style="display:none;">
-    <div class="modal">
-      <h3>🔐 Connexion Admin</h3>
-      <div style="color:var(--muted);font-size:13px;line-height:1.35;">
-        Entre ton <b>PIN admin</b>. Token valable 8h (stocké localement).
+    <div class="section">
+      <div class="section-header">
+        <h2>⏰ Relance 7J</h2>
+        <button class="btn refresh-btn" id="btnReloadExpiring">🔁 Recharger</button>
       </div>
-      <input id="pin" inputmode="numeric" autocomplete="one-time-code" placeholder="••••" />
-      <div class="help">
-        Si tu n’as pas encore créé le PIN : dans SQL, ajoute une ligne dans <b>digiy_admin_pins</b> avec <code>crypt()</code>.
+      <div id="expiringList">
+        <div class="empty"><div class="empty-icon">🕊️</div><div>Aucune relance chargée pour l’instant</div></div>
       </div>
-      <div class="row">
-        <button class="btn btn-secondary" id="btnCancelPin">Annuler</button>
-        <button class="btn refresh-btn" id="btnLoginPin">Se connecter</button>
-      </div>
-      <div class="toast" id="pinMsg" style="margin-top:12px;">—</div>
+      <div class="toast" id="toastExpiring">—</div>
     </div>
+
   </div>
 
-  <script>
+<script>
   const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
 
+  // ✅ un seul client (évite le warning “Multiple GoTrueClient instances”)
   const sb = window.__digiy_sb_admin || (window.__digiy_sb_admin = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
 
   const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
+
+  const $ = (id)=>document.getElementById(id);
+
+  function toast(id, msg){
+    const el = $(id);
+    if(el) el.textContent = msg || "—";
+  }
 
   function getTokenOrKick(){
     const tok = localStorage.getItem(KEY.token) || "";
@@ -307,6 +246,14 @@
     return tok;
   }
 
+  function logout(){
+    if(confirm("Se déconnecter ?")){
+      localStorage.removeItem(KEY.token);
+      localStorage.removeItem(KEY.exp);
+      location.replace("login.html");
+    }
+  }
+
   async function loadStats(){
     try{
       const tok = getTokenOrKick();
@@ -316,19 +263,20 @@
       if(error) throw error;
       if(!data?.ok) throw new Error(data?.reason || "stats_failed");
 
-      document.getElementById("statPending").textContent = data.pending_count ?? 0;
-      document.getElementById("statActive").textContent  = data.active_count ?? 0;
-      document.getElementById("statRevenue").textContent =
+      $("statPending").textContent = data.pending_count ?? 0;
+      $("statActive").textContent  = data.active_count ?? 0;
+      $("statRevenue").textContent =
         Number(data.revenue_month ?? 0).toLocaleString("fr-FR") + " F";
 
-      console.log("✅ stats OK", data);
+      toast("toastActive", "Stats OK • " + new Date().toLocaleTimeString("fr-FR"));
     }catch(err){
       console.error("❌ stats error:", err);
+      toast("toastActive", "Stats erreur: " + (err.message||err));
     }
   }
 
   async function loadPendingInscriptions(){
-    const container = document.getElementById("pendingList");
+    const container = $("pendingList");
     container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>';
 
     try{
@@ -344,6 +292,7 @@
 
       if(!data || data.length === 0){
         container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>Aucune demande en attente</div></div>';
+        toast("toastPending", "0 demande en attente");
         return;
       }
 
@@ -352,6 +301,7 @@
         const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString("fr-FR") : "—";
         const module = (item.preferred_module || "—");
         const slug = item?.partner_data?.slug || "—";
+
         return `
           <div class="inscription-card">
             <div class="inscription-header">
@@ -360,7 +310,8 @@
                 <div class="inscription-details">
                   📱 ${item.phone || "—"}<br>
                   📍 ${item.city || "—"}${item.address ? ", " + item.address : ""}<br>
-                  📅 ${createdDate}
+                  📅 ${createdDate}<br>
+                  🏷️ slug: <b>${slug}</b>
                 </div>
               </div>
               <div>
@@ -376,14 +327,17 @@
             </div>
           </div>`;
       }).join("");
+
+      toast("toastPending", `${data.length} demande(s) en attente • ${new Date().toLocaleTimeString("fr-FR")}`);
     }catch(err){
       console.error("❌ pending error:", err);
       container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur: '+(err.message||err)+'</div></div>';
+      toast("toastPending", "Erreur pending: " + (err.message||err));
     }
   }
 
   async function loadActiveSubscriptions(){
-    const container = document.getElementById("activeList");
+    const container = $("activeList");
     container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>';
 
     try{
@@ -395,6 +349,7 @@
 
       if(!data || data.length === 0){
         container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>Aucun abonnement actif</div></div>';
+        toast("toastActive", "0 actif");
         return;
       }
 
@@ -433,52 +388,51 @@
             <tbody>${rows}</tbody>
           </table>
         </div>`;
+
+      toast("toastActive", `${data.length} actif(s) • ${new Date().toLocaleTimeString("fr-FR")}`);
     }catch(err){
       console.error("❌ active error:", err);
       container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur: '+(err.message||err)+'</div></div>';
+      toast("toastActive", "Erreur actifs: " + (err.message||err));
     }
   }
 
+  // ✅ WhatsApp auto après approve
   async function approveReq(phone, module, price, months){
-  if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
+    if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
 
-  try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
 
-    const { data, error } = await sb.rpc("digiy_admin_approve_request", {
-      p_token: tok,
-      p_phone: phone,
-      p_module: module,
-      p_price_monthly: price,
-      p_months: months
-    });
-    if(error) throw error;
-    if(!data?.ok) throw new Error(data?.reason || "approve_failed");
+      const { data, error } = await sb.rpc("digiy_admin_approve_request", {
+        p_token: tok,
+        p_phone: phone,
+        p_module: module,
+        p_price_monthly: price,
+        p_months: months
+      });
+      if(error) throw error;
+      if(!data?.ok) throw new Error(data?.reason || "approve_failed");
 
-    // --- Format dates
-    const fmt = (iso)=>{
-      if(!iso) return "—";
-      const d = new Date(iso);
-      return d.toLocaleDateString("fr-FR");
-    };
+      const fmt = (iso)=>{
+        if(!iso) return "—";
+        const d = new Date(iso);
+        return d.toLocaleDateString("fr-FR");
+      };
 
-    const moduleUp = String(data.module || module || "").toUpperCase();
-    const plan = data.plan || (moduleUp + "_MONTHLY");
-    const slug = String(data.slug || "").trim();
+      const moduleUp = String(data.module || module || "").toUpperCase();
+      const plan = data.plan || (moduleUp + "_MONTHLY");
+      const slug = String(data.slug || "").trim();
 
-    // --- Lien planning (adapté LOC; on peut généraliser après)
-    const planningBase =
-      (moduleUp === "LOC")
-        ? "https://beauville.github.io/digiy-loc-pro/planning.html"
-        : "https://beauville.github.io/digiy-hub/"; // fallback propre
+      const planningBase =
+        (moduleUp === "LOC")
+          ? "https://beauville.github.io/digiy-loc-pro/planning.html"
+          : "https://beauville.github.io/digiy-hub/";
 
-    const planningLink = slug
-      ? (planningBase + "?slug=" + encodeURIComponent(slug))
-      : planningBase;
+      const planningLink = slug ? (planningBase + "?slug=" + encodeURIComponent(slug)) : planningBase;
 
-    // --- Message WhatsApp (signature DIGIY)
-    const msg =
+      const msg =
 `🦅 DIGIY — Activation confirmée ✅
 
 Module: ${moduleUp} PRO
@@ -492,18 +446,18 @@ ${planningLink}
 Support WhatsApp: +221771342889
 0% commission · Paiement direct`;
 
-    const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
-    window.open(wa, "_blank");
+      const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
+      window.open(wa, "_blank");
 
-    alert("✅ Activé. WhatsApp prêt à envoyer.");
-    loadData();
+      alert("✅ Activé. WhatsApp prêt à envoyer.");
+      loadData();
 
-  }catch(err){
-    console.error("❌ approve error:", err);
-    alert("❌ Erreur: " + (err.message || err));
+    }catch(err){
+      console.error("❌ approve error:", err);
+      alert("❌ Erreur: " + (err.message || err));
+    }
   }
-}
-
+  window.approveReq = approveReq;
 
   async function rejectReq(id){
     if(!confirm("Refuser cette demande ?")) return;
@@ -522,32 +476,156 @@ Support WhatsApp: +221771342889
       alert("❌ Erreur: " + (err.message||err));
     }
   }
+  window.rejectReq = rejectReq;
+
+  // ✅ RELANCE 7J (RPC)
+  async function loadExpiring7d(){
+    const container = $("expiringList");
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Chargement...</div></div>';
+
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
+
+      const { data, error } = await sb.rpc("digiy_admin_list_expiring", {
+        p_token: tok,
+        p_days: 7,
+        p_limit: 200
+      });
+      if(error) throw error;
+
+      if(!data || data.length === 0){
+        container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div>Aucune expiration &lt; 7 jours</div></div>';
+        toast("toastExpiring", "0 relance à faire");
+        return;
+      }
+
+      const now = new Date();
+      const fmt = (iso)=>{
+        if(!iso) return "—";
+        return new Date(iso).toLocaleDateString("fr-FR");
+      };
+
+      container.innerHTML = data.map(x=>{
+        const exp = x.current_period_end ? new Date(x.current_period_end) : null;
+        const daysLeft = exp ? Math.ceil((exp - now)/(1000*60*60*24)) : null;
+        const slug = x.slug || "—";
+
+        return `
+          <div class="inscription-card">
+            <div class="inscription-header">
+              <div class="inscription-info">
+                <h3>📱 ${x.phone}</h3>
+                <div class="inscription-details">
+                  Module: <b>${x.module}</b> • Plan: ${x.plan || "—"}<br>
+                  Expire: <b>${fmt(x.current_period_end)}</b>
+                  ${daysLeft!==null ? `• <span style="color:var(--danger);font-weight:900">${daysLeft}j</span>` : ""}
+                  <br>
+                  🏷️ slug: <b>${slug}</b>
+                </div>
+              </div>
+              <div>
+                <div class="module-badge">${x.module}</div>
+                <div style="font-size:20px;font-weight:900;color:var(--accent);margin-top:8px">
+                  ${Number(x.price_monthly||0).toLocaleString("fr-FR")} F/mois
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn refresh-btn" onclick="waRelance('${x.phone}','${x.module}','${slug}','${x.current_period_end}','${x.price_monthly||0}')">
+                💬 Relancer WhatsApp
+              </button>
+              <button class="btn btn-secondary" onclick="markReminded('${x.phone}','${x.module}')">
+                ✅ Marquer “relancé”
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      toast("toastExpiring", `${data.length} relance(s) < 7 jours • ${new Date().toLocaleTimeString("fr-FR")}`);
+    }catch(err){
+      console.error("❌ expiring error:", err);
+      container.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>Erreur: '+(err.message||err)+'</div></div>';
+      toast("toastExpiring", "Erreur relance: " + (err.message||err));
+    }
+  }
+
+  function waRelance(phone, module, slug, expIso, price){
+    const fmt = (iso)=> iso ? new Date(iso).toLocaleDateString("fr-FR") : "—";
+    const moduleUp = String(module||"").toUpperCase();
+
+    const planningBase =
+      (moduleUp === "LOC")
+        ? "https://beauville.github.io/digiy-loc-pro/planning.html"
+        : "https://beauville.github.io/digiy-hub/";
+
+    const link = (slug && slug !== "—")
+      ? (planningBase + "?slug=" + encodeURIComponent(slug))
+      : planningBase;
+
+    const msg =
+`🦅 DIGIY — Rappel abonnement ✅
+
+Téléphone: ${phone}
+Module: ${moduleUp} PRO
+Expiration: ${fmt(expIso)}
+Renouvellement: ${Number(price||0).toLocaleString("fr-FR")} F / mois
+
+Paiement Wave → puis envoi du reçu ici ✅
+Support: +221771342889
+
+Accès:
+${link}
+
+0% commission · Paiement direct`;
+
+    const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
+    window.open(wa, "_blank");
+  }
+  window.waRelance = waRelance;
+
+  async function markReminded(phone, module){
+    try{
+      const tok = getTokenOrKick();
+      if(!tok) return;
+
+      const { data, error } = await sb.rpc("digiy_admin_mark_reminded", {
+        p_token: tok,
+        p_phone: phone,
+        p_module: module
+      });
+      if(error) throw error;
+      if(!data?.ok) throw new Error(data?.reason || "mark_failed");
+
+      alert("✅ Marqué relancé");
+      loadExpiring7d();
+    }catch(err){
+      console.error("❌ mark reminded error:", err);
+      alert("❌ Erreur: " + (err.message||err));
+    }
+  }
+  window.markReminded = markReminded;
 
   async function loadData(){
     console.log("🔄 loadData", new Date().toISOString());
-    await Promise.all([
-      loadPendingInscriptions(),
-      loadActiveSubscriptions(),
-      loadStats()
-    ]);
+    await Promise.all([loadPendingInscriptions(), loadActiveSubscriptions(), loadStats()]);
   }
-
-  function logout(){
-    if(confirm("Se déconnecter ?")){
-      localStorage.removeItem(KEY.token);
-      localStorage.removeItem(KEY.exp);
-      location.replace("login.html");
-    }
-  }
-  window.logout = logout;
 
   window.addEventListener("load", ()=>{
     getTokenOrKick();
+    $("btnRefresh").onclick = loadData;
+    $("btnLogout").onclick = logout;
+    $("btnReloadExpiring").onclick = loadExpiring7d;
+
     console.log("🦅 DIGIY Admin (RPC) chargé");
     loadData();
-    setInterval(loadData, 30000);
+    loadExpiring7d();
+
+    // ✅ Automatisation clean: refresh toutes les 45s (moins agressif)
+    setInterval(()=>{ loadStats(); }, 45000);
   });
 </script>
-
 </body>
 </html>
