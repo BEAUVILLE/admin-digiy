@@ -351,7 +351,7 @@
         const price = (item?.partner_data?.price) ? Number(item.partner_data.price) : 9900;
         const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString("fr-FR") : "—";
         const module = (item.preferred_module || "—");
-
+        const slug = item?.partner_data?.slug || "—";
         return `
           <div class="inscription-card">
             <div class="inscription-header">
@@ -440,28 +440,70 @@
   }
 
   async function approveReq(phone, module, price, months){
-    if(!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
-    try{
-      const tok = getTokenOrKick();
-      if(!tok) return;
+  if (!confirm(`Activer ${module} pour ${phone} (${months} mois) ?`)) return;
 
-      const { data, error } = await sb.rpc("digiy_admin_approve_request", {
-        p_token: tok,
-        p_phone: phone,
-        p_module: module,
-        p_price_monthly: price,
-        p_months: months
-      });
-      if(error) throw error;
-      if(!data?.ok) throw new Error(data?.reason || "approve_failed");
+  try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
 
-      alert("✅ Activé (" + (data.mode || "ok") + ")");
-      loadData();
-    }catch(err){
-      console.error("❌ approve error:", err);
-      alert("❌ Erreur: " + (err.message||err));
-    }
+    const { data, error } = await sb.rpc("digiy_admin_approve_request", {
+      p_token: tok,
+      p_phone: phone,
+      p_module: module,
+      p_price_monthly: price,
+      p_months: months
+    });
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.reason || "approve_failed");
+
+    // --- Format dates
+    const fmt = (iso)=>{
+      if(!iso) return "—";
+      const d = new Date(iso);
+      return d.toLocaleDateString("fr-FR");
+    };
+
+    const moduleUp = String(data.module || module || "").toUpperCase();
+    const plan = data.plan || (moduleUp + "_MONTHLY");
+    const slug = String(data.slug || "").trim();
+
+    // --- Lien planning (adapté LOC; on peut généraliser après)
+    const planningBase =
+      (moduleUp === "LOC")
+        ? "https://beauville.github.io/digiy-loc-pro/planning.html"
+        : "https://beauville.github.io/digiy-hub/"; // fallback propre
+
+    const planningLink = slug
+      ? (planningBase + "?slug=" + encodeURIComponent(slug))
+      : planningBase;
+
+    // --- Message WhatsApp (signature DIGIY)
+    const msg =
+`🦅 DIGIY — Activation confirmée ✅
+
+Module: ${moduleUp} PRO
+Plan: ${plan}
+Téléphone: ${data.phone || phone}
+Période: du ${fmt(data.current_period_start)} au ${fmt(data.current_period_end)}
+
+Accès:
+${planningLink}
+
+Support WhatsApp: +221771342889
+0% commission · Paiement direct`;
+
+    const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
+    window.open(wa, "_blank");
+
+    alert("✅ Activé. WhatsApp prêt à envoyer.");
+    loadData();
+
+  }catch(err){
+    console.error("❌ approve error:", err);
+    alert("❌ Erreur: " + (err.message || err));
   }
+}
+
 
   async function rejectReq(id){
     if(!confirm("Refuser cette demande ?")) return;
