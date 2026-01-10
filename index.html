@@ -350,7 +350,7 @@
         showPinModal(false);
         await loadData();
       }catch(e){
-        console.error(e);
+        console.log("DEBUG:", JSON.stringify(data, null, 2));
         toast("pinMsg", "🔴 Erreur: " + String(e?.message || e));
       }
     }
