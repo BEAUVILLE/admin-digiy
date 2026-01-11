@@ -211,19 +211,16 @@ function normPhone(p){
   return String(p || "").replace(/[^0-9+]/g,"").trim();
 }
 function waLink(phone, text){
-  const digits = normPhone(phone).replace(/\D/g,""); // wa.me => chiffres only
+  const digits = normPhone(phone).replace(/\D/g,"");
   return "https://wa.me/" + digits + "?text=" + encodeURIComponent(text);
 }
 function fmtFR(ts){
   if(!ts) return "—";
   try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
 }
-function isUuid(v){
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||""));
-}
 
 /* =========================================================
-   RPC SAFE WRAPPER (MIX SAFE)
+   RPC SAFE WRAPPER
 ========================================================= */
 async function rpcSafe(fnName, args){
   try{
@@ -330,18 +327,15 @@ window.rejectReq = async function(id){
 };
 
 /* =========================================================
-   OUTBOX — MESSAGE BUILDER (compatible RPC + TABLE)
+   OUTBOX — MESSAGE BUILDER (ALIGNÉ SUR TA TABLE)
+   Ta table public.digiy_outbox => phone/module/reason/due_at + payload jsonb
 ========================================================= */
 function buildWhatsAppMessage(row){
-  // row peut venir de RPC (to_phone, payload, template)
-  // ou de table (phone, reason, module, due_at, payload)
-  const phone = row.to_phone || row.phone || "";
   const payload = row.payload || {};
-
-  const mod = String(payload.module || row.module || "").toUpperCase() || "LOC";
-  const reason = payload.reason || row.template || row.reason || "Rappel";
-  const dueAt = payload.due_at || row.due_at || null;
-  const dueTxt = dueAt ? fmtFR(dueAt) : "—";
+  const phone = row.phone || payload.phone || "";
+  const mod = String(row.module || payload.module || "LOC").toUpperCase();
+  const reason = row.reason || payload.reason || "Rappel";
+  const dueTxt = fmtFR(row.due_at || payload.due_at);
 
   return `🦅 DIGIY — ${reason} ✅
 
@@ -356,11 +350,10 @@ Support: +221771342889
 }
 
 /* =========================================================
-   OUTBOX — MARK SENT (MIX SAFE)
-   - source="rpc" => on tente digiy_outbox_mark_sent(token,...)
-   - fallback table => update digiy_admin_outbox (UUID)
+   OUTBOX — MARK SENT
+   IMPORTANT: on passe l'id tel quel (chez toi c'est UUID)
 ========================================================= */
-window.markOutboxSent = async function(id, source){
+window.markOutboxSent = async function(id){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
 
   disableAllActionButtons(true);
@@ -370,36 +363,13 @@ window.markOutboxSent = async function(id, source){
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    // 1) si source rpc => tentative RPC VPS
-    if(source === "rpc"){
-      const r1 = await rpcSafe("digiy_outbox_mark_sent", {
-        p_token: tok,
-        p_id: id,
-        p_provider: "manual_whatsapp"
-      });
+    const r = await rpcSafe("digiy_outbox_mark_sent", {
+      p_token: tok,
+      p_id: id,
+      p_provider: "manual_whatsapp"
+    });
 
-      if(r1.ok){
-        await loadOutbox();
-        return;
-      }
-      console.warn("RPC mark_sent failed => fallback if possible:", r1.error);
-    }
-
-    // 2) fallback table si UUID
-    if(!isUuid(id)){
-      throw new Error("ID non-UUID : fallback table impossible pour cet item (il dépend du VPS/RPC).");
-    }
-
-    const { error } = await sb
-      .from("digiy_admin_outbox")
-      .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-        sent_by: "manual_whatsapp"
-      })
-      .eq("id", id);
-
-    if(error) throw error;
+    if(!r.ok) throw (r.error || new Error("mark_sent_failed"));
 
     await loadOutbox();
 
@@ -484,9 +454,7 @@ async function loadPending(){
 }
 
 /* =========================================================
-   DATA — OUTBOX (MIX SAFE)
-   1) tente digiy_outbox_list(token) (VPS/RPC)
-   2) sinon fallback table digiy_admin_outbox
+   DATA — OUTBOX (RPC ONLY, ALIGNÉ SUR digiy_outbox)
 ========================================================= */
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
@@ -495,89 +463,40 @@ async function loadOutbox(){
   const tok = getTokenOrKick();
   if(!tok) return;
 
-  let rows = null;
-  let rpcError = null;
-
-  // 1) TENTE RPC VPS
-  const tryRpc = await rpcSafe("digiy_outbox_list", {
+  const r = await rpcSafe("digiy_outbox_list", {
     p_token: tok,
     p_status: "queued",
     p_limit: 100
   });
 
-  if(tryRpc.ok && Array.isArray(tryRpc.data)){
-    rows = tryRpc.data.map(r => ({
-      _source: "rpc",
-      id: r.id,
-      phone: r.to_phone || r.phone || "",
-      module: (r.payload?.module || r.module || "LOC"),
-      reason: (r.payload?.reason || r.template || r.reason || "reminder"),
-      due_at: r.payload?.due_at || r.due_at || null,
-      payload: r.payload || {},
-      template: r.template || null
-    }));
-  }else{
-    rpcError = tryRpc.error;
+  if(!r.ok){
+    console.error("digiy_outbox_list error:", r.error);
+    $("outboxList").textContent = "Erreur chargement";
+    showErr("outboxErr", `RPC digiy_outbox_list a échoué.\nMessage: ${r.error?.message || r.error}`);
+    return;
   }
 
-  // 2) FALLBACK TABLE
-  if(!rows){
-    const { data, error } = await sb
-      .from("digiy_admin_outbox")
-      .select("id, phone, module, reason, due_at, payload, status, created_at")
-      .eq("status", "queued")
-      .order("due_at", { ascending:true })
-      .limit(100);
-
-    if(error){
-      console.error("outbox fallback select error:", error);
-      $("outboxList").textContent = "Erreur chargement";
-      showErr("outboxErr",
-        `Outbox KO.\nRPC: ${rpcError?.message || rpcError || "n/a"}\nTABLE: ${error.message || error}`
-      );
-      return;
-    }
-
-    rows = (data || []).map(r => ({
-      _source: "table",
-      id: r.id,
-      phone: r.phone || "",
-      module: (r.module || r.payload?.module || "LOC"),
-      reason: (r.reason || r.payload?.reason || "reminder"),
-      due_at: r.due_at || null,
-      payload: r.payload || {},
-      template: null
-    }));
-  }
-
-  if(!rows || rows.length === 0){
+  const rows = Array.isArray(r.data) ? r.data : [];
+  if(rows.length === 0){
     $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
     return;
   }
 
   $("outboxList").innerHTML = rows.map(row => {
+    // ✅ mapping EXACT sur ta table: phone/module/reason/due_at
     const phone = row.phone || "";
     const mod = String(row.module || "LOC").toUpperCase();
     const reason = row.reason || "reminder";
-    const dueAt = row.due_at ? fmtFR(row.due_at) : "—";
+    const dueAtTxt = fmtFR(row.due_at);
 
-    const msg = buildWhatsAppMessage({
-      to_phone: phone,
-      phone,
-      module: mod,
-      reason,
-      template: row.template,
-      due_at: row.due_at,
-      payload: { ...(row.payload||{}), module: mod, reason, due_at: row.due_at }
-    });
-
+    const msg = buildWhatsAppMessage(row);
     const wa = waLink(phone, msg);
 
     return `
       <div class="section" style="margin-bottom:12px">
         <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
         <div class="chip">📦 <span class="mono">${escapeHtml(mod || "—")}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
-        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAt))}</span></div>
+        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAtTxt))}</span></div>
 
         <div class="actions">
           <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
@@ -585,7 +504,7 @@ async function loadOutbox(){
           </a>
 
           <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent('${escapeAttr(String(row.id))}','${escapeAttr(String(row._source))}')">
+            onclick="markOutboxSent('${escapeAttr(String(row.id))}')">
             ✅ Marquer envoyé
           </button>
         </div>
@@ -615,4 +534,3 @@ window.addEventListener("load", async ()=>{
 </script>
 </body>
 </html>
-
