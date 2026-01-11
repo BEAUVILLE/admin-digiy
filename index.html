@@ -41,7 +41,8 @@
       padding:10px 16px;border:none;border-radius:10px;
       font-size:14px;font-weight:800;cursor:pointer;
       display:inline-flex;align-items:center;gap:6px;
-      transition:transform .08s ease, opacity .12s ease;
+      transition:transform .08s ease, opacity .12s ease, background .12s ease;
+      text-decoration:none;
     }
     .btn:active{transform:translateY(1px)}
     .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -56,6 +57,7 @@
       color:var(--accent);
       border:1px solid rgba(250,204,21,0.3);
     }
+    .refresh-btn:hover{background:rgba(250,204,21,0.16)}
     .section{
       background:var(--card);
       border-radius:16px;border:1px solid var(--border);
@@ -84,6 +86,14 @@
       margin-top:10px;
     }
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media(min-width: 980px){
+      .grid2{grid-template-columns:1fr 1fr;}
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -106,10 +116,22 @@
     </div>
   </header>
 
-  <div class="section">
-    <h2>⏳ Demandes en attente</h2>
-    <div id="pendingList" class="empty">Chargement…</div>
-    <div id="pendingErr" class="err" style="display:none"></div>
+  <div class="grid2">
+
+    <!-- ===================== PENDING ===================== -->
+    <div class="section">
+      <h2>⏳ Demandes en attente</h2>
+      <div id="pendingList" class="empty">Chargement…</div>
+      <div id="pendingErr" class="err" style="display:none"></div>
+    </div>
+
+    <!-- ===================== OUTBOX ===================== -->
+    <div class="section">
+      <h2>📤 Outbox (WhatsApp / SMS)</h2>
+      <div id="outboxList" class="empty">Chargement…</div>
+      <div id="outboxErr" class="err" style="display:none"></div>
+    </div>
+
   </div>
 
 </div>
@@ -172,6 +194,21 @@ function disableAllActionButtons(disabled){
 }
 
 /* =========================================================
+   SAFETY HELPERS (anti injection dans HTML)
+========================================================= */
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(s){
+  return escapeHtml(s).replaceAll("`","&#096;");
+}
+
+/* =========================================================
    🔐 ADMIN CHECK (TOKEN-BASED)
 ========================================================= */
 let IS_ADMIN = false;
@@ -191,8 +228,17 @@ async function checkAdmin(){
   return IS_ADMIN;
 }
 
+function applyAdminUI(){
+  // si non-admin: on masque les actions sensibles (UX)
+  if(!IS_ADMIN){
+    document.querySelectorAll("[data-need-admin='1']").forEach(el=>{
+      el.style.display = "none";
+    });
+  }
+}
+
 /* =========================================================
-   ACTIONS (RPC)
+   ACTIONS (RPC) — PENDING
 ========================================================= */
 window.approveReq = async function(phone, module, price, months){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
@@ -217,7 +263,7 @@ window.approveReq = async function(phone, module, price, months){
     if(!data?.ok) throw new Error(data?.reason || "approve_failed");
 
     alert("✅ Activé");
-    await loadPending();
+    await Promise.all([loadPending(), loadOutbox()]);
 
   }catch(err){
     console.error("approveReq error:", err);
@@ -258,7 +304,39 @@ window.rejectReq = async function(id){
 };
 
 /* =========================================================
-   DATA
+   ACTIONS (RPC) — OUTBOX
+========================================================= */
+window.markOutboxSent = async function(id){
+  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
+
+  disableAllActionButtons(true);
+  showErr("outboxErr", null);
+
+  try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
+    const { data, error } = await sb.rpc("digiy_outbox_mark_sent", {
+      p_token: tok,
+      p_id: Number(id),
+      p_provider: "manual_whatsapp"
+    });
+
+    if(error) throw error;
+    if(!data?.ok) throw new Error(data?.reason || "mark_sent_failed");
+
+    await loadOutbox();
+
+  }catch(err){
+    console.error("markOutboxSent error:", err);
+    alert("❌ " + (err?.message || err));
+  }finally{
+    disableAllActionButtons(false);
+  }
+};
+
+/* =========================================================
+   DATA — PENDING
 ========================================================= */
 async function loadPending(){
   $("pendingList").textContent = "Chargement…";
@@ -295,7 +373,7 @@ async function loadPending(){
     const reqId  = item.id || item.request_id || item.inscription_id || null;
 
     return `
-      <div class="section">
+      <div class="section" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
           <div>
             <div style="font-weight:900;font-size:18px">${escapeHtml(String(name))}</div>
@@ -305,48 +383,110 @@ async function loadPending(){
         </div>
 
         <div class="actions">
-          <button data-action-btn="1" class="btn btn-success"
+          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
             onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},1)">
-            Activer (1 mois)
+            ✅ Activer (1 mois)
           </button>
 
-          <button data-action-btn="1" class="btn btn-secondary"
+          <button data-action-btn="1" data-need-admin="1" class="btn btn-secondary"
             onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},3)">
-            Activer (3 mois)
+            ✅ Activer (3 mois)
           </button>
 
-          <button data-action-btn="1" class="btn btn-danger"
+          <button data-action-btn="1" data-need-admin="1" class="btn btn-danger"
             onclick="rejectReq('${escapeAttr(String(reqId || ""))}')"
             ${reqId ? "" : "disabled"}
             title="${reqId ? "Refuser" : "ID manquant dans le retour RPC"}">
-            Refuser
+            ❌ Refuser
           </button>
         </div>
       </div>
     `;
   }).join("");
 
-  // si non-admin, on masque les boutons sensibles (sécurité UX)
-  if(!IS_ADMIN){
-    document.querySelectorAll(".btn-success,.btn-danger,.btn-secondary").forEach(b=>{
-      b.style.display = "none";
-    });
-  }
+  applyAdminUI();
 }
 
 /* =========================================================
-   SAFETY HELPERS (anti injection dans HTML)
+   DATA — OUTBOX
 ========================================================= */
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+function buildWhatsAppMessage(row){
+  const phone = row.to_phone || "";
+  const payload = row.payload || {};
+  const mod = String(payload.module || "").toUpperCase();
+  const reason = payload.reason || row.template || "Rappel";
+  const dueAt = payload.due_at ? new Date(payload.due_at).toLocaleString("fr-FR") : "—";
+
+  return `🦅 DIGIY — ${reason} ✅
+
+Téléphone: ${phone}
+Module: ${mod}
+Échéance: ${dueAt}
+
+Paiement Wave → puis envoi du reçu ici ✅
+Support: +221771342889
+
+0% commission · Paiement direct`;
 }
-function escapeAttr(s){
-  return escapeHtml(s).replaceAll("`","&#096;");
+
+async function loadOutbox(){
+  $("outboxList").textContent = "Chargement…";
+  showErr("outboxErr", null);
+
+  const tok = getTokenOrKick();
+  if(!tok) return;
+
+  const { data, error, status } = await sb.rpc("digiy_outbox_list", {
+    p_token: tok,
+    p_status: "queued",
+    p_limit: 100
+  });
+
+  if(error){
+    console.error("digiy_outbox_list error:", error);
+    $("outboxList").textContent = "Erreur chargement";
+    showErr("outboxErr",
+      `RPC digiy_outbox_list a échoué.\nStatus: ${status}\nMessage: ${error.message || error}`
+    );
+    return;
+  }
+
+  if(!data || data.length === 0){
+    $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
+    return;
+  }
+
+  $("outboxList").innerHTML = data.map(row => {
+    const phone = row.to_phone || "";
+    const payload = row.payload || {};
+    const mod = String(payload.module || "").toUpperCase();
+    const reason = payload.reason || row.template || "reminder";
+    const dueAt = payload.due_at ? new Date(payload.due_at).toLocaleString("fr-FR") : "—";
+
+    const msg = buildWhatsAppMessage(row);
+    const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
+
+    return `
+      <div class="section" style="margin-bottom:12px">
+        <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
+        <div class="chip">📦 <span class="mono">${escapeHtml(mod || "—")}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
+        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAt))}</span></div>
+
+        <div class="actions">
+          <a class="btn refresh-btn" data-need-admin="1" href="${wa}" target="_blank" rel="noopener">
+            💬 Ouvrir WhatsApp
+          </a>
+
+          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
+            onclick="markOutboxSent(${Number(row.id)})">
+            ✅ Marquer envoyé
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  applyAdminUI();
 }
 
 /* =========================================================
@@ -354,21 +494,16 @@ function escapeAttr(s){
 ========================================================= */
 window.addEventListener("load", async ()=>{
   getTokenOrKick();
-
   await checkAdmin();
 
-  if(!IS_ADMIN){
-    document.querySelectorAll(".btn-success,.btn-danger,.btn-secondary").forEach(b=>{
-      b.style.display = "none";
-    });
-  }
-
-  $("btnRefresh").onclick = loadPending;
+  $("btnRefresh").onclick = async ()=>{
+    await Promise.all([loadPending(), loadOutbox()]);
+  };
   $("btnLogout").onclick = logout;
 
   console.log("🦅 DIGIY ADMIN READY • admin =", IS_ADMIN);
 
-  loadPending();
+  await Promise.all([loadPending(), loadOutbox()]);
 });
 </script>
 </body>
