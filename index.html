@@ -211,13 +211,28 @@ function normPhone(p){
   return String(p || "").replace(/[^0-9+]/g,"").trim();
 }
 function waLink(phone, text){
-  // wa.me attend des chiffres sans +
-  const digits = normPhone(phone).replace(/\D/g,"");
+  const digits = normPhone(phone).replace(/\D/g,""); // wa.me => chiffres only
   return "https://wa.me/" + digits + "?text=" + encodeURIComponent(text);
 }
 function fmtFR(ts){
   if(!ts) return "—";
   try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
+}
+function isUuid(v){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||""));
+}
+
+/* =========================================================
+   RPC SAFE WRAPPER (MIX SAFE)
+========================================================= */
+async function rpcSafe(fnName, args){
+  try{
+    const res = await sb.rpc(fnName, args || {});
+    if(res?.error) return { ok:false, error: res.error };
+    return { ok:true, data: res.data };
+  }catch(e){
+    return { ok:false, error: e };
+  }
 }
 
 /* =========================================================
@@ -315,55 +330,74 @@ window.rejectReq = async function(id){
 };
 
 /* =========================================================
-   OUTBOX — MESSAGE BUILDER (aligné sur digiy_admin_outbox)
+   OUTBOX — MESSAGE BUILDER (compatible RPC + TABLE)
 ========================================================= */
-function buildWhatsAppMessageFromOutbox(row){
-  const phone = row.phone || "";
+function buildWhatsAppMessage(row){
+  // row peut venir de RPC (to_phone, payload, template)
+  // ou de table (phone, reason, module, due_at, payload)
+  const phone = row.to_phone || row.phone || "";
   const payload = row.payload || {};
-  const mod = String(row.module || payload.module || "LOC").toUpperCase();
-  const reason = String(row.reason || payload.reason || "Rappel");
-  const dueAt = row.due_at ? fmtFR(row.due_at) : "—";
 
-  const who = payload.client_nom ? `Client: ${payload.client_nom}\n` : "";
-  const dates = (payload.date_arrivee && payload.date_depart) ? `📅 ${payload.date_arrivee} → ${payload.date_depart}\n` : "";
-  const loge = payload.logement_nom ? `🏠 ${payload.logement_nom}\n` : "";
+  const mod = String(payload.module || row.module || "").toUpperCase() || "LOC";
+  const reason = payload.reason || row.template || row.reason || "Rappel";
+  const dueAt = payload.due_at || row.due_at || null;
+  const dueTxt = dueAt ? fmtFR(dueAt) : "—";
 
-  return [
-    `🦅 DIGIY — ${reason}`,
-    "",
-    `Téléphone: ${phone}`,
-    `Module: ${mod}`,
-    `Échéance: ${dueAt}`,
-    "",
-    (who + dates + loge).trim(),
-    "",
-    "Paiement Wave → puis envoi du reçu ici ✅",
-    "Support: +221771342889",
-    "",
-    "0% commission · Paiement direct"
-  ].filter(Boolean).join("\n");
+  return `🦅 DIGIY — ${reason} ✅
+
+Téléphone: ${phone}
+Module: ${mod}
+Échéance: ${dueTxt}
+
+Paiement Wave → puis envoi du reçu ici ✅
+Support: +221771342889
+
+0% commission · Paiement direct`;
 }
 
 /* =========================================================
-   OUTBOX — MARK SENT (UUID + digiy_outbox_mark_sent(p_outbox_id, p_sent_by))
-   NOTE: si chez toi tu as une version tokenisée, dis-moi et je l’aligne.
+   OUTBOX — MARK SENT (MIX SAFE)
+   - source="rpc" => on tente digiy_outbox_mark_sent(token,...)
+   - fallback table => update digiy_admin_outbox (UUID)
 ========================================================= */
-window.markOutboxSent = async function(outboxId){
+window.markOutboxSent = async function(id, source){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
 
   disableAllActionButtons(true);
   showErr("outboxErr", null);
 
   try{
-    // On garde le token check pour UX (si expiré on kick)
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    // Fonction SQL (version corrigée): digiy_outbox_mark_sent(p_outbox_id uuid, p_sent_by text)
-    const { error } = await sb.rpc("digiy_outbox_mark_sent", {
-      p_outbox_id: outboxId,
-      p_sent_by: "manual_whatsapp"
-    });
+    // 1) si source rpc => tentative RPC VPS
+    if(source === "rpc"){
+      const r1 = await rpcSafe("digiy_outbox_mark_sent", {
+        p_token: tok,
+        p_id: id,
+        p_provider: "manual_whatsapp"
+      });
+
+      if(r1.ok){
+        await loadOutbox();
+        return;
+      }
+      console.warn("RPC mark_sent failed => fallback if possible:", r1.error);
+    }
+
+    // 2) fallback table si UUID
+    if(!isUuid(id)){
+      throw new Error("ID non-UUID : fallback table impossible pour cet item (il dépend du VPS/RPC).");
+    }
+
+    const { error } = await sb
+      .from("digiy_admin_outbox")
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        sent_by: "manual_whatsapp"
+      })
+      .eq("id", id);
 
     if(error) throw error;
 
@@ -450,9 +484,9 @@ async function loadPending(){
 }
 
 /* =========================================================
-   DATA — OUTBOX (lecture directe table digiy_admin_outbox)
-   Pourquoi direct table ? => tu as déjà RLS + admin-check côté token,
-   et ça évite mismatch RPC.
+   DATA — OUTBOX (MIX SAFE)
+   1) tente digiy_outbox_list(token) (VPS/RPC)
+   2) sinon fallback table digiy_admin_outbox
 ========================================================= */
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
@@ -461,35 +495,82 @@ async function loadOutbox(){
   const tok = getTokenOrKick();
   if(!tok) return;
 
-  // Si tu veux ABSOLUMENT passer par RPC digiy_outbox_list tokenisé, dis-moi.
-  const { data, error } = await sb
-    .from("digiy_admin_outbox")
-    .select("id, created_at, due_at, channel, module, reason, phone, business_code, reservation_id, payload, status, sent_at, sent_by")
-    .eq("status", "queued")
-    .order("due_at", { ascending:true })
-    .limit(100);
+  let rows = null;
+  let rpcError = null;
 
-  if(error){
-    console.error("outbox select error:", error);
-    $("outboxList").textContent = "Erreur chargement";
-    showErr("outboxErr",
-      `SELECT digiy_admin_outbox a échoué.\nMessage: ${error.message || error}`
-    );
-    return;
+  // 1) TENTE RPC VPS
+  const tryRpc = await rpcSafe("digiy_outbox_list", {
+    p_token: tok,
+    p_status: "queued",
+    p_limit: 100
+  });
+
+  if(tryRpc.ok && Array.isArray(tryRpc.data)){
+    rows = tryRpc.data.map(r => ({
+      _source: "rpc",
+      id: r.id,
+      phone: r.to_phone || r.phone || "",
+      module: (r.payload?.module || r.module || "LOC"),
+      reason: (r.payload?.reason || r.template || r.reason || "reminder"),
+      due_at: r.payload?.due_at || r.due_at || null,
+      payload: r.payload || {},
+      template: r.template || null
+    }));
+  }else{
+    rpcError = tryRpc.error;
   }
 
-  if(!data || data.length === 0){
+  // 2) FALLBACK TABLE
+  if(!rows){
+    const { data, error } = await sb
+      .from("digiy_admin_outbox")
+      .select("id, phone, module, reason, due_at, payload, status, created_at")
+      .eq("status", "queued")
+      .order("due_at", { ascending:true })
+      .limit(100);
+
+    if(error){
+      console.error("outbox fallback select error:", error);
+      $("outboxList").textContent = "Erreur chargement";
+      showErr("outboxErr",
+        `Outbox KO.\nRPC: ${rpcError?.message || rpcError || "n/a"}\nTABLE: ${error.message || error}`
+      );
+      return;
+    }
+
+    rows = (data || []).map(r => ({
+      _source: "table",
+      id: r.id,
+      phone: r.phone || "",
+      module: (r.module || r.payload?.module || "LOC"),
+      reason: (r.reason || r.payload?.reason || "reminder"),
+      due_at: r.due_at || null,
+      payload: r.payload || {},
+      template: null
+    }));
+  }
+
+  if(!rows || rows.length === 0){
     $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
     return;
   }
 
-  $("outboxList").innerHTML = data.map(row => {
+  $("outboxList").innerHTML = rows.map(row => {
     const phone = row.phone || "";
     const mod = String(row.module || "LOC").toUpperCase();
     const reason = row.reason || "reminder";
-    const dueAt = fmtFR(row.due_at);
+    const dueAt = row.due_at ? fmtFR(row.due_at) : "—";
 
-    const msg = buildWhatsAppMessageFromOutbox(row);
+    const msg = buildWhatsAppMessage({
+      to_phone: phone,
+      phone,
+      module: mod,
+      reason,
+      template: row.template,
+      due_at: row.due_at,
+      payload: { ...(row.payload||{}), module: mod, reason, due_at: row.due_at }
+    });
+
     const wa = waLink(phone, msg);
 
     return `
@@ -504,7 +585,7 @@ async function loadOutbox(){
           </a>
 
           <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent('${escapeAttr(String(row.id))}')">
+            onclick="markOutboxSent('${escapeAttr(String(row.id))}','${escapeAttr(String(row._source))}')">
             ✅ Marquer envoyé
           </button>
         </div>
@@ -534,3 +615,4 @@ window.addEventListener("load", async ()=>{
 </script>
 </body>
 </html>
+
