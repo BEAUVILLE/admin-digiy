@@ -322,21 +322,57 @@ window.rejectReq = async function(id){
 ========================================================= */
 function buildWhatsAppMessage(row){
   const payload = row.payload || {};
-  const phone = row.to_phone || "";
-  const mod = String(payload.module || "LOC").toUpperCase();
-  const reason = payload.reason || row.template || "Rappel";
-  const dueTxt = fmtFR(payload.due_at || payload.due_date || payload.scheduled_at || null);
 
-  return `🦅 DIGIY — ${reason} ✅
+  const phone  = payload.phone || row.to_phone || row.phone || "";
+  const reason = payload.reason || row.reason || "J+7";
+  const module = String(payload.module || row.module || "LOC").toUpperCase();
 
-Téléphone: ${phone}
-Module: ${mod}
-Échéance: ${dueTxt}
+  const guest   = payload.guest_name || "cher client";
+  const logement = payload.business_code || payload.room_label || "notre logement";
 
-Paiement Wave → puis envoi du reçu ici ✅
-Support: +221771342889
+  const checkIn  = payload.check_in || "";
+  const checkOut = payload.check_out || "";
 
-0% commission · Paiement direct`;
+  // 🟢 ACCUEIL — J-1
+  if(reason === "J-1"){
+    return `👋 Bonjour ${guest} !
+
+Merci pour ta réservation chez *${logement}* 🌿  
+Nous sommes ravis de t’accueillir très bientôt.
+
+📅 Arrivée : ${checkIn}
+📅 Départ : ${checkOut}
+
+🚗 Parking : gratuit, juste à quelques mètres du logement.  
+📍 Besoin d’aide pour l’arrivée ? Écris-nous ici, on te guide.
+
+À très vite 🙏  
+— ${logement} • DIGIY LOC (0% commission)`;
+  }
+
+  // 🟡 APRÈS SÉJOUR — J+1
+  if(reason === "J+1"){
+    return `🙏 Merci ${guest} !
+
+Nous espérons que ton séjour chez *${logement}* s’est bien passé.
+
+Si tu as 30 secondes, un petit retour (même en 1 phrase) nous aide énormément ⭐  
+• ce que tu as aimé  
+• ou un point à améliorer
+
+Et si tu repasses dans la région, ce sera un plaisir de t’accueillir à nouveau — ou des amis à toi 🙌  
+— ${logement} • DIGIY LOC`;
+  }
+
+  // 🔵 RELANCE DOUCE — J+7 (par défaut)
+  return `👋 Bonjour ${guest} !
+
+Petite relance douce 😊  
+Si tu as un moment pour un retour sur ton séjour chez *${logement}*, cela nous aide beaucoup.
+
+Même un message simple ici, c’est parfait 🙏  
+Merci encore et bonne route ✨  
+— ${logement} • DIGIY LOC`;
 }
 
 /* =========================================================
