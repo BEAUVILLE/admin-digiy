@@ -319,21 +319,25 @@ window.rejectReq = async function(id){
 
 /* =========================================================
    OUTBOX — MESSAGE BUILDER (PAYLOAD-DRIVEN)
+   NOTE: Neutralité commerciale => on utilise room_label/business_code si dispo,
+         sinon fallback "notre logement".
 ========================================================= */
 function buildWhatsAppMessage(row){
   const payload = row.payload || {};
 
-  const phone  = payload.phone || row.to_phone || row.phone || "";
-  const reason = payload.reason || row.reason || "J+7";
-  const module = String(payload.module || row.module || "LOC").toUpperCase();
+  const phone   = payload.phone || row.to_phone || row.phone || "";
+  const reason  = String(payload.reason || row.reason || "J+7").trim();
+  const module  = String(payload.module || row.module || "LOC").toUpperCase();
 
   const guest   = payload.guest_name || "cher client";
-  const logement = payload.business_code || payload.room_label || "notre logement";
+  const logement = payload.room_label || payload.business_code || "notre logement";
 
   const checkIn  = payload.check_in || "";
   const checkOut = payload.check_out || "";
 
-  // 🟢 ACCUEIL — J-1
+  // Si tu veux ULTRA neutre, remplace logement par "notre logement" ici :
+  // const logement = "notre logement";
+
   if(reason === "J-1"){
     return `👋 Bonjour ${guest} !
 
@@ -343,14 +347,12 @@ Nous sommes ravis de t’accueillir très bientôt.
 📅 Arrivée : ${checkIn}
 📅 Départ : ${checkOut}
 
-🚗 Parking : gratuit, juste à quelques mètres du logement.  
 📍 Besoin d’aide pour l’arrivée ? Écris-nous ici, on te guide.
 
 À très vite 🙏  
-— ${logement} • DIGIY LOC (0% commission)`;
+— DIGIY LOC (0% commission)`;
   }
 
-  // 🟡 APRÈS SÉJOUR — J+1
   if(reason === "J+1"){
     return `🙏 Merci ${guest} !
 
@@ -360,19 +362,19 @@ Si tu as 30 secondes, un petit retour (même en 1 phrase) nous aide énormément
 • ce que tu as aimé  
 • ou un point à améliorer
 
-Et si tu repasses dans la région, ce sera un plaisir de t’accueillir à nouveau — ou des amis à toi 🙌  
-— ${logement} • DIGIY LOC`;
+Merci encore 🙌  
+— DIGIY LOC`;
   }
 
-  // 🔵 RELANCE DOUCE — J+7 (par défaut)
+  // J+7 ou autre => relance douce
   return `👋 Bonjour ${guest} !
 
 Petite relance douce 😊  
 Si tu as un moment pour un retour sur ton séjour chez *${logement}*, cela nous aide beaucoup.
 
 Même un message simple ici, c’est parfait 🙏  
-Merci encore et bonne route ✨  
-— ${logement} • DIGIY LOC`;
+Merci et bonne route ✨  
+— DIGIY LOC`;
 }
 
 /* =========================================================
@@ -409,70 +411,6 @@ window.markOutboxSent = async function(id){
     disableAllActionButtons(false);
   }
 };
-
-/* =========================================================
-   DATA — OUTBOX (RPC ONLY)
-========================================================= */
-async function loadOutbox(){
-  $("outboxList").textContent = "Chargement…";
-  showErr("outboxErr", null);
-
-  const tok = getTokenOrKick();
-  if(!tok) return;
-
-  const r = await rpcSafe("digiy_outbox_list", {
-    p_token: tok,
-    p_status: "queued",
-    p_limit: 100
-  });
-
-  if(!r.ok){
-    console.error("digiy_outbox_list error:", r.error);
-    $("outboxList").textContent = "Erreur chargement";
-    showErr("outboxErr", "RPC digiy_outbox_list a échoué.\n" + (r.error?.message || r.error));
-    return;
-  }
-
-  const rows = Array.isArray(r.data) ? r.data : [];
-  if(rows.length === 0){
-    $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
-    return;
-  }
-
-  $("outboxList").innerHTML = rows.map(row=>{
-    const payload = row.payload || {};
-    const phone  = row.to_phone || payload.phone || "";
-    const mod    = String(payload.module || row.module || "LOC").toUpperCase();
-    const reason = payload.reason || row.template || "reminder";
-
-    // due_at est dans payload (chez toi)
-    const dueAt = payload.due_at ? fmtFR(payload.due_at) : "—";
-
-    const msg = buildWhatsAppMessage(row);
-    const wa  = waLink(phone, msg);
-
-    return `
-      <div class="section" style="margin-bottom:12px">
-        <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
-        <div class="chip">📦 <span class="mono">${escapeHtml(mod)}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
-        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAt))}</span></div>
-
-        <div class="actions">
-          <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
-            💬 Ouvrir WhatsApp
-          </a>
-
-          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent(${Number(row.id)})">
-            ✅ Marquer envoyé
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  applyAdminUI();
-}
 
 /* =========================================================
    DATA — PENDING
@@ -548,6 +486,8 @@ async function loadPending(){
 
 /* =========================================================
    DATA — OUTBOX (RPC ONLY)
+   Table digiy_outbox: id(bigint), to_phone, template, payload, status, created_at, sent_at...
+   due_at est dans payload.due_at
 ========================================================= */
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
@@ -565,7 +505,7 @@ async function loadOutbox(){
   if(!r.ok){
     console.error("digiy_outbox_list error:", r.error);
     $("outboxList").textContent = "Erreur chargement";
-    showErr("outboxErr", `RPC digiy_outbox_list a échoué.\nMessage: ${r.error?.message || r.error}`);
+    showErr("outboxErr", "RPC digiy_outbox_list a échoué.\n" + (r.error?.message || r.error));
     return;
   }
 
@@ -575,15 +515,15 @@ async function loadOutbox(){
     return;
   }
 
-  $("outboxList").innerHTML = rows.map(row => {
+  $("outboxList").innerHTML = rows.map(row=>{
     const payload = row.payload || {};
-    const phone = row.to_phone || "";
-    const mod = String(payload.module || "LOC").toUpperCase();
+    const phone  = row.to_phone || payload.phone || "";
+    const mod    = String(payload.module || "LOC").toUpperCase();
     const reason = payload.reason || row.template || "reminder";
-    const dueTxt = fmtFR(payload.due_at || payload.due_date || payload.scheduled_at || null);
+    const dueTxt = fmtFR(payload.due_at || null);
 
     const msg = buildWhatsAppMessage(row);
-    const wa = waLink(phone, msg);
+    const wa  = waLink(phone, msg);
 
     return `
       <div class="section" style="margin-bottom:12px">
@@ -597,7 +537,7 @@ async function loadOutbox(){
           </a>
 
           <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent('${escapeAttr(String(row.id))}')">
+            onclick="markOutboxSent(${Number(row.id)})">
             ✅ Marquer envoyé
           </button>
         </div>
