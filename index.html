@@ -86,14 +86,8 @@
       margin-top:10px;
     }
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
-    .grid2{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-    @media(min-width: 980px){
-      .grid2{grid-template-columns:1fr 1fr;}
-    }
+    .grid2{display:grid;grid-template-columns:1fr;gap:12px;}
+    @media(min-width: 980px){ .grid2{grid-template-columns:1fr 1fr;} }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -193,9 +187,6 @@ function disableAllActionButtons(disabled){
   });
 }
 
-/* =========================================================
-   SAFETY HELPERS (anti injection dans HTML)
-========================================================= */
 function escapeHtml(s){
   return String(s)
     .replaceAll("&","&amp;")
@@ -327,15 +318,14 @@ window.rejectReq = async function(id){
 };
 
 /* =========================================================
-   OUTBOX — MESSAGE BUILDER (ALIGNÉ SUR TA TABLE)
-   Ta table public.digiy_outbox => phone/module/reason/due_at + payload jsonb
+   OUTBOX — MESSAGE BUILDER (PAYLOAD-DRIVEN)
 ========================================================= */
 function buildWhatsAppMessage(row){
   const payload = row.payload || {};
-  const phone = row.phone || payload.phone || "";
-  const mod = String(row.module || payload.module || "LOC").toUpperCase();
-  const reason = row.reason || payload.reason || "Rappel";
-  const dueTxt = fmtFR(row.due_at || payload.due_at);
+  const phone = row.to_phone || "";
+  const mod = String(payload.module || "LOC").toUpperCase();
+  const reason = payload.reason || row.template || "Rappel";
+  const dueTxt = fmtFR(payload.due_at || payload.due_date || payload.scheduled_at || null);
 
   return `🦅 DIGIY — ${reason} ✅
 
@@ -350,8 +340,7 @@ Support: +221771342889
 }
 
 /* =========================================================
-   OUTBOX — MARK SENT
-   IMPORTANT: on passe l'id tel quel (chez toi c'est UUID)
+   OUTBOX — MARK SENT (id = bigint)
 ========================================================= */
 window.markOutboxSent = async function(id){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
@@ -365,7 +354,7 @@ window.markOutboxSent = async function(id){
 
     const r = await rpcSafe("digiy_outbox_mark_sent", {
       p_token: tok,
-      p_id: id,
+      p_id: Number(id),              // ✅ bigint -> Number
       p_provider: "manual_whatsapp"
     });
 
@@ -454,7 +443,7 @@ async function loadPending(){
 }
 
 /* =========================================================
-   DATA — OUTBOX (RPC ONLY, ALIGNÉ SUR digiy_outbox)
+   DATA — OUTBOX (RPC ONLY)
 ========================================================= */
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
@@ -483,11 +472,11 @@ async function loadOutbox(){
   }
 
   $("outboxList").innerHTML = rows.map(row => {
-    // ✅ mapping EXACT sur ta table: phone/module/reason/due_at
-    const phone = row.phone || "";
-    const mod = String(row.module || "LOC").toUpperCase();
-    const reason = row.reason || "reminder";
-    const dueAtTxt = fmtFR(row.due_at);
+    const payload = row.payload || {};
+    const phone = row.to_phone || "";
+    const mod = String(payload.module || "LOC").toUpperCase();
+    const reason = payload.reason || row.template || "reminder";
+    const dueTxt = fmtFR(payload.due_at || payload.due_date || payload.scheduled_at || null);
 
     const msg = buildWhatsAppMessage(row);
     const wa = waLink(phone, msg);
@@ -495,8 +484,8 @@ async function loadOutbox(){
     return `
       <div class="section" style="margin-bottom:12px">
         <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
-        <div class="chip">📦 <span class="mono">${escapeHtml(mod || "—")}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
-        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAtTxt))}</span></div>
+        <div class="chip">📦 <span class="mono">${escapeHtml(mod)}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
+        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueTxt))}</span></div>
 
         <div class="actions">
           <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
