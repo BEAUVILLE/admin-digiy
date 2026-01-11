@@ -376,7 +376,7 @@ Merci encore et bonne route ✨
 }
 
 /* =========================================================
-   OUTBOX — MARK SENT (id = bigint)
+   OUTBOX — MARK SENT (id = bigint) — RPC ONLY
 ========================================================= */
 window.markOutboxSent = async function(id){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
@@ -388,13 +388,17 @@ window.markOutboxSent = async function(id){
     const tok = getTokenOrKick();
     if(!tok) return;
 
+    const nid = Number(id);
+    if(!Number.isFinite(nid) || nid <= 0) throw new Error("ID invalide (bigint).");
+
     const r = await rpcSafe("digiy_outbox_mark_sent", {
       p_token: tok,
-      p_id: Number(id),              // ✅ bigint -> Number
+      p_id: nid,
       p_provider: "manual_whatsapp"
     });
 
     if(!r.ok) throw (r.error || new Error("mark_sent_failed"));
+    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "mark_sent_failed");
 
     await loadOutbox();
 
@@ -405,6 +409,70 @@ window.markOutboxSent = async function(id){
     disableAllActionButtons(false);
   }
 };
+
+/* =========================================================
+   DATA — OUTBOX (RPC ONLY)
+========================================================= */
+async function loadOutbox(){
+  $("outboxList").textContent = "Chargement…";
+  showErr("outboxErr", null);
+
+  const tok = getTokenOrKick();
+  if(!tok) return;
+
+  const r = await rpcSafe("digiy_outbox_list", {
+    p_token: tok,
+    p_status: "queued",
+    p_limit: 100
+  });
+
+  if(!r.ok){
+    console.error("digiy_outbox_list error:", r.error);
+    $("outboxList").textContent = "Erreur chargement";
+    showErr("outboxErr", "RPC digiy_outbox_list a échoué.\n" + (r.error?.message || r.error));
+    return;
+  }
+
+  const rows = Array.isArray(r.data) ? r.data : [];
+  if(rows.length === 0){
+    $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
+    return;
+  }
+
+  $("outboxList").innerHTML = rows.map(row=>{
+    const payload = row.payload || {};
+    const phone  = row.to_phone || payload.phone || "";
+    const mod    = String(payload.module || row.module || "LOC").toUpperCase();
+    const reason = payload.reason || row.template || "reminder";
+
+    // due_at est dans payload (chez toi)
+    const dueAt = payload.due_at ? fmtFR(payload.due_at) : "—";
+
+    const msg = buildWhatsAppMessage(row);
+    const wa  = waLink(phone, msg);
+
+    return `
+      <div class="section" style="margin-bottom:12px">
+        <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
+        <div class="chip">📦 <span class="mono">${escapeHtml(mod)}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
+        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAt))}</span></div>
+
+        <div class="actions">
+          <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
+            💬 Ouvrir WhatsApp
+          </a>
+
+          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
+            onclick="markOutboxSent(${Number(row.id)})">
+            ✅ Marquer envoyé
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  applyAdminUI();
+}
 
 /* =========================================================
    DATA — PENDING
