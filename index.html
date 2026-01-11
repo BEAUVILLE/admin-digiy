@@ -207,6 +207,18 @@ function escapeHtml(s){
 function escapeAttr(s){
   return escapeHtml(s).replaceAll("`","&#096;");
 }
+function normPhone(p){
+  return String(p || "").replace(/[^0-9+]/g,"").trim();
+}
+function waLink(phone, text){
+  // wa.me attend des chiffres sans +
+  const digits = normPhone(phone).replace(/\D/g,"");
+  return "https://wa.me/" + digits + "?text=" + encodeURIComponent(text);
+}
+function fmtFR(ts){
+  if(!ts) return "—";
+  try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
+}
 
 /* =========================================================
    🔐 ADMIN CHECK (TOKEN-BASED)
@@ -229,7 +241,6 @@ async function checkAdmin(){
 }
 
 function applyAdminUI(){
-  // si non-admin: on masque les actions sensibles (UX)
   if(!IS_ADMIN){
     document.querySelectorAll("[data-need-admin='1']").forEach(el=>{
       el.style.display = "none";
@@ -304,26 +315,57 @@ window.rejectReq = async function(id){
 };
 
 /* =========================================================
-   ACTIONS (RPC) — OUTBOX
+   OUTBOX — MESSAGE BUILDER (aligné sur digiy_admin_outbox)
 ========================================================= */
-window.markOutboxSent = async function(id){
+function buildWhatsAppMessageFromOutbox(row){
+  const phone = row.phone || "";
+  const payload = row.payload || {};
+  const mod = String(row.module || payload.module || "LOC").toUpperCase();
+  const reason = String(row.reason || payload.reason || "Rappel");
+  const dueAt = row.due_at ? fmtFR(row.due_at) : "—";
+
+  const who = payload.client_nom ? `Client: ${payload.client_nom}\n` : "";
+  const dates = (payload.date_arrivee && payload.date_depart) ? `📅 ${payload.date_arrivee} → ${payload.date_depart}\n` : "";
+  const loge = payload.logement_nom ? `🏠 ${payload.logement_nom}\n` : "";
+
+  return [
+    `🦅 DIGIY — ${reason}`,
+    "",
+    `Téléphone: ${phone}`,
+    `Module: ${mod}`,
+    `Échéance: ${dueAt}`,
+    "",
+    (who + dates + loge).trim(),
+    "",
+    "Paiement Wave → puis envoi du reçu ici ✅",
+    "Support: +221771342889",
+    "",
+    "0% commission · Paiement direct"
+  ].filter(Boolean).join("\n");
+}
+
+/* =========================================================
+   OUTBOX — MARK SENT (UUID + digiy_outbox_mark_sent(p_outbox_id, p_sent_by))
+   NOTE: si chez toi tu as une version tokenisée, dis-moi et je l’aligne.
+========================================================= */
+window.markOutboxSent = async function(outboxId){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
 
   disableAllActionButtons(true);
   showErr("outboxErr", null);
 
   try{
+    // On garde le token check pour UX (si expiré on kick)
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    const { data, error } = await sb.rpc("digiy_outbox_mark_sent", {
-      p_token: tok,
-      p_id: Number(id),
-      p_provider: "manual_whatsapp"
+    // Fonction SQL (version corrigée): digiy_outbox_mark_sent(p_outbox_id uuid, p_sent_by text)
+    const { error } = await sb.rpc("digiy_outbox_mark_sent", {
+      p_outbox_id: outboxId,
+      p_sent_by: "manual_whatsapp"
     });
 
     if(error) throw error;
-    if(!data?.ok) throw new Error(data?.reason || "mark_sent_failed");
 
     await loadOutbox();
 
@@ -408,27 +450,10 @@ async function loadPending(){
 }
 
 /* =========================================================
-   DATA — OUTBOX
+   DATA — OUTBOX (lecture directe table digiy_admin_outbox)
+   Pourquoi direct table ? => tu as déjà RLS + admin-check côté token,
+   et ça évite mismatch RPC.
 ========================================================= */
-function buildWhatsAppMessage(row){
-  const phone = row.to_phone || "";
-  const payload = row.payload || {};
-  const mod = String(payload.module || "").toUpperCase();
-  const reason = payload.reason || row.template || "Rappel";
-  const dueAt = payload.due_at ? new Date(payload.due_at).toLocaleString("fr-FR") : "—";
-
-  return `🦅 DIGIY — ${reason} ✅
-
-Téléphone: ${phone}
-Module: ${mod}
-Échéance: ${dueAt}
-
-Paiement Wave → puis envoi du reçu ici ✅
-Support: +221771342889
-
-0% commission · Paiement direct`;
-}
-
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
   showErr("outboxErr", null);
@@ -436,17 +461,19 @@ async function loadOutbox(){
   const tok = getTokenOrKick();
   if(!tok) return;
 
-  const { data, error, status } = await sb.rpc("digiy_outbox_list", {
-    p_token: tok,
-    p_status: "queued",
-    p_limit: 100
-  });
+  // Si tu veux ABSOLUMENT passer par RPC digiy_outbox_list tokenisé, dis-moi.
+  const { data, error } = await sb
+    .from("digiy_admin_outbox")
+    .select("id, created_at, due_at, channel, module, reason, phone, business_code, reservation_id, payload, status, sent_at, sent_by")
+    .eq("status", "queued")
+    .order("due_at", { ascending:true })
+    .limit(100);
 
   if(error){
-    console.error("digiy_outbox_list error:", error);
+    console.error("outbox select error:", error);
     $("outboxList").textContent = "Erreur chargement";
     showErr("outboxErr",
-      `RPC digiy_outbox_list a échoué.\nStatus: ${status}\nMessage: ${error.message || error}`
+      `SELECT digiy_admin_outbox a échoué.\nMessage: ${error.message || error}`
     );
     return;
   }
@@ -457,14 +484,13 @@ async function loadOutbox(){
   }
 
   $("outboxList").innerHTML = data.map(row => {
-    const phone = row.to_phone || "";
-    const payload = row.payload || {};
-    const mod = String(payload.module || "").toUpperCase();
-    const reason = payload.reason || row.template || "reminder";
-    const dueAt = payload.due_at ? new Date(payload.due_at).toLocaleString("fr-FR") : "—";
+    const phone = row.phone || "";
+    const mod = String(row.module || "LOC").toUpperCase();
+    const reason = row.reason || "reminder";
+    const dueAt = fmtFR(row.due_at);
 
-    const msg = buildWhatsAppMessage(row);
-    const wa = "https://wa.me/" + String(phone).replace(/\D/g,"") + "?text=" + encodeURIComponent(msg);
+    const msg = buildWhatsAppMessageFromOutbox(row);
+    const wa = waLink(phone, msg);
 
     return `
       <div class="section" style="margin-bottom:12px">
@@ -473,12 +499,12 @@ async function loadOutbox(){
         <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueAt))}</span></div>
 
         <div class="actions">
-          <a class="btn refresh-btn" data-need-admin="1" href="${wa}" target="_blank" rel="noopener">
+          <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
             💬 Ouvrir WhatsApp
           </a>
 
           <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent(${Number(row.id)})">
+            onclick="markOutboxSent('${escapeAttr(String(row.id))}')">
             ✅ Marquer envoyé
           </button>
         </div>
