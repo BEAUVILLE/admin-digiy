@@ -134,15 +134,6 @@
     .hr{height:1px;background:rgba(148,163,184,.18);margin:12px 0;border-radius:999px}
     .smallLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // ✅ Un seul client global (évite "sb already declared")
-    window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
-      "https://wesqmwjjtsefyjnluosj.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
-    );
-  </script>
 </head>
 
 <body>
@@ -238,7 +229,7 @@
       <div class="hr"></div>
 
       <div class="desc">
-        Note : si tu vois ton propre numéro partout dans l’outbox, c’est souvent du test (génération outbox).
+        Note : si tu vois ton propre numéro partout dans l'outbox, c'est souvent du test (génération outbox).
         On le recâble quand tu veux sur le vrai <span class="mono">phone client/pro</span>.
       </div>
     </div>
@@ -247,86 +238,126 @@
 </div>
 
 <script>
-  const sb = window.__digiy_sb_admin;
+  // ✅ Backend URL
+  const BACKEND_URL = window.location.hostname === "localhost" 
+    ? "http://localhost:8000" 
+    : window.location.origin.replace("3000", "8000");
 
   const KEY = {
-    token:"digiy_admin_token",
-    exp:"digiy_admin_exp",
-    role:"digiy_admin_role",
-    label:"digiy_admin_label"
+    token: "digiy_admin_token",
+    exp: "digiy_admin_exp",
+    role: "digiy_admin_role",
+    label: "digiy_admin_label"
   };
 
-  const $ = (id)=>document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
 
-  function getTokenOrKick(){
+  function getTokenOrKick() {
     const tok = localStorage.getItem(KEY.token) || "";
     const exp = Number(localStorage.getItem(KEY.exp) || "0");
-    if(!tok || !exp || Date.now() > exp){
+    if (!tok || !exp || Date.now() > exp) {
       location.replace("login.html");
       return "";
     }
     return tok;
   }
 
-  async function rpcSafe(fn, args){
-    try{
-      const r = await sb.rpc(fn, args || {});
-      if(r.error) return { ok:false, error:r.error, data:r.data };
-      return { ok:true, data:r.data };
-    }catch(e){
-      return { ok:false, error:e, data:null };
+  async function backendRPC(fnName, args) {
+    const tok = getTokenOrKick();
+    if (!tok) return { ok: false, error: "no_token" };
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/rpc/${fnName}`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${tok}`
+        },
+        body: JSON.stringify(args || {})
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          location.replace("login.html");
+        }
+        return { ok: false, error: `HTTP ${res.status}` };
+      }
+
+      const data = await res.json();
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: String(e) };
     }
   }
 
-  function setMsg(el, text, type){
+  function setMsg(el, text, type) {
     el.className = "msg" + (type ? (" " + type) : "");
     el.textContent = text || "—";
   }
 
-  async function refreshKPI(){
+  async function refreshKPI() {
     const tok = getTokenOrKick();
-    if(!tok) return;
+    if (!tok) return;
 
-    // Admin check
-    const chk = await rpcSafe("digiy_admin_check", { p_token: tok });
-    const isAdmin = (chk.ok && chk.data === true);
+    // Check token validity with backend
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/check`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Authorization": `Bearer ${tok}` }
+      });
 
-    const kAdmin = $("kAdmin");
-    kAdmin.textContent = isAdmin ? "OK" : "NO";
-    kAdmin.style.color = isAdmin ? "var(--ok)" : "var(--bad)";
+      if (!res.ok) {
+        location.replace("login.html");
+        return;
+      }
+
+      const check = await res.json();
+      const isAdmin = check.ok === true;
+
+      const kAdmin = $("kAdmin");
+      kAdmin.textContent = isAdmin ? "OK" : "NO";
+      kAdmin.style.color = isAdmin ? "var(--ok)" : "var(--bad)";
+    } catch (e) {
+      console.error(e);
+    }
 
     $("kRole").textContent = localStorage.getItem(KEY.role) || "—";
     $("kCity").textContent = localStorage.getItem(KEY.label) || "—";
 
     // Metrics caisse
-    const m = await rpcSafe("digiy_admin_metrics", { p_token: tok });
-    if(m.ok && m.data && m.data.ok === true){
+    const m = await backendRPC("digiy_admin_metrics", {});
+    if (m.ok && m.data && m.data.ok === true) {
       $("kRev").textContent = Number(m.data.revenue_today_fcfa || 0).toLocaleString("fr-FR");
       $("kPayCount").textContent = String(m.data.payments_today_count ?? "0");
-    }else{
+    } else {
       $("kRev").textContent = "—";
       $("kPayCount").textContent = "—";
     }
 
-    // Pending / Outbox (si tes RPC existent)
-    const pend = await rpcSafe("digiy_admin_list_requests", {
-      p_token: tok, p_status:"pending_payment", p_limit: 200
-    });
+    // Pending / Outbox
+    const pend = await backendRPC("digiy_admin_list_requests", { p_status: "pending_payment", p_limit: 200 });
     $("kPending").textContent = (pend.ok && Array.isArray(pend.data)) ? String(pend.data.length) : "—";
 
-    const outb = await rpcSafe("digiy_outbox_list", {
-      p_token: tok, p_status:"queued", p_limit: 200
-    });
+    const outb = await backendRPC("digiy_outbox_list", { p_status: "queued", p_limit: 200 });
     $("kOutbox").textContent = (outb.ok && Array.isArray(outb.data)) ? String(outb.data.length) : "—";
   }
 
-  async function logout(){
-    if(!confirm("Se déconnecter ?")) return;
+  async function logout() {
+    if (!confirm("Se déconnecter ?")) return;
 
     const tok = localStorage.getItem(KEY.token) || "";
-    if(tok){
-      // si RPC existe (sinon on ignore)
-      await rpcSafe("digiy_admin_logout", { p_token: tok });
+    if (tok) {
+      try {
+        await fetch(`${BACKEND_URL}/api/admin/logout`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Authorization": `Bearer ${tok}` }
+        });
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     localStorage.removeItem(KEY.token);
@@ -337,34 +368,32 @@
     location.replace("login.html");
   }
 
-  async function addPayment(){
+  async function addPayment() {
     const tok = getTokenOrKick();
-    if(!tok) return;
+    if (!tok) return;
 
     const amount = Number(($("pAmount").value || "").trim() || "0");
-    const phone  = ($("pPhone").value || "").trim();
+    const phone = ($("pPhone").value || "").trim();
     const module = ($("pModule").value || "").trim();
-    const note   = ($("pNote").value || "").trim();
+    const note = ($("pNote").value || "").trim();
 
     const payMsg = $("payMsg");
     setMsg(payMsg, "⏳ Enregistrement…");
 
-    if(!Number.isFinite(amount) || amount <= 0){
+    if (!Number.isFinite(amount) || amount <= 0) {
       setMsg(payMsg, "⚠️ Montant invalide", "err");
       return;
     }
 
-    // RPC sécurité (token obligatoire)
-    const r = await rpcSafe("digiy_admin_payment_add", {
-      p_token: tok,
+    const r = await backendRPC("digiy_admin_payment_add", {
       p_amount: amount,
       p_phone: phone || null,
       p_module: module || null,
       p_note: note || null
     });
 
-    if(!r.ok || !r.data || r.data.ok !== true){
-      const msg = String(r.error?.message || r.data?.reason || "payment_failed");
+    if (!r.ok || !r.data || r.data.ok !== true) {
+      const msg = String(r.error || r.data?.reason || "payment_failed");
       setMsg(payMsg, "❌ " + msg, "err");
       return;
     }
@@ -378,12 +407,12 @@
     await refreshKPI();
   }
 
-  window.addEventListener("load", async ()=>{
+  window.addEventListener("load", async () => {
     getTokenOrKick();
 
-    $("btnRefresh").onclick = async ()=>{ await refreshKPI(); };
-    $("btnLogout").onclick  = async ()=>{ await logout(); };
-    $("btnAddPay").onclick  = async ()=>{ await addPayment(); };
+    $("btnRefresh").onclick = async () => { await refreshKPI(); };
+    $("btnLogout").onclick = async () => { await logout(); };
+    $("btnAddPay").onclick = async () => { await addPayment(); };
 
     await refreshKPI();
   });
