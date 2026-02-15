@@ -23,13 +23,6 @@
     .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444}
     .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22c55e}
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
-      "https://wesqmwjjtsefyjnluosj.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
-    );
-  </script>
 </head>
 <body>
   <div class="card">
@@ -48,39 +41,42 @@
   </div>
 
 <script>
-  const sb = window.__digiy_sb_admin;
+  // ✅ Backend URL (config depuis .env du server)
+  const BACKEND_URL = window.location.hostname === "localhost" 
+    ? "http://localhost:8000" 
+    : window.location.origin.replace("3000", "8000");
 
   const KEY = {
-    token:"digiy_admin_token",
-    exp:"digiy_admin_exp",
-    role:"digiy_admin_role",
-    label:"digiy_admin_label"
+    token: "digiy_admin_token",
+    exp: "digiy_admin_exp",
+    role: "digiy_admin_role",
+    label: "digiy_admin_label"
   };
 
-  const $ = (id)=>document.getElementById(id);
-  const err=$("err"), ok=$("ok"), btn=$("btn"), f=$("f"), pin=$("pin");
+  const $ = (id) => document.getElementById(id);
+  const err = $("err"), ok = $("ok"), btn = $("btn"), f = $("f"), pin = $("pin");
 
-  function show(el, text){ el.textContent=text||"—"; el.classList.add("show"); }
-  function hide(el){ el.classList.remove("show"); }
+  function show(el, text) { el.textContent = text || "—"; el.classList.add("show"); }
+  function hide(el) { el.classList.remove("show"); }
 
-  function hasValidToken(){
+  function hasValidToken() {
     const tok = localStorage.getItem(KEY.token) || "";
     const exp = Number(localStorage.getItem(KEY.exp) || "0");
     return !!tok && Date.now() < exp;
   }
 
-  if(hasValidToken()){
+  if (hasValidToken()) {
     location.replace("index.html");
   }
 
   pin.focus();
 
-  f.addEventListener("submit", async (e)=>{
+  f.addEventListener("submit", async (e) => {
     e.preventDefault();
     hide(err); hide(ok);
 
-    const p = (pin.value||"").trim();
-    if(!p || p.length < 4){
+    const p = (pin.value || "").trim();
+    if (!p || p.length < 4) {
       show(err, "PIN invalide (4+ chiffres).");
       return;
     }
@@ -89,32 +85,50 @@
     btn.textContent = "⏳ Vérification…";
     show(ok, "⏳ Connexion…");
 
-    try{
+    try {
       const ua = navigator.userAgent || null;
-      const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: p, p_user_agent: ua, p_ip: null });
-      if(error) throw error;
+      
+      // ✅ APPEL AU BACKEND SÉCURISÉ
+      const response = await fetch(`${BACKEND_URL}/api/admin/login`, {
+        method: "POST",
+        credentials: "include", // httpOnly cookie
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: p, ua: ua })
+      });
 
-      if(!data || data.ok !== true || !data.token || !data.exp){
-        show(err, "❌ Mauvais PIN.");
-        pin.value=""; pin.focus();
-        btn.disabled=false; btn.textContent="🔓 Entrer";
+      if (!response.ok) {
+        const data = await response.json();
+        show(err, data.error || "❌ Erreur serveur");
+        pin.value = ""; pin.focus();
+        btn.disabled = false; btn.textContent = "🔓 Entrer";
         hide(ok);
         return;
       }
 
+      const data = await response.json();
+
+      if (!data.ok || !data.token) {
+        show(err, "❌ Mauvais PIN.");
+        pin.value = ""; pin.focus();
+        btn.disabled = false; btn.textContent = "🔓 Entrer";
+        hide(ok);
+        return;
+      }
+
+      // ✅ STOCKAGE SÉCURISÉ
       localStorage.setItem(KEY.token, String(data.token));
-      localStorage.setItem(KEY.exp,   String(data.exp));
-      localStorage.setItem(KEY.role,  String(data.role || "OPS"));
+      localStorage.setItem(KEY.exp, String(data.exp));
+      localStorage.setItem(KEY.role, String(data.role || "OPS"));
       localStorage.setItem(KEY.label, String(data.label || "—"));
 
       show(ok, "✅ OK. Redirection…");
-      setTimeout(()=>location.replace("index.html"), 250);
+      setTimeout(() => location.replace("index.html"), 250);
 
-    }catch(ex){
+    } catch (ex) {
       console.error(ex);
       hide(ok);
       show(err, "⚠️ " + String(ex?.message || ex));
-      btn.disabled=false; btn.textContent="🔓 Entrer";
+      btn.disabled = false; btn.textContent = "🔓 Entrer";
     }
   });
 </script>
