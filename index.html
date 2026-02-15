@@ -92,11 +92,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ même client partout (même storageKey)
-    window.sb = window.sb || window.supabase.createClient(
+    // ✅ Un seul client global
+    window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
       "https://wesqmwjjtsefyjnluosj.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA",
-      { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"digiy-admin-auth" } }
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
     );
   </script>
 </head>
@@ -119,7 +118,6 @@
   </header>
 
   <div class="grid2">
-
     <div class="section">
       <h2>⏳ Demandes en attente</h2>
       <div id="pendingList" class="empty">Chargement…</div>
@@ -131,12 +129,25 @@
       <div id="outboxList" class="empty">Chargement…</div>
       <div id="outboxErr" class="err" style="display:none"></div>
     </div>
-
   </div>
 
 </div>
 
 <script>
+/* =========================
+   CONFIG TOKEN
+========================= */
+const sb = window.__digiy_sb_admin;
+
+const KEY = {
+  token:"digiy_admin_token",
+  exp:"digiy_admin_exp",
+  role:"digiy_admin_role",
+  label:"digiy_admin_label"
+};
+
+let IS_ADMIN = false;
+
 /* =========================
    UTILS
 ========================= */
@@ -172,6 +183,7 @@ function fmtFR(ts){
   if(!ts) return "—";
   try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
 }
+
 async function rpcSafe(fnName, args){
   try{
     const res = await sb.rpc(fnName, args || {});
@@ -183,23 +195,25 @@ async function rpcSafe(fnName, args){
 }
 
 /* =========================
-   🔐 SESSION + ADMIN GUARD
+   🔐 TOKEN GUARD (NO AUTH SESSION)
 ========================= */
-let IS_ADMIN = false;
-
-async function requireSession(){
-  const { data } = await sb.auth.getSession();
-  if(!data.session){
+function getTokenOrKick(){
+  const tok = localStorage.getItem(KEY.token) || "";
+  const exp = Number(localStorage.getItem(KEY.exp) || "0");
+  if(!tok || !exp || Date.now() > exp){
     location.replace("login.html");
-    return null;
+    return "";
   }
-  return data.session;
+  return tok;
 }
 
 async function checkAdmin(){
-  // ✅ on s’appuie sur la fonction SQL digiy_is_admin()
-  const r = await rpcSafe("digiy_is_admin", {});
+  const tok = getTokenOrKick();
+  if(!tok) return false;
+
+  const r = await rpcSafe("digiy_admin_check", { p_token: tok });
   if(!r.ok){ IS_ADMIN=false; return false; }
+
   IS_ADMIN = (r.data === true);
   return IS_ADMIN;
 }
@@ -212,15 +226,17 @@ function applyAdminUI(){
   }
 }
 
-async function logout(){
+function logout(){
   if(!confirm("Se déconnecter ?")) return;
-  await sb.auth.signOut();
+  localStorage.removeItem(KEY.token);
+  localStorage.removeItem(KEY.exp);
+  localStorage.removeItem(KEY.role);
+  localStorage.removeItem(KEY.label);
   location.replace("login.html");
 }
 
 /* =========================
-   ACTIONS — PENDING
-   ✅ RPC SANS p_token (à adapter côté SQL)
+   ACTIONS — PENDING (TOKEN)
 ========================= */
 window.approveReq = async function(phone, module, price, months){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
@@ -230,12 +246,17 @@ window.approveReq = async function(phone, module, price, months){
   showErr("pendingErr", null);
 
   try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
     const r = await rpcSafe("digiy_admin_approve_request", {
+      p_token: tok,
       p_phone: phone,
       p_module: module,
       p_price_monthly: Number(price || 9900),
       p_months: Number(months || 1)
     });
+
     if(!r.ok) throw (r.error || new Error("approve_failed"));
     if(r.data && r.data.ok === false) throw new Error(r.data.reason || "approve_failed");
 
@@ -257,7 +278,14 @@ window.rejectReq = async function(id){
   showErr("pendingErr", null);
 
   try{
-    const r = await rpcSafe("digiy_admin_reject_request", { p_id: id });
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
+    const r = await rpcSafe("digiy_admin_reject_request", {
+      p_token: tok,
+      p_id: id
+    });
+
     if(!r.ok) throw (r.error || new Error("reject_failed"));
     if(r.data && r.data.ok === false) throw new Error(r.data.reason || "reject_failed");
 
@@ -314,13 +342,18 @@ window.markOutboxSent = async function(id){
   showErr("outboxErr", null);
 
   try{
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
     const nid = Number(id);
     if(!Number.isFinite(nid) || nid <= 0) throw new Error("ID invalide.");
 
     const r = await rpcSafe("digiy_outbox_mark_sent", {
+      p_token: tok,
       p_id: nid,
       p_provider: "manual_whatsapp"
     });
+
     if(!r.ok) throw (r.error || new Error("mark_sent_failed"));
     if(r.data && r.data.ok === false) throw new Error(r.data.reason || "mark_sent_failed");
 
@@ -340,7 +373,11 @@ async function loadPending(){
   $("pendingList").textContent = "Chargement…";
   showErr("pendingErr", null);
 
+  const tok = getTokenOrKick();
+  if(!tok) return;
+
   const r = await rpcSafe("digiy_admin_list_requests", {
+    p_token: tok,
     p_status: "pending_payment",
     p_limit: 100
   });
@@ -407,7 +444,11 @@ async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
   showErr("outboxErr", null);
 
+  const tok = getTokenOrKick();
+  if(!tok) return;
+
   const r = await rpcSafe("digiy_outbox_list", {
+    p_token: tok,
     p_status: "queued",
     p_limit: 100
   });
@@ -462,7 +503,10 @@ async function loadOutbox(){
    INIT
 ========================= */
 window.addEventListener("load", async ()=>{
-  await requireSession();
+  // 🔐 1) token obligatoire
+  getTokenOrKick();
+
+  // 🔐 2) check admin obligatoire
   await checkAdmin();
 
   $("btnRefresh").onclick = async ()=>{ await Promise.all([loadPending(), loadOutbox()]); };
