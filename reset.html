@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DIGIY Admin — Reset</title>
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <style>
+    :root{ --bg:#0a0e1a; --accent:#facc15; --text:#e5e7eb; --muted:#9ca3af; --card:rgba(26,31,46,0.95);}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui,sans-serif;padding:20px}
+    .card{background:var(--card);backdrop-filter:blur(10px);padding:34px 26px;border-radius:18px;border:1px solid rgba(148,163,184,.2);max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    h1{text-align:center;font-size:22px;font-weight:950;margin-bottom:6px}
+    .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.35}
+    label{display:block;font-size:12px;font-weight:800;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.06em}
+    input{width:100%;padding:15px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:rgba(15,23,42,.8);color:var(--text);font-size:15px;font-weight:800;outline:none}
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(250,204,21,.2);background:rgba(15,23,42,.95)}
+    .btn{width:100%;padding:16px;border:none;border-radius:12px;background:linear-gradient(135deg,#facc15,#eab308);color:#0a0e1a;font-size:14px;font-weight:950;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;margin-top:16px}
+    .btn:disabled{opacity:.65;cursor:not-allowed}
+    .msg{padding:12px;border-radius:10px;font-size:13px;font-weight:800;margin:12px 0 0;display:none;line-height:1.35}
+    .msg.show{display:block}
+    .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444}
+    .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22c55e}
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.sb = window.sb || window.supabase.createClient(
+      "https://wesqmwjjtsefyjnluosj.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA",
+      { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"digiy-admin-auth" } }
+    );
+  </script>
+</head>
+
+<body>
+  <div class="card">
+    <h1>🔒 Nouveau mot de passe</h1>
+    <div class="sub">Ouvre cette page uniquement depuis le lien reçu par email.</div>
+
+    <div class="msg err" id="err">—</div>
+    <div class="msg ok" id="ok">—</div>
+
+    <form id="f">
+      <label>Nouveau mot de passe</label>
+      <input id="p1" type="password" autocomplete="new-password" required>
+
+      <label>Confirmer</label>
+      <input id="p2" type="password" autocomplete="new-password" required>
+
+      <button class="btn" id="btn" type="submit">✅ Enregistrer</button>
+    </form>
+  </div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const err=$("err"), ok=$("ok"), btn=$("btn"), f=$("f"), p1=$("p1"), p2=$("p2");
+
+  function show(el, text){ el.textContent=text||"—"; el.classList.add("show"); }
+  function hide(el){ el.classList.remove("show"); }
+
+  async function ensureRecoverySession(){
+    // Supabase met la session via l’URL (detectSessionInUrl:true)
+    const { data } = await sb.auth.getSession();
+    return !!data.session;
+  }
+
+  window.addEventListener("load", async ()=>{
+    hide(err); hide(ok);
+    const okSess = await ensureRecoverySession();
+    if(!okSess){
+      show(err, "Lien invalide/expiré. Recommence la demande de reset depuis login.html.");
+      btn.disabled = true;
+    }
+  });
+
+  f.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    hide(err); hide(ok);
+
+    const a = p1.value || "";
+    const b = p2.value || "";
+    if(a.length < 8) return show(err, "Mot de passe trop court (8+).");
+    if(a !== b) return show(err, "Les mots de passe ne correspondent pas.");
+
+    btn.disabled = true; btn.textContent = "⏳ Sauvegarde…";
+    try{
+      const { error } = await sb.auth.updateUser({ password: a });
+      if(error) throw error;
+
+      show(ok, "✅ Mot de passe mis à jour. Redirection…");
+      setTimeout(()=>location.replace("login.html"), 700);
+    }catch(ex){
+      console.error(ex);
+      show(err, "⚠️ " + String(ex?.message || ex));
+      btn.disabled = false; btn.textContent = "✅ Enregistrer";
+    }
+  });
+</script>
+</body>
+</html>
