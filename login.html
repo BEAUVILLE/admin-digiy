@@ -110,7 +110,7 @@
 
     try{
       await sb.auth.resetPasswordForEmail(em, {
-        redirectTo: location.origin + "/reset.html"
+        redirectTo: "https://backoffice.digiylyfe.com/reset.html"
       });
       show(ok,"📩 Email de reset envoyé. Regarde ta boîte.");
     }catch(ex){
