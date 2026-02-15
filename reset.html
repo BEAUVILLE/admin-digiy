@@ -24,14 +24,79 @@
     .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22c55e}
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    window.sb = window.sb || window.supabase.createClient(
-      "https://wesqmwjjtsefyjnluosj.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA",
-      { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"digiy-admin-auth" } }
-    );
-  </script>
+  const $ = (id)=>document.getElementById(id);
+  const err=$("err"), ok=$("ok"), btn=$("btn"), f=$("f"), p1=$("p1"), p2=$("p2");
+
+  function show(el, text){ el.textContent=text||"—"; el.classList.add("show"); }
+  function hide(el){ el.classList.remove("show"); }
+
+  async function exchangeIfNeeded(){
+    // ✅ Nouveau format: ?code=... (PKCE)
+    const url = new URL(location.href);
+    const code = url.searchParams.get("code");
+    if (code) {
+      const { data, error } = await sb.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+      // nettoyer l'URL (enlève le code)
+      url.searchParams.delete("code");
+      history.replaceState({}, "", url.toString());
+      return !!data?.session;
+    }
+    return false;
+  }
+
+  async function ensureRecoverySession(){
+    // 1) si code=..., on échange
+    try { await exchangeIfNeeded(); } catch(e){ /* ignore ici, on check session après */ }
+
+    // 2) check session
+    const { data } = await sb.auth.getSession();
+    return !!data.session;
+  }
+
+  window.addEventListener("load", async ()=>{
+    hide(err); hide(ok);
+
+    try{
+      const okSess = await ensureRecoverySession();
+      if(!okSess){
+        show(err, "Lien invalide/expiré ou redirection mal configurée. Recommence le reset depuis login.");
+        btn.disabled = true;
+        return;
+      }
+      show(ok, "✅ Lien OK. Choisis ton nouveau mot de passe.");
+    }catch(ex){
+      console.error(ex);
+      show(err, "⚠️ " + String(ex?.message || ex));
+      btn.disabled = true;
+    }
+  });
+
+  f.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    hide(err); hide(ok);
+
+    const a = p1.value || "";
+    const b = p2.value || "";
+    if(a.length < 8) return show(err, "Mot de passe trop court (8+).");
+    if(a !== b) return show(err, "Les mots de passe ne correspondent pas.");
+
+    btn.disabled = true; btn.textContent = "⏳ Sauvegarde…";
+    try{
+      const { error } = await sb.auth.updateUser({ password: a });
+      if(error) throw error;
+
+      show(ok, "✅ Mot de passe mis à jour. Redirection…");
+      setTimeout(()=>location.replace("login.html"), 700);
+    }catch(ex){
+      console.error(ex);
+      show(err, "⚠️ " + String(ex?.message || ex));
+      btn.disabled = false; btn.textContent = "✅ Enregistrer";
+    }
+  });
+</script>
+
 </head>
 
 <body>
