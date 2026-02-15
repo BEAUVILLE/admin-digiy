@@ -238,10 +238,10 @@
 </div>
 
 <script>
-  // ✅ Backend URL
+  // ✅ Backend URL - CORRIGÉ POUR PROD
   const BACKEND_URL = window.location.hostname === "localhost" 
     ? "http://localhost:8000" 
-    : window.location.origin.replace("3000", "8000");
+    : "https://apps.digiylyfe.com";
 
   const KEY = {
     token: "digiy_admin_token",
@@ -300,7 +300,6 @@
     const tok = getTokenOrKick();
     if (!tok) return;
 
-    // Check token validity with backend
     try {
       const res = await fetch(`${BACKEND_URL}/api/admin/check`, {
         method: "GET",
@@ -326,7 +325,6 @@
     $("kRole").textContent = localStorage.getItem(KEY.role) || "—";
     $("kCity").textContent = localStorage.getItem(KEY.label) || "—";
 
-    // Metrics caisse
     const m = await backendRPC("digiy_admin_metrics", {});
     if (m.ok && m.data && m.data.ok === true) {
       $("kRev").textContent = Number(m.data.revenue_today_fcfa || 0).toLocaleString("fr-FR");
@@ -336,7 +334,6 @@
       $("kPayCount").textContent = "—";
     }
 
-    // Pending / Outbox
     const pend = await backendRPC("digiy_admin_list_requests", { p_status: "pending_payment", p_limit: 200 });
     $("kPending").textContent = (pend.ok && Array.isArray(pend.data)) ? String(pend.data.length) : "—";
 
