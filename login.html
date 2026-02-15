@@ -41,10 +41,10 @@
   </div>
 
 <script>
-  // ✅ Backend URL (config depuis .env du server)
+  // ✅ Backend URL - CORRIGÉ POUR PROD
   const BACKEND_URL = window.location.hostname === "localhost" 
     ? "http://localhost:8000" 
-    : window.location.origin.replace("3000", "8000");
+    : "https://apps.digiylyfe.com";
 
   const KEY = {
     token: "digiy_admin_token",
@@ -91,7 +91,7 @@
       // ✅ APPEL AU BACKEND SÉCURISÉ
       const response = await fetch(`${BACKEND_URL}/api/admin/login`, {
         method: "POST",
-        credentials: "include", // httpOnly cookie
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin: p, ua: ua })
       });
