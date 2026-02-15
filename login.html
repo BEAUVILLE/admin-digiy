@@ -1,64 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Backoffice DIGIY — Login</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DIGIY Backoffice — Login</title>
   <meta name="theme-color" content="#0a0e1a" />
   <style>
     :root{ --bg:#0a0e1a; --accent:#facc15; --text:#e5e7eb; --muted:#9ca3af; --card:rgba(26,31,46,0.95);}
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui,sans-serif;padding:20px}
-    .login-card{background:var(--card);backdrop-filter:blur(10px);padding:38px 28px;border-radius:20px;border:1px solid rgba(148,163,184,.2);max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .card{background:var(--card);backdrop-filter:blur(10px);padding:38px 28px;border-radius:20px;border:1px solid rgba(148,163,184,.2);max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
     .logo{width:78px;height:78px;background:linear-gradient(135deg,#facc15,#eab308);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 20px;box-shadow:0 0 30px rgba(250,204,21,.4)}
     h1{text-align:center;font-size:26px;font-weight:950;margin-bottom:6px}
-    .subtitle{text-align:center;color:var(--muted);font-size:13px;margin-bottom:18px}
+    .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:18px}
     label{display:block;font-size:12px;font-weight:800;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.06em}
-    input{width:100%;padding:15px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:rgba(15,23,42,.8);color:var(--text);font-size:15px;font-weight:800;outline:none}
+    input{width:100%;padding:15px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:rgba(15,23,42,.8);color:var(--text);font-size:16px;font-weight:900;outline:none;letter-spacing:.14em}
     input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(250,204,21,.2);background:rgba(15,23,42,.95)}
     .btn{width:100%;padding:16px;border:none;border-radius:12px;background:linear-gradient(135deg,#facc15,#eab308);color:#0a0e1a;font-size:15px;font-weight:950;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;margin-top:16px}
     .btn:disabled{opacity:.65;cursor:not-allowed}
-    .msg{padding:12px;border-radius:10px;font-size:13px;font-weight:800;margin:12px 0 0;display:none;line-height:1.35}
+    .msg{padding:12px;border-radius:10px;font-size:13px;font-weight:900;margin:12px 0 0;display:none;line-height:1.35}
     .msg.show{display:block}
     .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444}
     .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#22c55e}
-    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
+      "https://wesqmwjjtsefyjnluosj.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
+    );
+  </script>
 </head>
 <body>
-  <div class="login-card">
+  <div class="card">
     <div class="logo">🦅</div>
     <h1>DIGIY Backoffice</h1>
-    <div class="subtitle">Connexion sécurisée (PIN + Token)</div>
+    <div class="sub">PIN + Token (zéro email, zéro galère)</div>
 
     <div class="msg err" id="err">—</div>
     <div class="msg ok" id="ok">—</div>
 
     <form id="f">
-      <label for="pin">PIN Admin</label>
+      <label>PIN Admin</label>
       <input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="3435" required>
-      <button class="btn" id="btn" type="submit">🔓 Se connecter</button>
+      <button class="btn" id="btn" type="submit">🔓 Entrer</button>
     </form>
   </div>
 
 <script>
-  const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
-
-  const sb = window.__digiy_sb_admin
-    || (window.__digiy_sb_admin = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
+  const sb = window.__digiy_sb_admin;
 
   const KEY = {
-    token: "digiy_admin_token",
-    exp:   "digiy_admin_exp",
-    role:  "digiy_admin_role",
-    label: "digiy_admin_label"
+    token:"digiy_admin_token",
+    exp:"digiy_admin_exp",
+    role:"digiy_admin_role",
+    label:"digiy_admin_label"
   };
 
   const $ = (id)=>document.getElementById(id);
-  const f=$("f"), pin=$("pin"), btn=$("btn"), err=$("err"), ok=$("ok");
+  const err=$("err"), ok=$("ok"), btn=$("btn"), f=$("f"), pin=$("pin");
 
   function show(el, text){ el.textContent=text||"—"; el.classList.add("show"); }
   function hide(el){ el.classList.remove("show"); }
@@ -82,7 +82,6 @@
     const p = (pin.value||"").trim();
     if(!p || p.length < 4){
       show(err, "PIN invalide (4+ chiffres).");
-      pin.value=""; pin.focus();
       return;
     }
 
@@ -91,44 +90,31 @@
     show(ok, "⏳ Connexion…");
 
     try{
-      const { data, error } = await sb.rpc("digiy_admin_login_pin", {
-  p_pin: p,
-  p_user_agent: navigator.userAgent,
-  p_ip: null
-});
-if(error) throw error;
-
-if(!data?.ok) throw new Error(data?.reason || "bad_pin");
-
-localStorage.setItem("digiy_admin_token", data.token);
-localStorage.setItem("digiy_admin_exp", String(data.exp));
-location.replace("index.html");
+      const ua = navigator.userAgent || null;
+      const { data, error } = await sb.rpc("digiy_admin_login_pin", { p_pin: p, p_user_agent: ua, p_ip: null });
+      if(error) throw error;
 
       if(!data || data.ok !== true || !data.token || !data.exp){
         show(err, "❌ Mauvais PIN.");
         pin.value=""; pin.focus();
-        pin.style.animation="shake .5s";
-        setTimeout(()=>pin.style.animation="",520);
-        btn.disabled=false;
-        btn.textContent="🔓 Se connecter";
+        btn.disabled=false; btn.textContent="🔓 Entrer";
         hide(ok);
         return;
       }
 
       localStorage.setItem(KEY.token, String(data.token));
       localStorage.setItem(KEY.exp,   String(data.exp));
-      localStorage.setItem(KEY.role,  String(data.role || "ops"));
+      localStorage.setItem(KEY.role,  String(data.role || "OPS"));
       localStorage.setItem(KEY.label, String(data.label || "—"));
 
       show(ok, "✅ OK. Redirection…");
-      setTimeout(()=>location.replace("index.html"),350);
+      setTimeout(()=>location.replace("index.html"), 250);
 
     }catch(ex){
       console.error(ex);
       hide(ok);
-      show(err,"⚠️ Erreur: "+String(ex?.message||ex));
-      btn.disabled=false;
-      btn.textContent="🔓 Se connecter";
+      show(err, "⚠️ " + String(ex?.message || ex));
+      btn.disabled=false; btn.textContent="🔓 Entrer";
     }
   });
 </script>
