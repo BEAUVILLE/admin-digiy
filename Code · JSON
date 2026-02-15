@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-env --allow-net digiy_admin_backend.ts",
+    "check": "deno check digiy_admin_backend.ts",
+    "format": "deno fmt digiy_admin_backend.ts",
+    "lint": "deno lint digiy_admin_backend.ts"
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.208.0/"
+  }
+}
