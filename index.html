@@ -1,98 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DIGIY Admin — Activations</title>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>DIGIY Backoffice — Cockpit</title>
+  <meta name="theme-color" content="#0a0e1a" />
   <style>
     :root{
       --bg:#0a0e1a; --card:#1a1f2e; --accent:#facc15;
-      --success:#22c55e; --danger:#ef4444; --text:#e5e7eb;
-      --muted:#9ca3af; --border:rgba(148,163,184,0.2);
+      --ok:#22c55e; --bad:#ef4444; --text:#e5e7eb; --muted:#9ca3af;
+      --border:rgba(148,163,184,0.2);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      min-height:100vh;
-      background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
-      color:var(--text);
-      font-family:system-ui,-apple-system,sans-serif;
-      padding:20px;
+      min-height:100vh; background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
+      color:var(--text); font-family:system-ui,-apple-system,sans-serif; padding:20px;
     }
     .container{max-width:1200px;margin:0 auto}
     header{
-      background:rgba(26,31,46,0.8);
-      backdrop-filter:blur(10px);
+      background:rgba(26,31,46,0.8); backdrop-filter:blur(10px);
       padding:20px;border-radius:16px;border:1px solid var(--border);
-      margin-bottom:24px;
-      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
+      margin-bottom:16px;
     }
-    .logo{display:flex;align-items:center;gap:12px;}
-    .logo-icon{
-      width:48px;height:48px;
-      background:linear-gradient(135deg,#facc15,#eab308);
-      border-radius:12px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:24px;
-    }
-    h1{font-size:24px;font-weight:900;}
-    .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo-icon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#facc15,#eab308);color:#0a0e1a}
+    h1{font-size:22px;font-weight:950;line-height:1.1}
+    .sub{font-size:13px;color:var(--muted);margin-top:2px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
     .btn{
-      padding:10px 16px;border:none;border-radius:10px;
-      font-size:14px;font-weight:800;cursor:pointer;
-      display:inline-flex;align-items:center;gap:6px;
-      transition:transform .08s ease, opacity .12s ease, background .12s ease;
+      padding:10px 14px;border:none;border-radius:10px;
+      font-size:14px;font-weight:900;cursor:pointer;
+      display:inline-flex;align-items:center;gap:8px;
       text-decoration:none;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.08); color:var(--text);
     }
-    .btn:active{transform:translateY(1px)}
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .btn-success{background:var(--success);color:#fff;}
-    .btn-danger{background:var(--danger);color:#fff;}
-    .btn-secondary{
-      background:rgba(255,255,255,.1);
-      color:var(--text);border:1px solid var(--border);
+    .btn:hover{background:rgba(255,255,255,.12)}
+    .btn-accent{background:rgba(250,204,21,.14);border-color:rgba(250,204,21,.35);color:var(--accent)}
+    .btn-danger{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.35);color:#fecaca}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
+    .card{
+      background:rgba(26,31,46,0.86); border:1px solid var(--border);
+      border-radius:16px; padding:18px;
     }
-    .refresh-btn{
-      background:rgba(250,204,21,0.1);
-      color:var(--accent);
-      border:1px solid rgba(250,204,21,0.3);
+    .kpiRow{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){ .kpiRow{grid-template-columns:repeat(4,1fr)} }
+    .kpi{
+      background:rgba(255,255,255,.06); border:1px solid var(--border);
+      border-radius:14px; padding:14px;
     }
-    .refresh-btn:hover{background:rgba(250,204,21,0.16)}
-    .section{
-      background:var(--card);
-      border-radius:16px;border:1px solid var(--border);
-      padding:24px;margin-bottom:24px;
-    }
-    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-    .empty{text-align:center;padding:40px;color:var(--muted);}
-    .err{
-      margin-top:10px;
-      padding:12px 14px;
-      border-radius:12px;
-      border:1px solid rgba(239,68,68,.35);
-      background:rgba(239,68,68,.08);
-      color:#fecaca;
-      font-weight:800;
-      line-height:1.35;
-      white-space:pre-wrap;
-    }
-    .chip{
+    .kpi .label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+    .kpi .val{font-size:22px;font-weight:950;margin-top:6px}
+    .pill{
       display:inline-flex;align-items:center;gap:8px;
       padding:8px 10px;border-radius:12px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.06);
-      color:var(--muted);
-      font-weight:800;font-size:13px;
+      border:1px solid var(--border); background:rgba(255,255,255,.06);
+      font-weight:900; font-size:13px; color:var(--muted);
       margin-top:10px;
     }
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
-    .grid2{display:grid;grid-template-columns:1fr;gap:12px;}
-    @media(min-width: 980px){ .grid2{grid-template-columns:1fr 1fr;} }
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    input,select{
+      padding:12px 12px;border-radius:12px;border:1px solid var(--border);
+      background:rgba(15,23,42,.75); color:var(--text); font-weight:900; outline:none;
+    }
+    input:focus,select:focus{border-color:rgba(250,204,21,.6);box-shadow:0 0 0 3px rgba(250,204,21,.15)}
+    .msg{margin-top:10px;color:var(--muted);font-weight:800;font-size:13px}
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ Un seul client global
     window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
       "https://wesqmwjjtsefyjnluosj.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
@@ -107,415 +86,199 @@
     <div class="logo">
       <div class="logo-icon">🦅</div>
       <div>
-        <h1>DIGIY Admin</h1>
-        <div style="font-size:13px;color:var(--muted)">Activations Paiement → Accès PRO</div>
+        <h1>DIGIY Backoffice</h1>
+        <div class="sub">Cockpit global · Paiement direct · 0% commission</div>
       </div>
     </div>
-    <div class="header-actions">
-      <button class="btn refresh-btn" id="btnRefresh">🔄 Actualiser</button>
-      <button class="btn btn-danger" id="btnLogout">🚪 Déconnexion</button>
+    <div class="actions">
+      <a class="btn btn-accent" href="activations.html">⚡ Activations</a>
+      <button class="btn" id="btnRefresh">🔄 Refresh</button>
+      <button class="btn btn-danger" id="btnLogout">🚪 Logout</button>
     </div>
   </header>
 
-  <div class="grid2">
-    <div class="section">
-      <h2>⏳ Demandes en attente</h2>
-      <div id="pendingList" class="empty">Chargement…</div>
-      <div id="pendingErr" class="err" style="display:none"></div>
+  <div class="kpiRow" style="margin-bottom:12px">
+    <div class="kpi">
+      <div class="label">Admin</div>
+      <div class="val" id="kAdmin">—</div>
+      <div class="pill">🔐 <span class="mono" id="kRole">—</span> · <span class="mono" id="kCity">—</span></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Recette du jour</div>
+      <div class="val"><span id="kRev">—</span> F</div>
+      <div class="pill">💳 Paiements: <span class="mono" id="kPayCount">—</span></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Demandes (pending)</div>
+      <div class="val" id="kPending">—</div>
+      <div class="pill">⏳ à activer</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Outbox (queued)</div>
+      <div class="val" id="kOutbox">—</div>
+      <div class="pill">📤 WhatsApp/SMS</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2 style="font-size:18px;font-weight:950">💸 Caisse Wave (manuel au début)</h2>
+      <div class="sub" style="margin-top:6px">Tu enregistres chaque paiement → le cockpit calcule recette du jour.</div>
+
+      <div class="row">
+        <input id="pAmount" type="number" min="1" placeholder="Montant (FCFA)" style="flex:1;min-width:180px">
+        <input id="pPhone" type="text" placeholder="Téléphone (optionnel)" style="flex:1;min-width:180px">
+        <select id="pModule" style="flex:1;min-width:160px">
+          <option value="">Module (optionnel)</option>
+          <option>LOC</option><option>DRIVER</option><option>MARKET</option><option>BUILD</option>
+          <option>EXPLORE</option><option>JOBS</option><option>PAY</option>
+        </select>
+        <input id="pNote" type="text" placeholder="Note (optionnel)" style="flex:2;min-width:220px">
+      </div>
+
+      <div class="row">
+        <button class="btn btn-accent" id="btnAddPay">➕ Ajouter paiement</button>
+        <span class="msg" id="payMsg">—</span>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>📤 Outbox (WhatsApp / SMS)</h2>
-      <div id="outboxList" class="empty">Chargement…</div>
-      <div id="outboxErr" class="err" style="display:none"></div>
+    <div class="card">
+      <h2 style="font-size:18px;font-weight:950">🧭 Raccourcis</h2>
+      <div class="sub" style="margin-top:6px">Tout le backoffice en 1 clic.</div>
+      <div class="row" style="margin-top:12px">
+        <a class="btn" href="activations.html">⚡ Activations</a>
+        <a class="btn" href="activations.html#pending">⏳ Pending</a>
+        <a class="btn" href="activations.html#outbox">📤 Outbox</a>
+      </div>
+      <div class="msg" style="margin-top:12px">
+        Note: si tu vois ton propre numéro partout dans l’outbox, c’est juste du test (la génération met “phone admin”).
+      </div>
     </div>
   </div>
 
 </div>
 
 <script>
-/* =========================
-   CONFIG TOKEN
-========================= */
-const sb = window.__digiy_sb_admin;
+  const sb = window.__digiy_sb_admin;
 
-const KEY = {
-  token:"digiy_admin_token",
-  exp:"digiy_admin_exp",
-  role:"digiy_admin_role",
-  label:"digiy_admin_label"
-};
+  const KEY = {
+    token:"digiy_admin_token",
+    exp:"digiy_admin_exp",
+    role:"digiy_admin_role",
+    label:"digiy_admin_label"
+  };
 
-let IS_ADMIN = false;
+  const $ = (id)=>document.getElementById(id);
 
-/* =========================
-   UTILS
-========================= */
-const $ = (id)=>document.getElementById(id);
-
-function showErr(id, msg){
-  const el = $(id);
-  if(!el) return;
-  if(!msg){ el.style.display="none"; el.textContent=""; return; }
-  el.style.display="block";
-  el.textContent=String(msg);
-}
-
-function disableAllActionButtons(disabled){
-  document.querySelectorAll("[data-action-btn='1']").forEach(b=> b.disabled = !!disabled);
-}
-
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function escapeAttr(s){ return escapeHtml(s).replaceAll("`","&#096;"); }
-function normPhone(p){ return String(p||"").replace(/[^0-9+]/g,"").trim(); }
-function waLink(phone, text){
-  const digits = normPhone(phone).replace(/\D/g,"");
-  return "https://wa.me/" + digits + "?text=" + encodeURIComponent(text);
-}
-function fmtFR(ts){
-  if(!ts) return "—";
-  try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
-}
-
-async function rpcSafe(fnName, args){
-  try{
-    const res = await sb.rpc(fnName, args || {});
-    if(res?.error) return { ok:false, error: res.error, status: res.status };
-    return { ok:true, data: res.data };
-  }catch(e){
-    return { ok:false, error: e, status: 0 };
+  function getTokenOrKick(){
+    const tok = localStorage.getItem(KEY.token) || "";
+    const exp = Number(localStorage.getItem(KEY.exp) || "0");
+    if(!tok || !exp || Date.now() > exp){
+      location.replace("login.html");
+      return "";
+    }
+    return tok;
   }
-}
 
-/* =========================
-   🔐 TOKEN GUARD (NO AUTH SESSION)
-========================= */
-function getTokenOrKick(){
-  const tok = localStorage.getItem(KEY.token) || "";
-  const exp = Number(localStorage.getItem(KEY.exp) || "0");
-  if(!tok || !exp || Date.now() > exp){
+  async function rpcSafe(fn, args){
+    try{
+      const r = await sb.rpc(fn, args || {});
+      if(r.error) return { ok:false, error:r.error };
+      return { ok:true, data:r.data };
+    }catch(e){
+      return { ok:false, error:e };
+    }
+  }
+
+  async function refreshKPI(){
+    const tok = getTokenOrKick();
+    if(!tok) return;
+
+    // admin check
+    const chk = await rpcSafe("digiy_admin_check", { p_token: tok });
+    const isAdmin = (chk.ok && chk.data === true);
+
+    $("kAdmin").textContent = isAdmin ? "OK" : "NO";
+    $("kAdmin").style.color = isAdmin ? "var(--ok)" : "var(--bad)";
+
+    $("kRole").textContent = localStorage.getItem(KEY.role) || "—";
+    $("kCity").textContent = localStorage.getItem(KEY.label) || "—";
+
+    // metrics caisse
+    const m = await rpcSafe("digiy_admin_metrics", { p_token: tok });
+    if(m.ok && m.data && m.data.ok === true){
+      $("kRev").textContent = Number(m.data.revenue_today_fcfa || 0).toLocaleString("fr-FR");
+      $("kPayCount").textContent = String(m.data.payments_today_count ?? "0");
+    }else{
+      $("kRev").textContent = "—";
+      $("kPayCount").textContent = "—";
+    }
+
+    // pending/outbox: on réutilise tes RPC existantes (si elles existent)
+    const pend = await rpcSafe("digiy_admin_list_requests", { p_token: tok, p_status:"pending_payment", p_limit: 200 });
+    $("kPending").textContent = (pend.ok && Array.isArray(pend.data)) ? String(pend.data.length) : "—";
+
+    const outb = await rpcSafe("digiy_outbox_list", { p_token: tok, p_status:"queued", p_limit: 200 });
+    $("kOutbox").textContent = (outb.ok && Array.isArray(outb.data)) ? String(outb.data.length) : "—";
+  }
+
+  async function logout(){
+    if(!confirm("Se déconnecter ?")) return;
+    const tok = localStorage.getItem(KEY.token) || "";
+    if(tok){
+      await rpcSafe("digiy_admin_logout", { p_token: tok });
+    }
+    localStorage.removeItem(KEY.token);
+    localStorage.removeItem(KEY.exp);
+    localStorage.removeItem(KEY.role);
+    localStorage.removeItem(KEY.label);
     location.replace("login.html");
-    return "";
   }
-  return tok;
-}
 
-async function checkAdmin(){
-  const tok = getTokenOrKick();
-  if(!tok) return false;
-
-  const r = await rpcSafe("digiy_admin_check", { p_token: tok });
-  if(!r.ok){ IS_ADMIN=false; return false; }
-
-  IS_ADMIN = (r.data === true);
-  return IS_ADMIN;
-}
-
-function applyAdminUI(){
-  if(!IS_ADMIN){
-    document.querySelectorAll("[data-need-admin='1']").forEach(el=>{
-      el.style.display="none";
-    });
-  }
-}
-
-function logout(){
-  if(!confirm("Se déconnecter ?")) return;
-  localStorage.removeItem(KEY.token);
-  localStorage.removeItem(KEY.exp);
-  localStorage.removeItem(KEY.role);
-  localStorage.removeItem(KEY.label);
-  location.replace("login.html");
-}
-
-/* =========================
-   ACTIONS — PENDING (TOKEN)
-========================= */
-window.approveReq = async function(phone, module, price, months){
-  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
-  if(!confirm(`Activer ${String(module||"").toUpperCase()} pour ${phone} (${months} mois) ?`)) return;
-
-  disableAllActionButtons(true);
-  showErr("pendingErr", null);
-
-  try{
+  async function addPayment(){
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    const r = await rpcSafe("digiy_admin_approve_request", {
+    const amount = Number($("pAmount").value || "0");
+    const phone  = ($("pPhone").value || "").trim();
+    const module = ($("pModule").value || "").trim();
+    const note   = ($("pNote").value || "").trim();
+
+    $("payMsg").textContent = "⏳ Enregistrement…";
+
+    if(!Number.isFinite(amount) || amount <= 0){
+      $("payMsg").textContent = "⚠️ Montant invalide";
+      return;
+    }
+
+    const r = await rpcSafe("digiy_admin_payment_add", {
       p_token: tok,
-      p_phone: phone,
-      p_module: module,
-      p_price_monthly: Number(price || 9900),
-      p_months: Number(months || 1)
+      p_amount: amount,
+      p_phone: phone || null,
+      p_module: module || null,
+      p_note: note || null
     });
 
-    if(!r.ok) throw (r.error || new Error("approve_failed"));
-    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "approve_failed");
+    if(!r.ok || !r.data || r.data.ok !== true){
+      $("payMsg").textContent = "❌ Erreur: " + String(r.error?.message || r.data?.reason || "payment_failed");
+      return;
+    }
 
-    alert("✅ Activé");
-    await Promise.all([loadPending(), loadOutbox()]);
-  }catch(err){
-    console.error(err);
-    alert("❌ " + (err?.message || err));
-  }finally{
-    disableAllActionButtons(false);
+    $("payMsg").textContent = "✅ Paiement ajouté";
+    $("pAmount").value = "";
+    $("pPhone").value = "";
+    $("pModule").value = "";
+    $("pNote").value = "";
+    await refreshKPI();
   }
-};
 
-window.rejectReq = async function(id){
-  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
-  if(!confirm("Refuser cette demande ?")) return;
-
-  disableAllActionButtons(true);
-  showErr("pendingErr", null);
-
-  try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
-
-    const r = await rpcSafe("digiy_admin_reject_request", {
-      p_token: tok,
-      p_id: id
-    });
-
-    if(!r.ok) throw (r.error || new Error("reject_failed"));
-    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "reject_failed");
-
-    alert("✅ Refusé");
-    await loadPending();
-  }catch(err){
-    console.error(err);
-    alert("❌ " + (err?.message || err));
-  }finally{
-    disableAllActionButtons(false);
-  }
-};
-
-/* =========================
-   OUTBOX
-========================= */
-function buildWhatsAppMessage(row){
-  const payload = row.payload || {};
-  const guest   = payload.guest_name || "cher client";
-  const logement = payload.room_label || payload.business_code || "notre logement";
-  const checkIn  = payload.check_in || "";
-  const checkOut = payload.check_out || "";
-  const reason  = String(payload.reason || row.reason || "J+7").trim();
-
-  if(reason === "J-1"){
-    return `👋 Bonjour ${guest} !
-
-Merci pour ta réservation chez *${logement}* 🌿  
-📅 Arrivée : ${checkIn}
-📅 Départ : ${checkOut}
-
-📍 Besoin d’aide pour l’arrivée ? Écris-nous ici, on te guide.
-
-À très vite 🙏  
-— DIGIY LOC (0% commission)`;
-  }
-  if(reason === "J+1"){
-    return `🙏 Merci ${guest} !
-
-Si tu as 30 secondes, un petit retour nous aide ⭐  
-Merci encore 🙌  
-— DIGIY LOC`;
-  }
-  return `👋 Bonjour ${guest} !
-Petite relance douce 😊  
-Un retour sur ton séjour chez *${logement}* nous aide beaucoup 🙏  
-— DIGIY LOC`;
-}
-
-window.markOutboxSent = async function(id){
-  if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
-
-  disableAllActionButtons(true);
-  showErr("outboxErr", null);
-
-  try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
-
-    const nid = Number(id);
-    if(!Number.isFinite(nid) || nid <= 0) throw new Error("ID invalide.");
-
-    const r = await rpcSafe("digiy_outbox_mark_sent", {
-      p_token: tok,
-      p_id: nid,
-      p_provider: "manual_whatsapp"
-    });
-
-    if(!r.ok) throw (r.error || new Error("mark_sent_failed"));
-    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "mark_sent_failed");
-
-    await loadOutbox();
-  }catch(err){
-    console.error(err);
-    alert("❌ " + (err?.message || err));
-  }finally{
-    disableAllActionButtons(false);
-  }
-};
-
-/* =========================
-   DATA — PENDING
-========================= */
-async function loadPending(){
-  $("pendingList").textContent = "Chargement…";
-  showErr("pendingErr", null);
-
-  const tok = getTokenOrKick();
-  if(!tok) return;
-
-  const r = await rpcSafe("digiy_admin_list_requests", {
-    p_token: tok,
-    p_status: "pending_payment",
-    p_limit: 100
+  window.addEventListener("load", async ()=>{
+    getTokenOrKick();
+    $("btnRefresh").onclick = refreshKPI;
+    $("btnLogout").onclick = logout;
+    $("btnAddPay").onclick = addPayment;
+    await refreshKPI();
   });
-
-  if(!r.ok){
-    console.error(r.error);
-    $("pendingList").textContent = "Erreur chargement";
-    showErr("pendingErr", `RPC digiy_admin_list_requests a échoué.\n${r.error?.message || r.error}`);
-    return;
-  }
-
-  const data = Array.isArray(r.data) ? r.data : [];
-  if(data.length === 0){
-    $("pendingList").innerHTML = "<div class='empty'>Aucune demande</div>";
-    return;
-  }
-
-  $("pendingList").innerHTML = data.map(item => {
-    const name   = item.full_name || item.business_name || item.slug || "—";
-    const phone  = item.phone || "—";
-    const module = (item.preferred_module || item.module || "LOC");
-    const price  = Number(item?.partner_data?.price || item.price_monthly || 9900);
-    const reqId  = item.id || item.request_id || item.inscription_id || null;
-
-    return `
-      <div class="section" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
-          <div>
-            <div style="font-weight:900;font-size:18px">${escapeHtml(String(name))}</div>
-            <div class="chip">📱 <span class="mono">${escapeHtml(String(phone))}</span></div>
-            <div class="chip">📦 <span class="mono">${escapeHtml(String(module).toUpperCase())}</span> • 💰 <span class="mono">${price.toLocaleString("fr-FR")} F</span></div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},1)">
-            ✅ Activer (1 mois)
-          </button>
-
-          <button data-action-btn="1" data-need-admin="1" class="btn btn-secondary"
-            onclick="approveReq('${escapeAttr(String(phone))}','${escapeAttr(String(module))}',${price},3)">
-            ✅ Activer (3 mois)
-          </button>
-
-          <button data-action-btn="1" data-need-admin="1" class="btn btn-danger"
-            onclick="rejectReq('${escapeAttr(String(reqId || ""))}')"
-            ${reqId ? "" : "disabled"}
-            title="${reqId ? "Refuser" : "ID manquant dans le retour RPC"}">
-            ❌ Refuser
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  applyAdminUI();
-}
-
-/* =========================
-   DATA — OUTBOX
-========================= */
-async function loadOutbox(){
-  $("outboxList").textContent = "Chargement…";
-  showErr("outboxErr", null);
-
-  const tok = getTokenOrKick();
-  if(!tok) return;
-
-  const r = await rpcSafe("digiy_outbox_list", {
-    p_token: tok,
-    p_status: "queued",
-    p_limit: 100
-  });
-
-  if(!r.ok){
-    console.error(r.error);
-    $("outboxList").textContent = "Erreur chargement";
-    showErr("outboxErr", "RPC digiy_outbox_list a échoué.\n" + (r.error?.message || r.error));
-    return;
-  }
-
-  const rows = Array.isArray(r.data) ? r.data : [];
-  if(rows.length === 0){
-    $("outboxList").innerHTML = "<div class='empty'>Aucun message en attente</div>";
-    return;
-  }
-
-  $("outboxList").innerHTML = rows.map(row=>{
-    const payload = row.payload || {};
-    const phone  = row.to_phone || payload.phone || "";
-    const mod    = String(payload.module || "LOC").toUpperCase();
-    const reason = payload.reason || row.template || "reminder";
-    const dueTxt = fmtFR(payload.due_at || null);
-
-    const msg = buildWhatsAppMessage(row);
-    const wa  = waLink(phone, msg);
-
-    return `
-      <div class="section" style="margin-bottom:12px">
-        <div style="font-weight:900;font-size:18px">📱 ${escapeHtml(String(phone))}</div>
-        <div class="chip">📦 <span class="mono">${escapeHtml(mod)}</span> • 🧾 <span class="mono">${escapeHtml(String(reason))}</span></div>
-        <div class="chip">⏱️ <span class="mono">${escapeHtml(String(dueTxt))}</span></div>
-
-        <div class="actions">
-          <a class="btn refresh-btn" data-need-admin="1" href="${escapeAttr(wa)}" target="_blank" rel="noopener">
-            💬 Ouvrir WhatsApp
-          </a>
-
-          <button data-action-btn="1" data-need-admin="1" class="btn btn-success"
-            onclick="markOutboxSent(${Number(row.id)})">
-            ✅ Marquer envoyé
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  applyAdminUI();
-}
-
-/* =========================
-   INIT
-========================= */
-window.addEventListener("load", async ()=>{
-  // 🔐 1) token obligatoire
-  getTokenOrKick();
-
-  // 🔐 2) check admin obligatoire
-  await checkAdmin();
-
-  $("btnRefresh").onclick = async ()=>{ await Promise.all([loadPending(), loadOutbox()]); };
-  $("btnLogout").onclick = logout;
-
-  console.log("🦅 DIGIY ADMIN READY • admin =", IS_ADMIN);
-
-  await Promise.all([loadPending(), loadOutbox()]);
-});
 </script>
 </body>
 </html>
