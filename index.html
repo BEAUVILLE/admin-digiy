@@ -5,73 +5,139 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>DIGIY Backoffice — Cockpit</title>
   <meta name="theme-color" content="#0a0e1a" />
+
   <style>
     :root{
       --bg:#0a0e1a; --card:#1a1f2e; --accent:#facc15;
       --ok:#22c55e; --bad:#ef4444; --text:#e5e7eb; --muted:#9ca3af;
       --border:rgba(148,163,184,0.2);
+      --shadow:0 20px 60px rgba(0,0,0,.5);
+      --r:16px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      min-height:100vh; background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
-      color:var(--text); font-family:system-ui,-apple-system,sans-serif; padding:20px;
+      min-height:100vh;
+      background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
+      color:var(--text);
+      font-family:system-ui,-apple-system,sans-serif;
+      padding:20px;
     }
     .container{max-width:1200px;margin:0 auto}
+
     header{
-      background:rgba(26,31,46,0.8); backdrop-filter:blur(10px);
-      padding:20px;border-radius:16px;border:1px solid var(--border);
+      background:rgba(26,31,46,0.86);
+      backdrop-filter:blur(10px);
+      padding:18px 18px;
+      border-radius:var(--r);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
       display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
-      margin-bottom:16px;
+      margin-bottom:14px;
     }
     .logo{display:flex;align-items:center;gap:12px}
-    .logo-icon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#facc15,#eab308);color:#0a0e1a}
+    .logo-icon{
+      width:48px;height:48px;border-radius:12px;
+      display:grid;place-items:center;font-size:24px;
+      background:linear-gradient(135deg,#facc15,#eab308);
+      color:#0a0e1a;
+      box-shadow:0 0 26px rgba(250,204,21,.35);
+    }
     h1{font-size:22px;font-weight:950;line-height:1.1}
     .sub{font-size:13px;color:var(--muted);margin-top:2px}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
+
     .btn{
-      padding:10px 14px;border:none;border-radius:10px;
-      font-size:14px;font-weight:900;cursor:pointer;
+      padding:10px 14px;
+      border:none;border-radius:12px;
+      font-size:14px;font-weight:950;
+      cursor:pointer;
       display:inline-flex;align-items:center;gap:8px;
       text-decoration:none;
       border:1px solid var(--border);
-      background:rgba(255,255,255,.08); color:var(--text);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      transition:transform .08s ease, background .12s ease, opacity .12s ease;
+      user-select:none;
     }
     .btn:hover{background:rgba(255,255,255,.12)}
-    .btn-accent{background:rgba(250,204,21,.14);border-color:rgba(250,204,21,.35);color:var(--accent)}
-    .btn-danger{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.35);color:#fecaca}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
-    .card{
-      background:rgba(26,31,46,0.86); border:1px solid var(--border);
-      border-radius:16px; padding:18px;
+    .btn:active{transform:translateY(1px)}
+    .btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .btn-accent{
+      background:rgba(250,204,21,.14);
+      border-color:rgba(250,204,21,.35);
+      color:var(--accent);
     }
-    .kpiRow{display:grid;grid-template-columns:1fr;gap:12px}
+    .btn-danger{
+      background:rgba(239,68,68,.14);
+      border-color:rgba(239,68,68,.35);
+      color:#fecaca;
+    }
+
+    .kpiRow{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
     @media(min-width:980px){ .kpiRow{grid-template-columns:repeat(4,1fr)} }
+
     .kpi{
-      background:rgba(255,255,255,.06); border:1px solid var(--border);
-      border-radius:14px; padding:14px;
+      background:rgba(26,31,46,0.86);
+      border:1px solid var(--border);
+      border-radius:var(--r);
+      padding:14px 14px;
+      box-shadow:0 18px 45px rgba(0,0,0,.35);
     }
-    .kpi .label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.05em}
-    .kpi .val{font-size:22px;font-weight:950;margin-top:6px}
+    .kpi .label{
+      font-size:12px;color:var(--muted);font-weight:950;
+      text-transform:uppercase;letter-spacing:.06em
+    }
+    .kpi .val{font-size:22px;font-weight:950;margin-top:8px}
     .pill{
       display:inline-flex;align-items:center;gap:8px;
       padding:8px 10px;border-radius:12px;
-      border:1px solid var(--border); background:rgba(255,255,255,.06);
-      font-weight:900; font-size:13px; color:var(--muted);
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      font-weight:900;font-size:13px;
+      color:var(--muted);
       margin-top:10px;
+      flex-wrap:wrap;
     }
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
+
+    .card{
+      background:rgba(26,31,46,0.86);
+      border:1px solid var(--border);
+      border-radius:var(--r);
+      padding:16px;
+      box-shadow:0 18px 45px rgba(0,0,0,.35);
+    }
+    .card h2{font-size:18px;font-weight:950}
+    .card .desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     input,select{
-      padding:12px 12px;border-radius:12px;border:1px solid var(--border);
-      background:rgba(15,23,42,.75); color:var(--text); font-weight:900; outline:none;
+      padding:12px 12px;border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(15,23,42,.75);
+      color:var(--text);
+      font-weight:900;
+      outline:none;
+      min-height:44px;
     }
-    input:focus,select:focus{border-color:rgba(250,204,21,.6);box-shadow:0 0 0 3px rgba(250,204,21,.15)}
-    .msg{margin-top:10px;color:var(--muted);font-weight:800;font-size:13px}
+    input:focus,select:focus{
+      border-color:rgba(250,204,21,.6);
+      box-shadow:0 0 0 3px rgba(250,204,21,.15)
+    }
+    .msg{margin-top:10px;color:var(--muted);font-weight:900;font-size:13px;line-height:1.35;white-space:pre-wrap}
+    .msg.ok{color:#86efac}
+    .msg.err{color:#fecaca}
+
+    .hr{height:1px;background:rgba(148,163,184,.18);margin:12px 0;border-radius:999px}
+    .smallLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    // ✅ Un seul client global (évite "sb already declared")
     window.__digiy_sb_admin = window.__digiy_sb_admin || window.supabase.createClient(
       "https://wesqmwjjtsefyjnluosj.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA"
@@ -90,68 +156,90 @@
         <div class="sub">Cockpit global · Paiement direct · 0% commission</div>
       </div>
     </div>
+
     <div class="actions">
       <a class="btn btn-accent" href="activations.html">⚡ Activations</a>
-      <button class="btn" id="btnRefresh">🔄 Refresh</button>
-      <button class="btn btn-danger" id="btnLogout">🚪 Logout</button>
+      <button class="btn" id="btnRefresh" type="button">🔄 Refresh</button>
+      <button class="btn btn-danger" id="btnLogout" type="button">🚪 Logout</button>
     </div>
   </header>
 
-  <div class="kpiRow" style="margin-bottom:12px">
+  <div class="kpiRow">
     <div class="kpi">
       <div class="label">Admin</div>
       <div class="val" id="kAdmin">—</div>
-      <div class="pill">🔐 <span class="mono" id="kRole">—</span> · <span class="mono" id="kCity">—</span></div>
+      <div class="pill">
+        🔐 <span class="mono" id="kRole">—</span> · 📍 <span class="mono" id="kCity">—</span>
+      </div>
     </div>
+
     <div class="kpi">
       <div class="label">Recette du jour</div>
       <div class="val"><span id="kRev">—</span> F</div>
       <div class="pill">💳 Paiements: <span class="mono" id="kPayCount">—</span></div>
     </div>
+
     <div class="kpi">
       <div class="label">Demandes (pending)</div>
       <div class="val" id="kPending">—</div>
-      <div class="pill">⏳ à activer</div>
+      <div class="pill">⏳ À activer</div>
     </div>
+
     <div class="kpi">
       <div class="label">Outbox (queued)</div>
       <div class="val" id="kOutbox">—</div>
-      <div class="pill">📤 WhatsApp/SMS</div>
+      <div class="pill">📤 WhatsApp / SMS</div>
     </div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h2 style="font-size:18px;font-weight:950">💸 Caisse Wave (manuel au début)</h2>
-      <div class="sub" style="margin-top:6px">Tu enregistres chaque paiement → le cockpit calcule recette du jour.</div>
+      <h2>💸 Caisse Wave (manuel au début)</h2>
+      <div class="desc">Tu enregistres chaque paiement → recette du jour calculée automatiquement.</div>
 
       <div class="row">
         <input id="pAmount" type="number" min="1" placeholder="Montant (FCFA)" style="flex:1;min-width:180px">
         <input id="pPhone" type="text" placeholder="Téléphone (optionnel)" style="flex:1;min-width:180px">
         <select id="pModule" style="flex:1;min-width:160px">
           <option value="">Module (optionnel)</option>
-          <option>LOC</option><option>DRIVER</option><option>MARKET</option><option>BUILD</option>
-          <option>EXPLORE</option><option>JOBS</option><option>PAY</option>
+          <option value="LOC">LOC</option>
+          <option value="DRIVER">DRIVER</option>
+          <option value="MARKET">MARKET</option>
+          <option value="BUILD">BUILD</option>
+          <option value="EXPLORE">EXPLORE</option>
+          <option value="JOBS">JOBS</option>
+          <option value="PAY">PAY</option>
         </select>
         <input id="pNote" type="text" placeholder="Note (optionnel)" style="flex:2;min-width:220px">
       </div>
 
       <div class="row">
-        <button class="btn btn-accent" id="btnAddPay">➕ Ajouter paiement</button>
+        <button class="btn btn-accent" id="btnAddPay" type="button">➕ Ajouter paiement</button>
         <span class="msg" id="payMsg">—</span>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="desc">
+        Astuce terrain : note courte du style <span class="mono">Wave reçu 10k / LOC / Saly</span>.
       </div>
     </div>
 
     <div class="card">
-      <h2 style="font-size:18px;font-weight:950">🧭 Raccourcis</h2>
-      <div class="sub" style="margin-top:6px">Tout le backoffice en 1 clic.</div>
-      <div class="row" style="margin-top:12px">
+      <h2>🧭 Raccourcis</h2>
+      <div class="desc">Tout le backoffice en 1 clic.</div>
+
+      <div class="smallLinks">
         <a class="btn" href="activations.html">⚡ Activations</a>
         <a class="btn" href="activations.html#pending">⏳ Pending</a>
         <a class="btn" href="activations.html#outbox">📤 Outbox</a>
       </div>
-      <div class="msg" style="margin-top:12px">
-        Note: si tu vois ton propre numéro partout dans l’outbox, c’est juste du test (la génération met “phone admin”).
+
+      <div class="hr"></div>
+
+      <div class="desc">
+        Note : si tu vois ton propre numéro partout dans l’outbox, c’est souvent du test (génération outbox).
+        On le recâble quand tu veux sur le vrai <span class="mono">phone client/pro</span>.
       </div>
     </div>
   </div>
@@ -183,28 +271,34 @@
   async function rpcSafe(fn, args){
     try{
       const r = await sb.rpc(fn, args || {});
-      if(r.error) return { ok:false, error:r.error };
+      if(r.error) return { ok:false, error:r.error, data:r.data };
       return { ok:true, data:r.data };
     }catch(e){
-      return { ok:false, error:e };
+      return { ok:false, error:e, data:null };
     }
+  }
+
+  function setMsg(el, text, type){
+    el.className = "msg" + (type ? (" " + type) : "");
+    el.textContent = text || "—";
   }
 
   async function refreshKPI(){
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    // admin check
+    // Admin check
     const chk = await rpcSafe("digiy_admin_check", { p_token: tok });
     const isAdmin = (chk.ok && chk.data === true);
 
-    $("kAdmin").textContent = isAdmin ? "OK" : "NO";
-    $("kAdmin").style.color = isAdmin ? "var(--ok)" : "var(--bad)";
+    const kAdmin = $("kAdmin");
+    kAdmin.textContent = isAdmin ? "OK" : "NO";
+    kAdmin.style.color = isAdmin ? "var(--ok)" : "var(--bad)";
 
     $("kRole").textContent = localStorage.getItem(KEY.role) || "—";
     $("kCity").textContent = localStorage.getItem(KEY.label) || "—";
 
-    // metrics caisse
+    // Metrics caisse
     const m = await rpcSafe("digiy_admin_metrics", { p_token: tok });
     if(m.ok && m.data && m.data.ok === true){
       $("kRev").textContent = Number(m.data.revenue_today_fcfa || 0).toLocaleString("fr-FR");
@@ -214,24 +308,32 @@
       $("kPayCount").textContent = "—";
     }
 
-    // pending/outbox: on réutilise tes RPC existantes (si elles existent)
-    const pend = await rpcSafe("digiy_admin_list_requests", { p_token: tok, p_status:"pending_payment", p_limit: 200 });
+    // Pending / Outbox (si tes RPC existent)
+    const pend = await rpcSafe("digiy_admin_list_requests", {
+      p_token: tok, p_status:"pending_payment", p_limit: 200
+    });
     $("kPending").textContent = (pend.ok && Array.isArray(pend.data)) ? String(pend.data.length) : "—";
 
-    const outb = await rpcSafe("digiy_outbox_list", { p_token: tok, p_status:"queued", p_limit: 200 });
+    const outb = await rpcSafe("digiy_outbox_list", {
+      p_token: tok, p_status:"queued", p_limit: 200
+    });
     $("kOutbox").textContent = (outb.ok && Array.isArray(outb.data)) ? String(outb.data.length) : "—";
   }
 
   async function logout(){
     if(!confirm("Se déconnecter ?")) return;
+
     const tok = localStorage.getItem(KEY.token) || "";
     if(tok){
+      // si RPC existe (sinon on ignore)
       await rpcSafe("digiy_admin_logout", { p_token: tok });
     }
+
     localStorage.removeItem(KEY.token);
     localStorage.removeItem(KEY.exp);
     localStorage.removeItem(KEY.role);
     localStorage.removeItem(KEY.label);
+
     location.replace("login.html");
   }
 
@@ -239,18 +341,20 @@
     const tok = getTokenOrKick();
     if(!tok) return;
 
-    const amount = Number($("pAmount").value || "0");
+    const amount = Number(($("pAmount").value || "").trim() || "0");
     const phone  = ($("pPhone").value || "").trim();
     const module = ($("pModule").value || "").trim();
     const note   = ($("pNote").value || "").trim();
 
-    $("payMsg").textContent = "⏳ Enregistrement…";
+    const payMsg = $("payMsg");
+    setMsg(payMsg, "⏳ Enregistrement…");
 
     if(!Number.isFinite(amount) || amount <= 0){
-      $("payMsg").textContent = "⚠️ Montant invalide";
+      setMsg(payMsg, "⚠️ Montant invalide", "err");
       return;
     }
 
+    // RPC sécurité (token obligatoire)
     const r = await rpcSafe("digiy_admin_payment_add", {
       p_token: tok,
       p_amount: amount,
@@ -260,25 +364,30 @@
     });
 
     if(!r.ok || !r.data || r.data.ok !== true){
-      $("payMsg").textContent = "❌ Erreur: " + String(r.error?.message || r.data?.reason || "payment_failed");
+      const msg = String(r.error?.message || r.data?.reason || "payment_failed");
+      setMsg(payMsg, "❌ " + msg, "err");
       return;
     }
 
-    $("payMsg").textContent = "✅ Paiement ajouté";
+    setMsg(payMsg, "✅ Paiement ajouté", "ok");
     $("pAmount").value = "";
     $("pPhone").value = "";
     $("pModule").value = "";
     $("pNote").value = "";
+
     await refreshKPI();
   }
 
   window.addEventListener("load", async ()=>{
     getTokenOrKick();
-    $("btnRefresh").onclick = refreshKPI;
-    $("btnLogout").onclick = logout;
-    $("btnAddPay").onclick = addPayment;
+
+    $("btnRefresh").onclick = async ()=>{ await refreshKPI(); };
+    $("btnLogout").onclick  = async ()=>{ await logout(); };
+    $("btnAddPay").onclick  = async ()=>{ await addPayment(); };
+
     await refreshKPI();
   });
 </script>
+
 </body>
 </html>
