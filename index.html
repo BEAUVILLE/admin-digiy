@@ -91,6 +91,14 @@
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ✅ même client partout (même storageKey)
+    window.sb = window.sb || window.supabase.createClient(
+      "https://wesqmwjjtsefyjnluosj.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA",
+      { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:"digiy-admin-auth" } }
+    );
+  </script>
 </head>
 
 <body>
@@ -112,14 +120,12 @@
 
   <div class="grid2">
 
-    <!-- ===================== PENDING ===================== -->
     <div class="section">
       <h2>⏳ Demandes en attente</h2>
       <div id="pendingList" class="empty">Chargement…</div>
       <div id="pendingErr" class="err" style="display:none"></div>
     </div>
 
-    <!-- ===================== OUTBOX ===================== -->
     <div class="section">
       <h2>📤 Outbox (WhatsApp / SMS)</h2>
       <div id="outboxList" class="empty">Chargement…</div>
@@ -131,60 +137,21 @@
 </div>
 
 <script>
-/* =========================================================
-   CONFIG
-========================================================= */
-const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA";
-
-const KEY = { token:"digiy_admin_token", exp:"digiy_admin_exp" };
-
-/* =========================================================
-   SUPABASE CLIENT (UNIQUE)
-========================================================= */
-const sb = window.__digiy_sb_admin
-  || (window.__digiy_sb_admin = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
-
-/* =========================================================
+/* =========================
    UTILS
-========================================================= */
+========================= */
 const $ = (id)=>document.getElementById(id);
 
 function showErr(id, msg){
   const el = $(id);
   if(!el) return;
-  if(!msg){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-  el.style.display = "block";
-  el.textContent = String(msg);
-}
-
-function getTokenOrKick(){
-  const tok = localStorage.getItem(KEY.token) || "";
-  const exp = Number(localStorage.getItem(KEY.exp) || "0");
-  if(!tok || !exp || Date.now() > exp){
-    location.replace("login.html");
-    return "";
-  }
-  return tok;
-}
-
-function logout(){
-  if(confirm("Se déconnecter ?")){
-    localStorage.removeItem(KEY.token);
-    localStorage.removeItem(KEY.exp);
-    location.replace("login.html");
-  }
+  if(!msg){ el.style.display="none"; el.textContent=""; return; }
+  el.style.display="block";
+  el.textContent=String(msg);
 }
 
 function disableAllActionButtons(disabled){
-  document.querySelectorAll("[data-action-btn='1']").forEach(b=>{
-    b.disabled = !!disabled;
-  });
+  document.querySelectorAll("[data-action-btn='1']").forEach(b=> b.disabled = !!disabled);
 }
 
 function escapeHtml(s){
@@ -195,12 +162,8 @@ function escapeHtml(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function escapeAttr(s){
-  return escapeHtml(s).replaceAll("`","&#096;");
-}
-function normPhone(p){
-  return String(p || "").replace(/[^0-9+]/g,"").trim();
-}
+function escapeAttr(s){ return escapeHtml(s).replaceAll("`","&#096;"); }
+function normPhone(p){ return String(p||"").replace(/[^0-9+]/g,"").trim(); }
 function waLink(phone, text){
   const digits = normPhone(phone).replace(/\D/g,"");
   return "https://wa.me/" + digits + "?text=" + encodeURIComponent(text);
@@ -209,51 +172,56 @@ function fmtFR(ts){
   if(!ts) return "—";
   try{ return new Date(ts).toLocaleString("fr-FR"); }catch{ return String(ts); }
 }
-
-/* =========================================================
-   RPC SAFE WRAPPER
-========================================================= */
 async function rpcSafe(fnName, args){
   try{
     const res = await sb.rpc(fnName, args || {});
-    if(res?.error) return { ok:false, error: res.error };
+    if(res?.error) return { ok:false, error: res.error, status: res.status };
     return { ok:true, data: res.data };
   }catch(e){
-    return { ok:false, error: e };
+    return { ok:false, error: e, status: 0 };
   }
 }
 
-/* =========================================================
-   🔐 ADMIN CHECK (TOKEN-BASED)
-========================================================= */
+/* =========================
+   🔐 SESSION + ADMIN GUARD
+========================= */
 let IS_ADMIN = false;
 
-async function checkAdmin(){
-  const tok = getTokenOrKick();
-  if(!tok) return false;
-
-  const { data, error } = await sb.rpc("digiy_admin_check", { p_token: tok });
-  if(error){
-    console.error("digiy_admin_check error:", error);
-    IS_ADMIN = false;
-    return false;
+async function requireSession(){
+  const { data } = await sb.auth.getSession();
+  if(!data.session){
+    location.replace("login.html");
+    return null;
   }
+  return data.session;
+}
 
-  IS_ADMIN = (data === true);
+async function checkAdmin(){
+  // ✅ on s’appuie sur la fonction SQL digiy_is_admin()
+  const r = await rpcSafe("digiy_is_admin", {});
+  if(!r.ok){ IS_ADMIN=false; return false; }
+  IS_ADMIN = (r.data === true);
   return IS_ADMIN;
 }
 
 function applyAdminUI(){
   if(!IS_ADMIN){
     document.querySelectorAll("[data-need-admin='1']").forEach(el=>{
-      el.style.display = "none";
+      el.style.display="none";
     });
   }
 }
 
-/* =========================================================
-   ACTIONS (RPC) — PENDING
-========================================================= */
+async function logout(){
+  if(!confirm("Se déconnecter ?")) return;
+  await sb.auth.signOut();
+  location.replace("login.html");
+}
+
+/* =========================
+   ACTIONS — PENDING
+   ✅ RPC SANS p_token (à adapter côté SQL)
+========================= */
 window.approveReq = async function(phone, module, price, months){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
   if(!confirm(`Activer ${String(module||"").toUpperCase()} pour ${phone} (${months} mois) ?`)) return;
@@ -262,25 +230,19 @@ window.approveReq = async function(phone, module, price, months){
   showErr("pendingErr", null);
 
   try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
-
-    const { data, error } = await sb.rpc("digiy_admin_approve_request", {
-      p_token: tok,
+    const r = await rpcSafe("digiy_admin_approve_request", {
       p_phone: phone,
       p_module: module,
       p_price_monthly: Number(price || 9900),
       p_months: Number(months || 1)
     });
-
-    if(error) throw error;
-    if(!data?.ok) throw new Error(data?.reason || "approve_failed");
+    if(!r.ok) throw (r.error || new Error("approve_failed"));
+    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "approve_failed");
 
     alert("✅ Activé");
     await Promise.all([loadPending(), loadOutbox()]);
-
   }catch(err){
-    console.error("approveReq error:", err);
+    console.error(err);
     alert("❌ " + (err?.message || err));
   }finally{
     disableAllActionButtons(false);
@@ -295,55 +257,35 @@ window.rejectReq = async function(id){
   showErr("pendingErr", null);
 
   try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
-
-    const { data, error } = await sb.rpc("digiy_admin_reject_request", {
-      p_token: tok,
-      p_id: id
-    });
-
-    if(error) throw error;
-    if(!data?.ok) throw new Error(data?.reason || "reject_failed");
+    const r = await rpcSafe("digiy_admin_reject_request", { p_id: id });
+    if(!r.ok) throw (r.error || new Error("reject_failed"));
+    if(r.data && r.data.ok === false) throw new Error(r.data.reason || "reject_failed");
 
     alert("✅ Refusé");
     await loadPending();
-
   }catch(err){
-    console.error("rejectReq error:", err);
+    console.error(err);
     alert("❌ " + (err?.message || err));
   }finally{
     disableAllActionButtons(false);
   }
 };
 
-/* =========================================================
-   OUTBOX — MESSAGE BUILDER (PAYLOAD-DRIVEN)
-   NOTE: Neutralité commerciale => on utilise room_label/business_code si dispo,
-         sinon fallback "notre logement".
-========================================================= */
+/* =========================
+   OUTBOX
+========================= */
 function buildWhatsAppMessage(row){
   const payload = row.payload || {};
-
-  const phone   = payload.phone || row.to_phone || row.phone || "";
-  const reason  = String(payload.reason || row.reason || "J+7").trim();
-  const module  = String(payload.module || row.module || "LOC").toUpperCase();
-
   const guest   = payload.guest_name || "cher client";
   const logement = payload.room_label || payload.business_code || "notre logement";
-
   const checkIn  = payload.check_in || "";
   const checkOut = payload.check_out || "";
-
-  // Si tu veux ULTRA neutre, remplace logement par "notre logement" ici :
-  // const logement = "notre logement";
+  const reason  = String(payload.reason || row.reason || "J+7").trim();
 
   if(reason === "J-1"){
     return `👋 Bonjour ${guest} !
 
 Merci pour ta réservation chez *${logement}* 🌿  
-Nous sommes ravis de t’accueillir très bientôt.
-
 📅 Arrivée : ${checkIn}
 📅 Départ : ${checkOut}
 
@@ -352,34 +294,19 @@ Nous sommes ravis de t’accueillir très bientôt.
 À très vite 🙏  
 — DIGIY LOC (0% commission)`;
   }
-
   if(reason === "J+1"){
     return `🙏 Merci ${guest} !
 
-Nous espérons que ton séjour chez *${logement}* s’est bien passé.
-
-Si tu as 30 secondes, un petit retour (même en 1 phrase) nous aide énormément ⭐  
-• ce que tu as aimé  
-• ou un point à améliorer
-
+Si tu as 30 secondes, un petit retour nous aide ⭐  
 Merci encore 🙌  
 — DIGIY LOC`;
   }
-
-  // J+7 ou autre => relance douce
   return `👋 Bonjour ${guest} !
-
 Petite relance douce 😊  
-Si tu as un moment pour un retour sur ton séjour chez *${logement}*, cela nous aide beaucoup.
-
-Même un message simple ici, c’est parfait 🙏  
-Merci et bonne route ✨  
+Un retour sur ton séjour chez *${logement}* nous aide beaucoup 🙏  
 — DIGIY LOC`;
 }
 
-/* =========================================================
-   OUTBOX — MARK SENT (id = bigint) — RPC ONLY
-========================================================= */
 window.markOutboxSent = async function(id){
   if(!IS_ADMIN) return alert("⛔ Accès refusé (non admin).");
 
@@ -387,57 +314,46 @@ window.markOutboxSent = async function(id){
   showErr("outboxErr", null);
 
   try{
-    const tok = getTokenOrKick();
-    if(!tok) return;
-
     const nid = Number(id);
-    if(!Number.isFinite(nid) || nid <= 0) throw new Error("ID invalide (bigint).");
+    if(!Number.isFinite(nid) || nid <= 0) throw new Error("ID invalide.");
 
     const r = await rpcSafe("digiy_outbox_mark_sent", {
-      p_token: tok,
       p_id: nid,
       p_provider: "manual_whatsapp"
     });
-
     if(!r.ok) throw (r.error || new Error("mark_sent_failed"));
     if(r.data && r.data.ok === false) throw new Error(r.data.reason || "mark_sent_failed");
 
     await loadOutbox();
-
   }catch(err){
-    console.error("markOutboxSent error:", err);
+    console.error(err);
     alert("❌ " + (err?.message || err));
   }finally{
     disableAllActionButtons(false);
   }
 };
 
-/* =========================================================
+/* =========================
    DATA — PENDING
-========================================================= */
+========================= */
 async function loadPending(){
   $("pendingList").textContent = "Chargement…";
   showErr("pendingErr", null);
 
-  const tok = getTokenOrKick();
-  if(!tok) return;
-
-  const { data, error, status } = await sb.rpc("digiy_admin_list_requests", {
-    p_token: tok,
+  const r = await rpcSafe("digiy_admin_list_requests", {
     p_status: "pending_payment",
     p_limit: 100
   });
 
-  if(error){
-    console.error("digiy_admin_list_requests error:", error);
+  if(!r.ok){
+    console.error(r.error);
     $("pendingList").textContent = "Erreur chargement";
-    showErr("pendingErr",
-      `RPC digiy_admin_list_requests a échoué.\nStatus: ${status}\nMessage: ${error.message || error}`
-    );
+    showErr("pendingErr", `RPC digiy_admin_list_requests a échoué.\n${r.error?.message || r.error}`);
     return;
   }
 
-  if(!data || data.length === 0){
+  const data = Array.isArray(r.data) ? r.data : [];
+  if(data.length === 0){
     $("pendingList").innerHTML = "<div class='empty'>Aucune demande</div>";
     return;
   }
@@ -484,26 +400,20 @@ async function loadPending(){
   applyAdminUI();
 }
 
-/* =========================================================
-   DATA — OUTBOX (RPC ONLY)
-   Table digiy_outbox: id(bigint), to_phone, template, payload, status, created_at, sent_at...
-   due_at est dans payload.due_at
-========================================================= */
+/* =========================
+   DATA — OUTBOX
+========================= */
 async function loadOutbox(){
   $("outboxList").textContent = "Chargement…";
   showErr("outboxErr", null);
 
-  const tok = getTokenOrKick();
-  if(!tok) return;
-
   const r = await rpcSafe("digiy_outbox_list", {
-    p_token: tok,
     p_status: "queued",
     p_limit: 100
   });
 
   if(!r.ok){
-    console.error("digiy_outbox_list error:", r.error);
+    console.error(r.error);
     $("outboxList").textContent = "Erreur chargement";
     showErr("outboxErr", "RPC digiy_outbox_list a échoué.\n" + (r.error?.message || r.error));
     return;
@@ -548,16 +458,14 @@ async function loadOutbox(){
   applyAdminUI();
 }
 
-/* =========================================================
+/* =========================
    INIT
-========================================================= */
+========================= */
 window.addEventListener("load", async ()=>{
-  getTokenOrKick();
+  await requireSession();
   await checkAdmin();
 
-  $("btnRefresh").onclick = async ()=>{
-    await Promise.all([loadPending(), loadOutbox()]);
-  };
+  $("btnRefresh").onclick = async ()=>{ await Promise.all([loadPending(), loadOutbox()]); };
   $("btnLogout").onclick = logout;
 
   console.log("🦅 DIGIY ADMIN READY • admin =", IS_ADMIN);
