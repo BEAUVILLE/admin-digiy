@@ -1,0 +1,368 @@
+// ============================================
+// DIGIY ADMIN BACKEND - Deno
+// Production-ready avec sécurité
+// ============================================
+
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { parse } from "https://deno.land/std@0.208.0/flags/mod.ts";
+
+// --- CONFIG ---
+const PORT = parseInt(Deno.env.get("PORT") || "8000");
+const JWT_SECRET = Deno.env.get("JWT_SECRET") || "change-me-in-production-🔐";
+const ADMIN_PIN = Deno.env.get("ADMIN_PIN") || "3435";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_KEY") || "";
+const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "http://localhost:3000";
+
+const SESSION_DURATION_MS = 15 * 60 * 1000; // 15 min
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h
+const RATE_LIMIT_WINDOW = 5 * 60 * 1000; // 5 min
+const RATE_LIMIT_MAX = 5; // 5 tentatives max
+
+// --- STORAGE IN-MEMORY (à remplacer par Redis en prod) ---
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const activeSessions = new Map<string, { adminId: string; role: string; label: string; createdAt: number }>();
+
+// --- UTILS ---
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+function encodeBase64(str: string): string {
+  return btoa(str);
+}
+
+function decodeBase64(str: string): string {
+  return atob(str);
+}
+
+// Simple JWT signing (à remplacer par jose lib en prod pour RSA)
+function signJWT(payload: Record<string, unknown>, secret: string): string {
+  const header = encodeBase64(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = encodeBase64(JSON.stringify(payload));
+  
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]),
+    new TextEncoder().encode(`${header}.${body}`)
+  );
+  const sigB64 = encodeBase64(String.fromCharCode(...new Uint8Array(sig)));
+  
+  return `${header}.${body}.${sigB64}`;
+}
+
+async function signJWTAsync(payload: Record<string, unknown>, secret: string): Promise<string> {
+  const header = encodeBase64(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = encodeBase64(JSON.stringify(payload));
+  
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${header}.${body}`)
+  );
+  
+  const sigB64 = encodeBase64(String.fromCharCode(...new Uint8Array(sig)));
+  return `${header}.${body}.${sigB64}`;
+}
+
+function verifyJWT(token: string, secret: string): { ok: boolean; payload?: Record<string, unknown>; error?: string } {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return { ok: false, error: "Invalid token format" };
+    
+    const [header, body, sig] = parts;
+    const payload = JSON.parse(decodeBase64(body));
+    
+    // Vérification expiry
+    if (payload.exp && Date.now() > payload.exp * 1000) {
+      return { ok: false, error: "Token expired" };
+    }
+    
+    return { ok: true, payload };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+function checkRateLimit(ip: string): { ok: boolean; reason?: string } {
+  const now = Date.now();
+  const attempt = loginAttempts.get(ip);
+  
+  if (!attempt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return { ok: true };
+  }
+  
+  if (now > attempt.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return { ok: true };
+  }
+  
+  if (attempt.count >= RATE_LIMIT_MAX) {
+    return { ok: false, reason: `rate_limit_exceeded (${RATE_LIMIT_MAX} / ${RATE_LIMIT_WINDOW / 1000}s)` };
+  }
+  
+  attempt.count++;
+  return { ok: true };
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+
+function jsonWithCookie(data: unknown, token: string, status = 200): Response {
+  const res = json(data, status);
+  res.headers.set("Set-Cookie", `digiy_admin_token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_DURATION_MS / 1000}`);
+  return res;
+}
+
+// --- SUPABASE RPC CALL ---
+async function callSupabaseRPC(fnName: string, args: Record<string, unknown>, useServiceKey = false): Promise<{ data: unknown; error?: string }> {
+  try {
+    const key = useServiceKey ? SUPABASE_SERVICE_KEY : SUPABASE_ANON_KEY;
+    
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+        "apikey": key
+      },
+      body: JSON.stringify(args)
+    });
+    
+    if (!res.ok) {
+      return { data: null, error: `HTTP ${res.status}` };
+    }
+    
+    const data = await res.json();
+    return { data };
+  } catch (e) {
+    return { data: null, error: String(e) };
+  }
+}
+
+// --- ROUTES ---
+
+async function handleLogin(req: Request): Promise<Response> {
+  if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+  
+  try {
+    const ip = getClientIP(req);
+    const body = await req.json() as { pin?: string; ua?: string };
+    const pin = (body.pin || "").trim();
+    const ua = body.ua || req.headers.get("user-agent") || "";
+    
+    // Rate limit check
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.ok) {
+      return json({ ok: false, error: rateCheck.reason }, 429);
+    }
+    
+    if (!pin || pin.length < 4) {
+      return json({ ok: false, error: "PIN invalide (4+ chiffres)" }, 400);
+    }
+    
+    // Call Supabase RPC to verify PIN
+    const rpcRes = await callSupabaseRPC("digiy_admin_login_pin", {
+      p_pin: pin,
+      p_user_agent: ua,
+      p_ip: ip
+    });
+    
+    if (!rpcRes.data || typeof rpcRes.data !== "object") {
+      return json({ ok: false, error: "❌ Mauvais PIN" }, 401);
+    }
+    
+    const data = rpcRes.data as { ok?: boolean; token?: string; role?: string; label?: string };
+    
+    if (!data.ok || !data.token) {
+      return json({ ok: false, error: "❌ Mauvais PIN" }, 401);
+    }
+    
+    // Generate JWT
+    const exp = Math.floor((Date.now() + TOKEN_EXPIRY_MS) / 1000);
+    const jwt = await signJWTAsync({
+      token: data.token,
+      role: data.role || "OPS",
+      label: data.label || "—",
+      iat: Math.floor(Date.now() / 1000),
+      exp
+    }, JWT_SECRET);
+    
+    // Store in memory
+    activeSessions.set(jwt, {
+      adminId: data.token,
+      role: data.role || "OPS",
+      label: data.label || "—",
+      createdAt: Date.now()
+    });
+    
+    // Clear rate limit on success
+    loginAttempts.delete(ip);
+    
+    return jsonWithCookie(
+      {
+        ok: true,
+        token: jwt,
+        exp: exp * 1000,
+        role: data.role || "OPS",
+        label: data.label || "—"
+      },
+      jwt,
+      200
+    );
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
+async function handleLogout(req: Request): Promise<Response> {
+  if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+  
+  try {
+    const token = req.headers.get("authorization")?.replace("Bearer ", "") || "";
+    
+    if (!token) {
+      return json({ ok: false, error: "missing_token" }, 401);
+    }
+    
+    const verify = verifyJWT(token, JWT_SECRET);
+    if (!verify.ok) {
+      return json({ ok: false, error: verify.error }, 401);
+    }
+    
+    activeSessions.delete(token);
+    
+    const res = json({ ok: true }, 200);
+    res.headers.set("Set-Cookie", `digiy_admin_token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+    
+    return res;
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
+async function handleCheck(req: Request): Promise<Response> {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "") || "";
+  
+  if (!token) return json({ ok: false, error: "missing_token" }, 401);
+  
+  const verify = verifyJWT(token, JWT_SECRET);
+  if (!verify.ok) return json({ ok: false, error: verify.error }, 401);
+  
+  const session = activeSessions.get(token);
+  if (!session) return json({ ok: false, error: "session_expired" }, 401);
+  
+  return json({
+    ok: true,
+    role: session.role,
+    label: session.label,
+    sessionAge: Date.now() - session.createdAt
+  });
+}
+
+async function handleRPC(req: Request, pathname: string): Promise<Response> {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "") || "";
+  
+  if (!token) return json({ ok: false, error: "missing_token" }, 401);
+  
+  const verify = verifyJWT(token, JWT_SECRET);
+  if (!verify.ok) return json({ ok: false, error: verify.error }, 401);
+  
+  const session = activeSessions.get(token);
+  if (!session) return json({ ok: false, error: "session_expired" }, 401);
+  
+  // Extract RPC name from URL
+  const rpcName = pathname.replace("/api/rpc/", "");
+  
+  if (!req.body) return json({ ok: false, error: "missing_body" }, 400);
+  
+  try {
+    const args = await req.json() as Record<string, unknown>;
+    
+    // Inject token for Supabase
+    args.p_token = session.adminId;
+    
+    const rpcRes = await callSupabaseRPC(rpcName, args, false);
+    
+    return json(rpcRes.data || { ok: false, error: rpcRes.error });
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
+// --- CORS MIDDLEWARE ---
+function setCORSHeaders(res: Response, origin: string): Response {
+  const allowed = FRONTEND_URL.includes(origin) || origin === FRONTEND_URL;
+  if (allowed) {
+    res.headers.set("Access-Control-Allow-Origin", origin);
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+  }
+  res.headers.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return res;
+}
+
+// --- MAIN ROUTER ---
+async function handler(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+  const origin = req.headers.get("origin") || "";
+  
+  // Preflight
+  if (req.method === "OPTIONS") {
+    let res = json({ ok: true });
+    res = setCORSHeaders(res, origin);
+    return res;
+  }
+  
+  let res: Response;
+  
+  if (pathname === "/api/admin/login") {
+    res = await handleLogin(req);
+  } else if (pathname === "/api/admin/logout") {
+    res = await handleLogout(req);
+  } else if (pathname === "/api/admin/check") {
+    res = await handleCheck(req);
+  } else if (pathname.startsWith("/api/rpc/")) {
+    res = await handleRPC(req, pathname);
+  } else if (pathname === "/health") {
+    res = json({ ok: true, timestamp: new Date().toISOString() });
+  } else {
+    res = json({ ok: false, error: "not_found" }, 404);
+  }
+  
+  res = setCORSHeaders(res, origin);
+  return res;
+}
+
+// --- START ---
+console.log(`
+🦅 DIGIY ADMIN BACKEND
+━━━━━━━━━━━━━━━━━━━━━
+🚀 Port: ${PORT}
+🔐 Frontend URL: ${FRONTEND_URL}
+📍 Supabase: ${SUPABASE_URL}
+⏱️ Session: ${SESSION_DURATION_MS / 60000} min
+⏰ Token: ${TOKEN_EXPIRY_MS / 60 / 60000}h
+━━━━━━━━━━━━━━━━━━━━━
+`);
+
+serve(handler, { port: PORT });
