@@ -112,11 +112,35 @@
     redirectTo: "https://backoffice.digiylyfe.com/reset.html"
   });
 
-  console.log("reset result:", { data, error });
-  if (error) return show(err, "❌ " + error.message);
+$("resetBtn").addEventListener("click", async () => {
+  hide(err); 
+  hide(ok);
 
-  show(ok,"📩 Email de reset demandé. Vérifie ta boîte + spam.");
+  const em = (email.value || "").trim();
+  if (!em) {
+    show(err, "Entre ton email d’abord.");
+    return;
+  }
+
+  try {
+    const { data, error } = await sb.auth.resetPasswordForEmail(em, {
+      redirectTo: "https://backoffice.digiylyfe.com/reset.html"
+    });
+
+    console.log("RESET RESULT =>", data, error);
+
+    if (error) {
+      show(err, "❌ " + error.message);
+      return;
+    }
+
+    show(ok, "📩 Email de reset demandé. Vérifie spam/promotions.");
+  } catch (e) {
+    console.error(e);
+    show(err, "⚠️ " + e.message);
+  }
 });
+
 
 
     try{
