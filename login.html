@@ -92,11 +92,17 @@
 
     try{
       const { data, error } = await sb.rpc("digiy_admin_login_pin", {
-        p_pin: p,
-        p_user_agent: navigator.userAgent,
-        p_ip: null
-      });
-      if(error) throw error;
+  p_pin: p,
+  p_user_agent: navigator.userAgent,
+  p_ip: null
+});
+if(error) throw error;
+
+if(!data?.ok) throw new Error(data?.reason || "bad_pin");
+
+localStorage.setItem("digiy_admin_token", data.token);
+localStorage.setItem("digiy_admin_exp", String(data.exp));
+location.replace("index.html");
 
       if(!data || data.ok !== true || !data.token || !data.exp){
         show(err, "❌ Mauvais PIN.");
