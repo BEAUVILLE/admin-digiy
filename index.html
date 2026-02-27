@@ -1,419 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>DIGIY Backoffice — Cockpit</title>
-  <meta name="theme-color" content="#0a0e1a" />
-
-  <style>
-    :root{
-      --bg:#0a0e1a; --card:#1a1f2e; --accent:#facc15;
-      --ok:#22c55e; --bad:#ef4444; --text:#e5e7eb; --muted:#9ca3af;
-      --border:rgba(148,163,184,0.2);
-      --shadow:0 20px 60px rgba(0,0,0,.5);
-      --r:16px;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      min-height:100vh;
-      background:linear-gradient(135deg,#0a0e1a,#1a1f2e);
-      color:var(--text);
-      font-family:system-ui,-apple-system,sans-serif;
-      padding:20px;
-    }
-    .container{max-width:1200px;margin:0 auto}
-
-    header{
-      background:rgba(26,31,46,0.86);
-      backdrop-filter:blur(10px);
-      padding:18px 18px;
-      border-radius:var(--r);
-      border:1px solid var(--border);
-      box-shadow:var(--shadow);
-      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
-      margin-bottom:14px;
-    }
-    .logo{display:flex;align-items:center;gap:12px}
-    .logo-icon{
-      width:48px;height:48px;border-radius:12px;
-      display:grid;place-items:center;font-size:24px;
-      background:linear-gradient(135deg,#facc15,#eab308);
-      color:#0a0e1a;
-      box-shadow:0 0 26px rgba(250,204,21,.35);
-    }
-    h1{font-size:22px;font-weight:950;line-height:1.1}
-    .sub{font-size:13px;color:var(--muted);margin-top:2px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-
-    .btn{
-      padding:10px 14px;
-      border:none;border-radius:12px;
-      font-size:14px;font-weight:950;
-      cursor:pointer;
-      display:inline-flex;align-items:center;gap:8px;
-      text-decoration:none;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.08);
-      color:var(--text);
-      transition:transform .08s ease, background .12s ease, opacity .12s ease;
-      user-select:none;
-    }
-    .btn:hover{background:rgba(255,255,255,.12)}
-    .btn:active{transform:translateY(1px)}
-    .btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-    .btn-accent{
-      background:rgba(250,204,21,.14);
-      border-color:rgba(250,204,21,.35);
-      color:var(--accent);
-    }
-    .btn-danger{
-      background:rgba(239,68,68,.14);
-      border-color:rgba(239,68,68,.35);
-      color:#fecaca;
-    }
-
-    .kpiRow{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
-    @media(min-width:980px){ .kpiRow{grid-template-columns:repeat(4,1fr)} }
-
-    .kpi{
-      background:rgba(26,31,46,0.86);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:14px 14px;
-      box-shadow:0 18px 45px rgba(0,0,0,.35);
-    }
-    .kpi .label{
-      font-size:12px;color:var(--muted);font-weight:950;
-      text-transform:uppercase;letter-spacing:.06em
-    }
-    .kpi .val{font-size:22px;font-weight:950;margin-top:8px}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border-radius:12px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.06);
-      font-weight:900;font-size:13px;
-      color:var(--muted);
-      margin-top:10px;
-      flex-wrap:wrap;
-    }
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
-
-    .card{
-      background:rgba(26,31,46,0.86);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:16px;
-      box-shadow:0 18px 45px rgba(0,0,0,.35);
-    }
-    .card h2{font-size:18px;font-weight:950}
-    .card .desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
-
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    input,select{
-      padding:12px 12px;border-radius:12px;
-      border:1px solid var(--border);
-      background:rgba(15,23,42,.75);
-      color:var(--text);
-      font-weight:900;
-      outline:none;
-      min-height:44px;
-    }
-    input:focus,select:focus{
-      border-color:rgba(250,204,21,.6);
-      box-shadow:0 0 0 3px rgba(250,204,21,.15)
-    }
-    .msg{margin-top:10px;color:var(--muted);font-weight:900;font-size:13px;line-height:1.35;white-space:pre-wrap}
-    .msg.ok{color:#86efac}
-    .msg.err{color:#fecaca}
-
-    .hr{height:1px;background:rgba(148,163,184,.18);margin:12px 0;border-radius:999px}
-    .smallLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIGIY Backoffice</title>
+<meta name="theme-color" content="#0a0e1a" />
+<style>
+:root{--bg:#0a0e1a;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#facc15;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui;padding:24px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.btn{background:linear-gradient(135deg,#facc15,#eab308);border:0;padding:10px 14px;border-radius:12px;font-weight:900;color:#0a0e1a;text-decoration:none}
+.card{background:rgba(17,24,39,.9);padding:18px;border-radius:16px;border:1px solid rgba(148,163,184,.2);margin-top:14px}
+.small{color:var(--muted);font-size:13px;font-weight:700}
+</style>
 </head>
-
 <body>
-<div class="container">
 
-  <header>
-    <div class="logo">
-      <div class="logo-icon">🦅</div>
-      <div>
-        <h1>DIGIY Backoffice</h1>
-        <div class="sub">Cockpit global · Paiement direct · 0% commission</div>
-      </div>
-    </div>
-
-    <div class="actions">
-      <a class="btn btn-accent" href="activations.html">⚡ Activations</a>
-      <button class="btn" id="btnRefresh" type="button">🔄 Refresh</button>
-      <button class="btn btn-danger" id="btnLogout" type="button">🚪 Logout</button>
-    </div>
-  </header>
-
-  <div class="kpiRow">
-    <div class="kpi">
-      <div class="label">Admin</div>
-      <div class="val" id="kAdmin">—</div>
-      <div class="pill">
-        🔐 <span class="mono" id="kRole">—</span> · 📍 <span class="mono" id="kCity">—</span>
-      </div>
-    </div>
-
-    <div class="kpi">
-      <div class="label">Recette du jour</div>
-      <div class="val"><span id="kRev">—</span> F</div>
-      <div class="pill">💳 Paiements: <span class="mono" id="kPayCount">—</span></div>
-    </div>
-
-    <div class="kpi">
-      <div class="label">Demandes (pending)</div>
-      <div class="val" id="kPending">—</div>
-      <div class="pill">⏳ À activer</div>
-    </div>
-
-    <div class="kpi">
-      <div class="label">Outbox (queued)</div>
-      <div class="val" id="kOutbox">—</div>
-      <div class="pill">📤 WhatsApp / SMS</div>
-    </div>
+<div class="top">
+  <div>
+    <h1>DIGIY Backoffice</h1>
+    <div class="small">Cockpit global · Paiement direct · 0% commission</div>
   </div>
+  <a class="btn" href="activations.html">🔑 Activations</a>
+</div>
 
-  <div class="grid">
-    <div class="card">
-      <h2>💸 Caisse Wave (manuel au début)</h2>
-      <div class="desc">Tu enregistres chaque paiement → recette du jour calculée automatiquement.</div>
-
-      <div class="row">
-        <input id="pAmount" type="number" min="1" placeholder="Montant (FCFA)" style="flex:1;min-width:180px">
-        <input id="pPhone" type="text" placeholder="Téléphone (optionnel)" style="flex:1;min-width:180px">
-        <select id="pModule" style="flex:1;min-width:160px">
-          <option value="">Module (optionnel)</option>
-          <option value="LOC">LOC</option>
-          <option value="DRIVER">DRIVER</option>
-          <option value="MARKET">MARKET</option>
-          <option value="BUILD">BUILD</option>
-          <option value="EXPLORE">EXPLORE</option>
-          <option value="JOBS">JOBS</option>
-          <option value="PAY">PAY</option>
-        </select>
-        <input id="pNote" type="text" placeholder="Note (optionnel)" style="flex:2;min-width:220px">
-      </div>
-
-      <div class="row">
-        <button class="btn btn-accent" id="btnAddPay" type="button">➕ Ajouter paiement</button>
-        <span class="msg" id="payMsg">—</span>
-      </div>
-
-      <div class="hr"></div>
-
-      <div class="desc">
-        Astuce terrain : note courte du style <span class="mono">Wave reçu 10k / LOC / Saly</span>.
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>🧭 Raccourcis</h2>
-      <div class="desc">Tout le backoffice en 1 clic.</div>
-
-      <div class="smallLinks">
-        <a class="btn" href="activations.html">⚡ Activations</a>
-        <a class="btn" href="activations.html#pending">⏳ Pending</a>
-        <a class="btn" href="activations.html#outbox">📤 Outbox</a>
-      </div>
-
-      <div class="hr"></div>
-
-      <div class="desc">
-        Note : si tu vois ton propre numéro partout dans l'outbox, c'est souvent du test (génération outbox).
-        On le recâble quand tu veux sur le vrai <span class="mono">phone client/pro</span>.
-      </div>
-    </div>
-  </div>
-
+<div class="card">
+  <div class="small">Admin connecté</div>
+  <div style="font-weight:900;font-size:18px;margin-top:6px" id="adminLabel">—</div>
 </div>
 
 <script>
-  // ✅ Backend URL - CORRIGÉ POUR PROD
-  const BACKEND_URL = window.location.hostname === "localhost" 
-    ? "http://localhost:8000" 
-    : "https://apps.digiylyfe.com";
+const BACKEND = "https://apps.digiylyfe.com";
 
-  const KEY = {
-    token: "digiy_admin_token",
-    exp: "digiy_admin_exp",
-    role: "digiy_admin_role",
-    label: "digiy_admin_label"
-  };
+const KEY = {
+  token: "digiy_admin_token",
+  exp:   "digiy_admin_exp",
+  role:  "digiy_admin_role",
+  label: "digiy_admin_label"
+};
 
-  const $ = (id) => document.getElementById(id);
+function logout() {
+  Object.values(KEY).forEach(k => localStorage.removeItem(k));
+  location.replace("login.html");
+}
 
-  function getTokenOrKick() {
-    const tok = localStorage.getItem(KEY.token) || "";
-    const exp = Number(localStorage.getItem(KEY.exp) || "0");
-    if (!tok || !exp || Date.now() > exp) {
-      location.replace("login.html");
-      return "";
-    }
-    return tok;
-  }
+function hasLocalToken() {
+  const tok = (localStorage.getItem(KEY.token) || "").trim();
+  const exp = Number(localStorage.getItem(KEY.exp) || "0");
+  return !!tok && Date.now() < exp;
+}
 
-  async function backendRPC(fnName, args) {
-    const tok = getTokenOrKick();
-    if (!tok) return { ok: false, error: "no_token" };
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/rpc/${fnName}`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${tok}`
-        },
-        body: JSON.stringify(args || {})
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          location.replace("login.html");
-        }
-        return { ok: false, error: `HTTP ${res.status}` };
-      }
-
-      const data = await res.json();
-      return { ok: true, data };
-    } catch (e) {
-      return { ok: false, error: String(e) };
-    }
-  }
-
-  function setMsg(el, text, type) {
-    el.className = "msg" + (type ? (" " + type) : "");
-    el.textContent = text || "—";
-  }
-
-  async function refreshKPI() {
-    const tok = getTokenOrKick();
-    if (!tok) return;
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/check`, {
-        method: "GET",
-        credentials: "include",
-        headers: { "Authorization": `Bearer ${tok}` }
-      });
-
-      if (!res.ok) {
-        location.replace("login.html");
-        return;
-      }
-
-      const check = await res.json();
-      const isAdmin = check.ok === true;
-
-      const kAdmin = $("kAdmin");
-      kAdmin.textContent = isAdmin ? "OK" : "NO";
-      kAdmin.style.color = isAdmin ? "var(--ok)" : "var(--bad)";
-    } catch (e) {
-      console.error(e);
-    }
-
-    $("kRole").textContent = localStorage.getItem(KEY.role) || "—";
-    $("kCity").textContent = localStorage.getItem(KEY.label) || "—";
-
-    const m = await backendRPC("digiy_admin_metrics", {});
-    if (m.ok && m.data && m.data.ok === true) {
-      $("kRev").textContent = Number(m.data.revenue_today_fcfa || 0).toLocaleString("fr-FR");
-      $("kPayCount").textContent = String(m.data.payments_today_count ?? "0");
-    } else {
-      $("kRev").textContent = "—";
-      $("kPayCount").textContent = "—";
-    }
-
-    const pend = await backendRPC("digiy_admin_list_requests", { p_status: "pending_payment", p_limit: 200 });
-    $("kPending").textContent = (pend.ok && Array.isArray(pend.data)) ? String(pend.data.length) : "—";
-
-    const outb = await backendRPC("digiy_outbox_list", { p_status: "queued", p_limit: 200 });
-    $("kOutbox").textContent = (outb.ok && Array.isArray(outb.data)) ? String(outb.data.length) : "—";
-  }
-
-  async function logout() {
-    if (!confirm("Se déconnecter ?")) return;
-
-    const tok = localStorage.getItem(KEY.token) || "";
-    if (tok) {
-      try {
-        await fetch(`${BACKEND_URL}/api/admin/logout`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Authorization": `Bearer ${tok}` }
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    localStorage.removeItem(KEY.token);
-    localStorage.removeItem(KEY.exp);
-    localStorage.removeItem(KEY.role);
-    localStorage.removeItem(KEY.label);
-
-    location.replace("login.html");
-  }
-
-  async function addPayment() {
-    const tok = getTokenOrKick();
-    if (!tok) return;
-
-    const amount = Number(($("pAmount").value || "").trim() || "0");
-    const phone = ($("pPhone").value || "").trim();
-    const module = ($("pModule").value || "").trim();
-    const note = ($("pNote").value || "").trim();
-
-    const payMsg = $("payMsg");
-    setMsg(payMsg, "⏳ Enregistrement…");
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setMsg(payMsg, "⚠️ Montant invalide", "err");
-      return;
-    }
-
-    const r = await backendRPC("digiy_admin_payment_add", {
-      p_amount: amount,
-      p_phone: phone || null,
-      p_module: module || null,
-      p_note: note || null
-    });
-
-    if (!r.ok || !r.data || r.data.ok !== true) {
-      const msg = String(r.error || r.data?.reason || "payment_failed");
-      setMsg(payMsg, "❌ " + msg, "err");
-      return;
-    }
-
-    setMsg(payMsg, "✅ Paiement ajouté", "ok");
-    $("pAmount").value = "";
-    $("pPhone").value = "";
-    $("pModule").value = "";
-    $("pNote").value = "";
-
-    await refreshKPI();
-  }
-
-  window.addEventListener("load", async () => {
-    getTokenOrKick();
-
-    $("btnRefresh").onclick = async () => { await refreshKPI(); };
-    $("btnLogout").onclick = async () => { await logout(); };
-    $("btnAddPay").onclick = async () => { await addPayment(); };
-
-    await refreshKPI();
+async function serverCheck(tok) {
+  // Vérifie côté backend que le token est accepté
+  const r = await fetch(`${BACKEND}/api/admin/check`, {
+    headers: { "Authorization": `Bearer ${tok}` }
   });
-</script>
+  // 200 = OK, 401 = KO
+  return r.ok;
+}
 
+(async () => {
+  if (!hasLocalToken()) return logout();
+
+  const tok = localStorage.getItem(KEY.token);
+
+  try {
+    const ok = await serverCheck(tok);
+    if (!ok) return logout();
+  } catch (e) {
+    // Si réseau down, on peut soit bloquer soit tolérer.
+    // Ici: on bloque pour éviter l'accès "offline".
+    return logout();
+  }
+
+  // Affichage admin
+  document.getElementById("adminLabel").textContent =
+    localStorage.getItem(KEY.label) || "OPS";
+})();
+</script>
 </body>
 </html>
