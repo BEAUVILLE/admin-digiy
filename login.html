@@ -89,12 +89,12 @@
       const ua = navigator.userAgent || null;
       
       // ✅ APPEL AU BACKEND SÉCURISÉ
-      const response = await fetch(`${BACKEND_URL}/api/admin/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: p, ua: ua })
-      });
+     const response = await fetch(`${BACKEND_URL}/api/admin/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "omit", // ✅ IMPORTANT : sinon CORS bloque
+  body: JSON.stringify({ pin: p, ua })
+});
 
       if (!response.ok) {
         const data = await response.json();
