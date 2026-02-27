@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIGIY — Activations</title>
+<meta name="theme-color" content="#0a0e1a" />
+<style>
+:root{--bg:#0a0e1a;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#facc15;}
+body{margin:0;min-height:100vh;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui;padding:24px}
+.card{background:rgba(17,24,39,.9);padding:20px;border-radius:16px;border:1px solid rgba(148,163,184,.2);max-width:600px;margin:auto}
+label{display:block;margin-top:12px;font-weight:800;color:var(--muted);font-size:12px}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:#0f172a;color:white;font-weight:800}
+.btn{margin-top:16px;width:100%;padding:14px;border-radius:12px;border:0;background:linear-gradient(135deg,#facc15,#eab308);font-weight:900;color:#0a0e1a}
+.msg{margin-top:12px;font-weight:900}
+a{color:#facc15;text-decoration:none;font-weight:900}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>🔑 Activation manuelle</h2>
+
+  <label>Téléphone</label>
+  <input id="phone" placeholder="22177..." />
+
+  <label>Module</label>
+  <select id="module">
+    <option value="DRIVER">DRIVER</option>
+    <option value="POS">POS</option>
+    <option value="RESTO">RESTO</option>
+    <option value="LOC">LOC</option>
+  </select>
+
+  <label>Plan</label>
+  <select id="plan">
+    <option value="standard">standard</option>
+    <option value="pro">pro</option>
+  </select>
+
+  <label>Montant (FCFA)</label>
+  <input id="amount" placeholder="12900" inputmode="numeric" />
+
+  <button id="go" class="btn">✅ Activer</button>
+
+  <div class="msg" id="msg"></div>
+
+  <div style="margin-top:14px">
+    <a href="index.html">← Retour cockpit</a>
+  </div>
+</div>
+
+<script>
+const BACKEND = "https://apps.digiylyfe.com";
+const token = localStorage.getItem("digiy_admin_token");
+
+if(!token){
+  location.replace("login.html");
+}
+
+document.getElementById("go").onclick = async () => {
+  const phone = document.getElementById("phone").value.trim();
+  const module = document.getElementById("module").value;
+  const plan = document.getElementById("plan").value;
+  const amount = Number(document.getElementById("amount").value || 0);
+  const msg = document.getElementById("msg");
+
+  msg.textContent = "⏳ Activation...";
+  msg.style.color = "#facc15";
+
+  try{
+    const r = await fetch(`${BACKEND}/api/admin/activate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ phone, module, plan, amount_xof: amount })
+    });
+
+    const data = await r.json();
+
+    if(!r.ok || !data.ok){
+      msg.textContent = "❌ " + (data.error || "Erreur");
+      msg.style.color = "red";
+      return;
+    }
+
+    msg.textContent = "✅ Activation réussie";
+    msg.style.color = "limegreen";
+
+  }catch(e){
+    msg.textContent = "⚠️ Erreur réseau";
+    msg.style.color = "red";
+  }
+};
+</script>
+
+</body>
+</html>
