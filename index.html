@@ -1,83 +1,852 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DIGIY Backoffice</title>
-<meta name="theme-color" content="#0a0e1a" />
-<style>
-:root{--bg:#0a0e1a;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#facc15;}
-*{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui;padding:24px}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.btn{background:linear-gradient(135deg,#facc15,#eab308);border:0;padding:10px 14px;border-radius:12px;font-weight:900;color:#0a0e1a;text-decoration:none}
-.card{background:rgba(17,24,39,.9);padding:18px;border-radius:16px;border:1px solid rgba(148,163,184,.2);margin-top:14px}
-.small{color:var(--muted);font-size:13px;font-weight:700}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>DIGIY ADMIN — Cockpit</title>
+  <meta name="theme-color" content="#07140f" />
+  <meta name="description" content="Cockpit admin DIGIYLYFE branché sur le backend stable." />
+
+  <style>
+    :root{
+      --bg:#07140f;
+      --bg2:#0b1d16;
+      --card:#10241b;
+      --card2:#0f1f19;
+      --line:rgba(255,255,255,.09);
+      --text:#ecfff4;
+      --muted:rgba(236,255,244,.72);
+      --soft:rgba(236,255,244,.55);
+      --primary:#22c55e;
+      --primary2:#16a34a;
+      --gold:#facc15;
+      --danger:#ef4444;
+      --warning:#f59e0b;
+      --shadow:0 24px 70px rgba(0,0,0,.35);
+      --radius:24px;
+      --max:1200px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:linear-gradient(180deg,var(--bg) 0%, #06110d 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    button,input,textarea,select{font:inherit}
+
+    .wrap{
+      width:min(var(--max),calc(100% - 24px));
+      margin:0 auto;
+      padding:20px 0 80px;
+    }
+
+    .hero{
+      margin-top:8px;
+      padding:24px;
+      border:1px solid var(--line);
+      border-radius:32px;
+      background:
+        radial-gradient(circle at top right, rgba(34,197,94,.16), transparent 28%),
+        radial-gradient(circle at top left, rgba(250,204,21,.10), transparent 24%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow:var(--shadow);
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(250,204,21,.22);
+      color:var(--gold);
+      background:rgba(250,204,21,.08);
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      margin:14px 0 8px;
+      font-size:clamp(28px,4vw,46px);
+      line-height:1.04;
+      letter-spacing:-.03em;
+    }
+
+    .lead{
+      margin:0;
+      max-width:800px;
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.6;
+    }
+
+    .topbar{
+      margin-top:18px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--soft);
+      font-size:14px;
+    }
+
+    .grid{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap:18px;
+    }
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:linear-gradient(180deg,var(--card),var(--card2));
+      box-shadow:var(--shadow);
+    }
+
+    .card-head{
+      padding:18px 18px 0;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .card-title{
+      margin:0;
+      font-size:20px;
+      letter-spacing:-.02em;
+    }
+
+    .card-sub{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .card-body{
+      padding:18px;
+    }
+
+    .stack{display:grid;gap:12px}
+    .stack-lg{display:grid;gap:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row-end{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+    label{
+      display:grid;
+      gap:8px;
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    input,textarea,select{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px 14px;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      outline:none;
+    }
+
+    textarea{
+      min-height:120px;
+      resize:vertical;
+    }
+
+    input::placeholder,textarea::placeholder{color:rgba(236,255,244,.4)}
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:16px;
+      padding:13px 16px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+    .btn-primary{
+      background:linear-gradient(180deg,var(--primary),var(--primary2));
+      color:#04110a;
+    }
+
+    .btn-dark{
+      background:#0b1512;
+      border:1px solid var(--line);
+      color:var(--text);
+    }
+
+    .btn-gold{
+      background:linear-gradient(180deg,#fde68a,var(--gold));
+      color:#151203;
+    }
+
+    .btn-danger{
+      background:linear-gradient(180deg,#f87171,var(--danger));
+      color:#fff;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+    }
+
+    @media (max-width: 760px){
+      .kpis{grid-template-columns:repeat(2,1fr)}
+    }
+
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:16px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .kpi .n{
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:-.03em;
+    }
+
+    .kpi .l{
+      margin-top:6px;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:14px;
+      color:var(--muted);
+      flex-wrap:wrap;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:#64748b;
+      box-shadow:0 0 0 4px rgba(100,116,139,.16);
+      flex:0 0 auto;
+    }
+
+    .dot.ok{background:var(--primary);box-shadow:0 0 0 4px rgba(34,197,94,.14)}
+    .dot.warn{background:var(--warning);box-shadow:0 0 0 4px rgba(245,158,11,.14)}
+    .dot.bad{background:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.14)}
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:14px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .mini{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      word-break:break-word;
+    }
+
+    .log{
+      white-space:pre-wrap;
+      font-size:13px;
+      line-height:1.6;
+      color:#d7ffe6;
+      background:#08110d;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      min-height:140px;
+    }
+
+    .hidden{display:none !important}
+
+    .nav-cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+    }
+
+    @media (max-width: 920px){
+      .nav-cards{grid-template-columns:1fr}
+    }
+
+    .nav-card{
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:16px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .nav-card h3{
+      margin:0 0 8px;
+      font-size:18px;
+      letter-spacing:-.02em;
+    }
+
+    .nav-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .footer-note{
+      margin-top:16px;
+      color:var(--soft);
+      font-size:13px;
+      text-align:center;
+    }
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">🦅 DIGIYLYFE — Quartier Général</div>
+      <h1>ADMIN COCKPIT — Backend stable branché</h1>
+      <p class="lead">
+        Poste de commandement DIGIY. Login PIN, session JWT, check backend, logout, et passerelle RPC
+        branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
+      </p>
 
-<div class="top">
-  <div>
-    <h1>DIGIY Backoffice</h1>
-    <div class="small">Cockpit global · Paiement direct · 0% commission</div>
+      <div class="topbar">
+        <div class="chip"><span class="dot ok"></span> Backend Deno stable</div>
+        <div class="chip"><span class="dot ok"></span> Systemd validé</div>
+        <div class="chip"><span class="dot ok"></span> /health opérationnel</div>
+        <div class="chip"><span class="dot ok"></span> PIN + JWT branchés</div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <!-- COLONNE GAUCHE -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Accès admin</h2>
+            <p class="card-sub">Connexion sécurisée par PIN, avec session backend réelle.</p>
+          </div>
+        </div>
+
+        <div class="card-body stack-lg">
+          <div id="loginBox" class="stack">
+            <label>
+              PIN admin
+              <input id="pinInput" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Ex : 1234" />
+            </label>
+
+            <div class="row">
+              <button id="loginBtn" class="btn btn-primary">🔐 Ouvrir le cockpit</button>
+              <button id="healthBtn" class="btn btn-dark">💓 Vérifier backend</button>
+            </div>
+          </div>
+
+          <div id="sessionBox" class="stack hidden">
+            <div class="panel stack">
+              <div class="status"><span id="sessionDot" class="dot"></span><span id="sessionText">Session inconnue</span></div>
+              <div class="mini">Rôle : <strong id="roleOut">—</strong></div>
+              <div class="mini">Label : <strong id="labelOut">—</strong></div>
+              <div class="mini">Expire le : <strong id="expOut">—</strong></div>
+              <div class="mini">Token : <span id="tokenOut" class="mono">—</span></div>
+            </div>
+
+            <div class="row">
+              <button id="checkBtn" class="btn btn-gold">🛡️ Vérifier ma session</button>
+              <button id="logoutBtn" class="btn btn-danger">🚪 Déconnexion</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="status"><span id="healthDot" class="dot"></span><span id="healthText">Santé backend non testée</span></div>
+            <div class="mini" style="margin-top:10px">
+              URL backend : <strong id="backendOut" class="mono"></strong>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="mini">
+              Le backend attend :
+              <br><span class="mono">POST /api/admin/login</span>
+              <br><span class="mono">GET /api/admin/check</span>
+              <br><span class="mono">POST /api/admin/logout</span>
+              <br><span class="mono">POST /api/rpc/:rpcName</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLONNE DROITE -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Cockpit de pilotage</h2>
+            <p class="card-sub">Shell admin branché sur le backend stable. Zéro faux endpoint, zéro démo backend inventée.</p>
+          </div>
+        </div>
+
+        <div class="card-body stack-lg">
+          <div class="kpis">
+            <div class="kpi">
+              <div id="kHealth" class="n">—</div>
+              <div class="l">Backend</div>
+            </div>
+            <div class="kpi">
+              <div id="kSession" class="n">—</div>
+              <div class="l">Session</div>
+            </div>
+            <div class="kpi">
+              <div id="kRole" class="n">—</div>
+              <div class="l">Rôle</div>
+            </div>
+            <div class="kpi">
+              <div id="kRPC" class="n">0</div>
+              <div class="l">Dernier appel RPC</div>
+            </div>
+          </div>
+
+          <div class="nav-cards">
+            <div class="nav-card">
+              <h3>🧠 État du terrain</h3>
+              <p>Le backend admin est stable, le rail auth est posé, et la passerelle RPC est prête pour les commandes réelles.</p>
+            </div>
+            <div class="nav-card">
+              <h3>⚙️ Rail backend</h3>
+              <p>Le cockpit utilise exactement les routes de ton fichier Deno. On ne devine rien. On s’accroche au réel.</p>
+            </div>
+            <div class="nav-card">
+              <h3>🚀 Prochain cran</h3>
+              <p>Brancher les vraies RPC métier admin une par une : abonnés, activations, modules, support, supervision.</p>
+            </div>
+          </div>
+
+          <div class="panel stack">
+            <div>
+              <strong>Appel RPC générique</strong>
+              <div class="mini" style="margin-top:6px">
+                Cette zone te permet déjà de tester les vraies RPC admin sans refaire un autre outil.
+              </div>
+            </div>
+
+            <label>
+              Nom RPC
+              <input id="rpcName" type="text" placeholder="Ex : digiy_admin_list_subscriptions" />
+            </label>
+
+            <label>
+              Arguments JSON
+              <textarea id="rpcArgs" placeholder='{}'></textarea>
+            </label>
+
+            <div class="row">
+              <button id="rpcBtn" class="btn btn-primary">⚡ Lancer la RPC</button>
+              <button id="rpcClearBtn" class="btn btn-dark">🧹 Vider</button>
+            </div>
+          </div>
+
+          <div class="stack">
+            <strong>Journal cockpit</strong>
+            <div id="logBox" class="log">DIGIY ADMIN cockpit prêt.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-note">
+      DIGIY ADMIN — Ferrari branchée sur le backend stable.
+    </div>
   </div>
-  <a class="btn" href="activations.html">🔑 Activations</a>
-</div>
 
-<div class="card">
-  <div class="small">Admin connecté</div>
-  <div style="font-weight:900;font-size:18px;margin-top:6px" id="adminLabel">—</div>
-</div>
+  <script>
+    // =========================
+    // CONFIG
+    // =========================
+    const BACKEND_BASE =
+      (window.DIGIY_ADMIN_BACKEND || "").trim() ||
+      "https://admin.digiylyfe.com";
 
-<script>
-const BACKEND = "https://apps.digiylyfe.com";
+    const STORE = {
+      token: "digiy_admin_jwt",
+      exp: "digiy_admin_exp",
+      role: "digiy_admin_role",
+      label: "digiy_admin_label"
+    };
 
-const KEY = {
-  token: "digiy_admin_token",
-  exp:   "digiy_admin_exp",
-  role:  "digiy_admin_role",
-  label: "digiy_admin_label"
-};
+    // =========================
+    // DOM
+    // =========================
+    const $ = (id) => document.getElementById(id);
 
-function logout() {
-  Object.values(KEY).forEach(k => localStorage.removeItem(k));
-  location.replace("login.html");
-}
+    const pinInput = $("pinInput");
+    const loginBtn = $("loginBtn");
+    const checkBtn = $("checkBtn");
+    const logoutBtn = $("logoutBtn");
+    const healthBtn = $("healthBtn");
+    const rpcBtn = $("rpcBtn");
+    const rpcClearBtn = $("rpcClearBtn");
 
-function hasLocalToken() {
-  const tok = (localStorage.getItem(KEY.token) || "").trim();
-  const exp = Number(localStorage.getItem(KEY.exp) || "0");
-  return !!tok && Date.now() < exp;
-}
+    const loginBox = $("loginBox");
+    const sessionBox = $("sessionBox");
 
-async function serverCheck(tok) {
-  // Vérifie côté backend que le token est accepté
-  const r = await fetch(`${BACKEND}/api/admin/check`, {
-    headers: { "Authorization": `Bearer ${tok}` }
-  });
-  // 200 = OK, 401 = KO
-  return r.ok;
-}
+    const sessionDot = $("sessionDot");
+    const sessionText = $("sessionText");
+    const roleOut = $("roleOut");
+    const labelOut = $("labelOut");
+    const expOut = $("expOut");
+    const tokenOut = $("tokenOut");
 
-(async () => {
-  if (!hasLocalToken()) return logout();
+    const healthDot = $("healthDot");
+    const healthText = $("healthText");
+    const backendOut = $("backendOut");
 
-  const tok = localStorage.getItem(KEY.token);
+    const rpcName = $("rpcName");
+    const rpcArgs = $("rpcArgs");
+    const logBox = $("logBox");
 
-  try {
-    const ok = await serverCheck(tok);
-    if (!ok) return logout();
-  } catch (e) {
-    // Si réseau down, on peut soit bloquer soit tolérer.
-    // Ici: on bloque pour éviter l'accès "offline".
-    return logout();
-  }
+    const kHealth = $("kHealth");
+    const kSession = $("kSession");
+    const kRole = $("kRole");
+    const kRPC = $("kRPC");
 
-  // Affichage admin
-  document.getElementById("adminLabel").textContent =
-    localStorage.getItem(KEY.label) || "OPS";
-})();
-</script>
+    backendOut.textContent = BACKEND_BASE;
+
+    // =========================
+    // UTILS
+    // =========================
+    function log(...parts){
+      const line = parts.map(v => {
+        if (typeof v === "string") return v;
+        try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+      }).join(" ");
+      const stamp = new Date().toLocaleString("fr-FR");
+      logBox.textContent = `[${stamp}] ${line}\n\n` + logBox.textContent;
+    }
+
+    function setDot(el, kind){
+      el.className = "dot" + (kind ? " " + kind : "");
+    }
+
+    function shortToken(token){
+      if (!token) return "—";
+      if (token.length <= 32) return token;
+      return token.slice(0, 18) + "..." + token.slice(-12);
+    }
+
+    function getToken(){
+      return localStorage.getItem(STORE.token) || "";
+    }
+
+    function getExp(){
+      return Number(localStorage.getItem(STORE.exp) || "0");
+    }
+
+    function setSession(data){
+      if (data?.token) localStorage.setItem(STORE.token, data.token);
+      if (data?.exp) localStorage.setItem(STORE.exp, String(data.exp));
+      if (data?.role) localStorage.setItem(STORE.role, data.role);
+      if (data?.label) localStorage.setItem(STORE.label, data.label);
+      renderSession();
+    }
+
+    function clearSession(){
+      localStorage.removeItem(STORE.token);
+      localStorage.removeItem(STORE.exp);
+      localStorage.removeItem(STORE.role);
+      localStorage.removeItem(STORE.label);
+      renderSession();
+    }
+
+    function fmtDate(ms){
+      if (!ms) return "—";
+      try {
+        return new Date(ms).toLocaleString("fr-FR");
+      } catch {
+        return "—";
+      }
+    }
+
+    function isProbablyLoggedIn(){
+      return !!getToken();
+    }
+
+    function renderSession(){
+      const token = getToken();
+      const exp = getExp();
+      const role = localStorage.getItem(STORE.role) || "—";
+      const label = localStorage.getItem(STORE.label) || "—";
+
+      if (!token){
+        loginBox.classList.remove("hidden");
+        sessionBox.classList.add("hidden");
+        setDot(sessionDot, "");
+        sessionText.textContent = "Aucune session active";
+        roleOut.textContent = "—";
+        labelOut.textContent = "—";
+        expOut.textContent = "—";
+        tokenOut.textContent = "—";
+        kSession.textContent = "OFF";
+        kRole.textContent = "—";
+        return;
+      }
+
+      loginBox.classList.add("hidden");
+      sessionBox.classList.remove("hidden");
+
+      const expired = exp && Date.now() > exp;
+      setDot(sessionDot, expired ? "warn" : "ok");
+      sessionText.textContent = expired ? "Session stockée mais possiblement expirée" : "Session active détectée";
+      roleOut.textContent = role;
+      labelOut.textContent = label;
+      expOut.textContent = fmtDate(exp);
+      tokenOut.textContent = shortToken(token);
+
+      kSession.textContent = expired ? "EXP?" : "ON";
+      kRole.textContent = role || "—";
+    }
+
+    async function api(path, options = {}){
+      const token = getToken();
+      const headers = new Headers(options.headers || {});
+      if (!headers.has("Content-Type") && !(options.body instanceof FormData)){
+        headers.set("Content-Type", "application/json");
+      }
+      if (token){
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+
+      const res = await fetch(BACKEND_BASE + path, {
+        method: options.method || "GET",
+        headers,
+        body: options.body,
+        credentials: "include"
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+
+      return { res, data };
+    }
+
+    // =========================
+    // ACTIONS
+    // =========================
+    async function checkHealth(){
+      try{
+        setDot(healthDot, "");
+        healthText.textContent = "Test backend en cours...";
+        kHealth.textContent = "...";
+
+        const res = await fetch(BACKEND_BASE + "/health", { credentials: "include" });
+        const data = await res.json();
+
+        if (res.ok && data?.ok){
+          setDot(healthDot, "ok");
+          healthText.textContent = `Backend OK — service=${data.service || "digiy_admin_backend"}`;
+          kHealth.textContent = "OK";
+          log("HEALTH OK", data);
+        } else {
+          setDot(healthDot, "bad");
+          healthText.textContent = "Backend KO";
+          kHealth.textContent = "KO";
+          log("HEALTH KO", data);
+        }
+      } catch (e){
+        setDot(healthDot, "bad");
+        healthText.textContent = "Backend injoignable";
+        kHealth.textContent = "KO";
+        log("HEALTH ERROR", String(e));
+      }
+    }
+
+    async function doLogin(){
+      const pin = String(pinInput.value || "").trim();
+
+      if (!pin){
+        log("LOGIN", "PIN manquant.");
+        pinInput.focus();
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Connexion...";
+      try{
+        const { res, data } = await api("/api/admin/login", {
+          method: "POST",
+          body: JSON.stringify({
+            pin,
+            ua: navigator.userAgent || ""
+          })
+        });
+
+        if (!res.ok || !data?.ok){
+          log("LOGIN KO", data || { status: res.status });
+          alert(data?.error || "Connexion refusée.");
+          return;
+        }
+
+        setSession(data);
+        pinInput.value = "";
+        log("LOGIN OK", { role: data.role, label: data.label, exp: data.exp });
+        await checkSession();
+      } catch (e){
+        log("LOGIN ERROR", String(e));
+        alert("Erreur réseau pendant le login.");
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "🔐 Ouvrir le cockpit";
+      }
+    }
+
+    async function checkSession(){
+      try{
+        const { res, data } = await api("/api/admin/check", { method: "GET" });
+
+        if (!res.ok || !data?.ok){
+          setDot(sessionDot, "bad");
+          sessionText.textContent = "Session invalide ou expirée";
+          kSession.textContent = "OFF";
+          log("CHECK KO", data || { status: res.status });
+
+          if (res.status === 401){
+            clearSession();
+          }
+          return;
+        }
+
+        setDot(sessionDot, "ok");
+        sessionText.textContent = `Session valide — âge ${Math.round((data.sessionAgeMs || 0) / 60000)} min`;
+        if (data.role) {
+          roleOut.textContent = data.role;
+          localStorage.setItem(STORE.role, data.role);
+        }
+        if (data.label) {
+          labelOut.textContent = data.label;
+          localStorage.setItem(STORE.label, data.label);
+        }
+        kSession.textContent = "ON";
+        kRole.textContent = data.role || localStorage.getItem(STORE.role) || "—";
+        log("CHECK OK", data);
+      } catch (e){
+        log("CHECK ERROR", String(e));
+      }
+    }
+
+    async function doLogout(){
+      try{
+        const { res, data } = await api("/api/admin/logout", {
+          method: "POST",
+          body: JSON.stringify({})
+        });
+
+        log("LOGOUT", data || { status: res.status });
+      } catch (e){
+        log("LOGOUT ERROR", String(e));
+      } finally {
+        clearSession();
+      }
+    }
+
+    async function callRPC(){
+      const name = String(rpcName.value || "").trim();
+      if (!name){
+        alert("Nom RPC manquant.");
+        rpcName.focus();
+        return;
+      }
+
+      let args = {};
+      const raw = String(rpcArgs.value || "").trim();
+      if (raw){
+        try{
+          args = JSON.parse(raw);
+        } catch {
+          alert("Le JSON des arguments est invalide.");
+          return;
+        }
+      }
+
+      rpcBtn.disabled = true;
+      rpcBtn.textContent = "Exécution...";
+      try{
+        const { res, data } = await api("/api/rpc/" + encodeURIComponent(name), {
+          method: "POST",
+          body: JSON.stringify(args)
+        });
+
+        kRPC.textContent = name;
+        log(`RPC ${name}`, { status: res.status, data });
+
+        if (!res.ok){
+          alert(data?.error || `Erreur RPC (${res.status})`);
+        }
+      } catch (e){
+        log("RPC ERROR", String(e));
+        alert("Erreur réseau pendant la RPC.");
+      } finally {
+        rpcBtn.disabled = false;
+        rpcBtn.textContent = "⚡ Lancer la RPC";
+      }
+    }
+
+    // =========================
+    // EVENTS
+    // =========================
+    loginBtn.addEventListener("click", doLogin);
+    checkBtn.addEventListener("click", checkSession);
+    logoutBtn.addEventListener("click", doLogout);
+    healthBtn.addEventListener("click", checkHealth);
+    rpcBtn.addEventListener("click", callRPC);
+    rpcClearBtn.addEventListener("click", () => {
+      rpcName.value = "";
+      rpcArgs.value = "{}";
+      kRPC.textContent = "0";
+      log("RPC form vidé.");
+    });
+
+    pinInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
+
+    // =========================
+    // BOOT
+    // =========================
+    (async function boot(){
+      rpcArgs.value = "{}";
+      renderSession();
+      await checkHealth();
+      if (isProbablyLoggedIn()){
+        await checkSession();
+      }
+    })();
+  </script>
 </body>
 </html>
