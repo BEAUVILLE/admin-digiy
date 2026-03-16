@@ -315,11 +315,11 @@ async function handleLogin(req: Request): Promise<Response> {
       return json({ ok: false, error: "pin_invalide" }, 400);
     }
 
-    const rpcRes = await callSupabaseRPC("digiy_admin_login_pin", {
-      p_pin: pin,
-      p_user_agent: userAgent,
-      p_ip: ip,
-    });
+    const rpcRes = await callSupabaseRPC("admin_login", {
+  p_pin: pin,
+  p_user_agent: userAgent,
+  p_ip: ip,
+});
 
     if (rpcRes.error) {
       return json({ ok: false, error: rpcRes.error }, 500);
