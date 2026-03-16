@@ -62,7 +62,9 @@ function toB64Url(bytes: Uint8Array): string {
 }
 
 function fromB64Url(input: string): Uint8Array {
-  const padded = input.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (input.length % 4 || 4)) % 4);
+  const padded =
+    input.replace(/-/g, "+").replace(/_/g, "/") +
+    "=".repeat((4 - (input.length % 4 || 4)) % 4);
   const binary = atob(padded);
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
@@ -174,7 +176,9 @@ function makeCookie(token: string): string {
     "SameSite=Strict",
     `Max-Age=${Math.floor(SESSION_DURATION_MS / 1000)}`,
     secure.replace(/^;\s*/, ""),
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
 }
 
 function clearCookie(): string {
@@ -186,7 +190,9 @@ function clearCookie(): string {
     "SameSite=Strict",
     "Max-Age=0",
     secure.replace(/^;\s*/, ""),
-  ].filter(Boolean).join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
 }
 
 function jsonWithCookie(data: unknown, token: string, status = 200): Response {
@@ -262,7 +268,11 @@ async function callSupabaseRPC(
 
 // --- AUTH ---
 async function requireSession(req: Request): Promise<
-  | { ok: true; token: string; session: { adminId: string; role: string; label: string; createdAt: number } }
+  | {
+      ok: true;
+      token: string;
+      session: { adminId: string; role: string; label: string; createdAt: number };
+    }
   | { ok: false; response: Response }
 > {
   const token = getAuthToken(req);
