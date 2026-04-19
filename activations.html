@@ -60,106 +60,123 @@ a{color:#facc15;text-decoration:none;font-weight:900}
 </div>
 
 <script>
-(() => {
-  const qp = new URLSearchParams(location.search);
+(function () {
+  "use strict";
 
-  const phone = (qp.get("phone") || qp.get("tel") || "").trim();
-  const module = (qp.get("module") || "").trim().toUpperCase();
-  const plan   = (qp.get("plan") || "").trim().toLowerCase();
-  const amount = (qp.get("amount") || qp.get("amount_xof") || "").trim();
-  const note   = (qp.get("note") || qp.get("payment_ref") || qp.get("ref") || "").trim();
+  /* ✅ CONFIG UNIFIÉE BACKOFFICE */
+  const BACKEND = window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "https://admin.digiylyfe.com";
 
-  if (phone)  document.getElementById("phone").value = phone;
-  if (amount) document.getElementById("amount").value = amount;
-  if (note)   document.getElementById("note").value = note;
+  const STORE = {
+    token: "digiy_admin_jwt",
+    exp:   "digiy_admin_exp"
+  };
 
-  if (module) {
-    const el = document.getElementById("module");
-    const ok = Array.from(el.options).some(o => o.value === module);
-    if (ok) el.value = module;
+  /* --- pré-remplissage URL --- */
+  (function prefill() {
+    const qp = new URLSearchParams(location.search);
+
+    const phone  = (qp.get("phone")  || qp.get("tel")          || "").trim();
+    const module = (qp.get("module") || "").trim().toUpperCase();
+    const plan   = (qp.get("plan")   || "").trim().toLowerCase();
+    const amount = (qp.get("amount") || qp.get("amount_xof")   || "").trim();
+    const note   = (qp.get("note")   || qp.get("payment_ref")  || qp.get("ref") || "").trim();
+
+    if (phone)  document.getElementById("phone").value  = phone;
+    if (amount) document.getElementById("amount").value = amount;
+    if (note)   document.getElementById("note").value   = note;
+
+    if (module) {
+      const el = document.getElementById("module");
+      if (Array.from(el.options).some(o => o.value === module)) el.value = module;
+    }
+
+    if (plan) {
+      const el = document.getElementById("plan");
+      if (Array.from(el.options).some(o => o.value === plan)) el.value = plan;
+    }
+  })();
+
+  /* --- guard session --- */
+  function getToken() {
+    const tok = (localStorage.getItem(STORE.token) || "").trim();
+    const exp = Number(localStorage.getItem(STORE.exp) || "0");
+    if (!tok || (exp && Date.now() > exp)) {
+      localStorage.removeItem(STORE.token);
+      location.replace("login.html");
+      return "";
+    }
+    return tok;
   }
 
-  if (plan) {
-    const el = document.getElementById("plan");
-    const ok = Array.from(el.options).some(o => o.value === plan);
-    if (ok) el.value = plan;
+  const token = getToken();
+  if (!token) return;
+
+  const $ = (id) => document.getElementById(id);
+  const btn = $("go");
+  const msg = $("msg");
+
+  function setMsg(text, color) {
+    msg.textContent = text || "";
+    msg.style.color = color || "#e5e7eb";
   }
+
+  btn.addEventListener("click", async () => {
+    const phone  = $("phone").value.trim();
+    const module = $("module").value;
+    const plan   = $("plan").value;
+    const amount = Number(($("amount").value || "0").trim());
+    const note   = $("note").value.trim();
+
+    if (!phone || phone.length < 9) return setMsg("❌ Téléphone invalide.", "red");
+    if (!amount || amount < 100)    return setMsg("❌ Montant invalide.", "red");
+
+    btn.disabled = true;
+    setMsg("⏳ Activation...", "#facc15");
+
+    try {
+      const r = await fetch(BACKEND + "/api/admin/activate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          phone,
+          module,
+          plan,
+          amount_xof: amount,
+          note,
+          payment_ref: note
+        })
+      });
+
+      const data = await r.json().catch(() => ({ ok: false, error: "bad_json" }));
+
+      if (r.status === 401) {
+        setMsg("🔒 Session expirée. Reconnecte-toi.", "red");
+        btn.disabled = false;
+        setTimeout(() => location.replace("login.html"), 350);
+        return;
+      }
+
+      if (!r.ok || !data.ok) {
+        setMsg("❌ " + (data.error || `Erreur (${r.status})`), "red");
+        btn.disabled = false;
+        return;
+      }
+
+      setMsg("✅ Activation réussie", "limegreen");
+      btn.disabled = false;
+
+    } catch (e) {
+      setMsg("⚠️ Erreur réseau (fetch).", "red");
+      btn.disabled = false;
+    }
+  });
 })();
-
-/* ✅ CONFIG UNIFIÉE BACKOFFICE */
-const BACKEND = window.location.hostname === "localhost"
-  ? "http://localhost:8000"
-  : "https://admin.digiylyfe.com";
-
-const token = (localStorage.getItem("digiy_admin_token") || "").trim();
-
-if(!token){
-  location.replace("login.html");
-}
-
-const $ = (id) => document.getElementById(id);
-const btn = $("go");
-const msg = $("msg");
-
-function setMsg(text, color){
-  msg.textContent = text || "";
-  msg.style.color = color || "#e5e7eb";
-}
-
-btn.onclick = async () => {
-  const phone = $("phone").value.trim();
-  const module = $("module").value;
-  const plan = $("plan").value;
-  const amount = Number(($("amount").value || "0").trim());
-  const note = $("note").value.trim();
-
-  if(!phone || phone.length < 9) return setMsg("❌ Téléphone invalide.", "red");
-  if(!amount || amount < 100)    return setMsg("❌ Montant invalide.", "red");
-
-  btn.disabled = true;
-  setMsg("⏳ Activation...", "#facc15");
-
-  try{
-    const r = await fetch(`${BACKEND}/api/admin/activate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        phone,
-        module,
-        plan,
-        amount_xof: amount,
-        note,
-        payment_ref: note
-      })
-    });
-
-    const data = await r.json().catch(()=>({ok:false,error:"bad_json"}));
-
-    if(r.status === 401){
-      setMsg("🔒 Session expirée. Reconnecte-toi.", "red");
-      btn.disabled = false;
-      setTimeout(()=>location.replace("login.html"), 350);
-      return;
-    }
-
-    if(!r.ok || !data.ok){
-      setMsg("❌ " + (data.error || `Erreur (${r.status})`), "red");
-      btn.disabled = false;
-      return;
-    }
-
-    setMsg("✅ Activation réussie", "limegreen");
-    btn.disabled = false;
-
-  }catch(e){
-    setMsg("⚠️ Erreur réseau (fetch).", "red");
-    btn.disabled = false;
-  }
-};
 </script>
 
 </body>
