@@ -412,10 +412,14 @@ async function handleCheck(req: Request): Promise<Response> {
 }
 
 async function handleRPC(req: Request, pathname: string): Promise<Response> {
+  if (req.method !== "POST") {
+    return json({ ok: false, error: "POST_only" }, 405);
+  }
+
   const auth = await requireSession(req);
   if (!auth.ok) return auth.response;
 
-  const rpcName = pathname.replace("/api/rpc/", "").trim();
+  const rpcName = pathname.replace("/api/rpc/", "").replace(/^\//, "").trim();
   if (!rpcName) {
     return json({ ok: false, error: "missing_rpc_name" }, 400);
   }
@@ -436,10 +440,47 @@ async function handleRPC(req: Request, pathname: string): Promise<Response> {
   }
 }
 
+// --- ACTIVATE (route manuelle admin) ---
+async function handleActivate(req: Request): Promise<Response> {
+  if (req.method !== "POST") {
+    return json({ ok: false, error: "POST_only" }, 405);
+  }
+
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+
+    const rpcRes = await callSupabaseRPC("digiy_admin_activate_subscription", {
+      p_token: auth.session.adminId,
+      p_phone: body.phone,
+      p_module: body.module,
+      p_plan: body.plan,
+      p_amount_xof: body.amount_xof,
+      p_note: body.note,
+      p_payment_ref: body.payment_ref,
+    }, true);
+
+    if (rpcRes.error) {
+      return json({ ok: false, error: rpcRes.error }, 500);
+    }
+
+    return json(rpcRes.data ?? { ok: true });
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
 // --- CORS ---
 function setCORSHeaders(res: Response, req: Request): Response {
   const origin = req.headers.get("origin") || "";
-  const isAllowed = !origin || origin === FRONTEND_URL;
+  const allowedOrigins = [
+    FRONTEND_URL,
+    "https://admin.digiylyfe.com",
+  ].filter(Boolean);
+
+  const isAllowed = !origin || allowedOrigins.includes(origin);
 
   if (isAllowed && origin) {
     res.headers.set("Access-Control-Allow-Origin", origin);
@@ -473,6 +514,8 @@ async function handler(req: Request): Promise<Response> {
     res = await handleLogout(req);
   } else if (pathname === "/api/admin/check") {
     res = await handleCheck(req);
+  } else if (pathname === "/api/admin/activate") {
+    res = await handleActivate(req);
   } else if (pathname.startsWith("/api/rpc/")) {
     res = await handleRPC(req, pathname);
   } else {
