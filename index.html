@@ -74,7 +74,7 @@
 
     .lead{
       margin:0;
-      max-width:800px;
+      max-width:820px;
       color:var(--muted);
       font-size:16px;
       line-height:1.6;
@@ -184,26 +184,11 @@
     .btn:hover{transform:translateY(-1px)}
     .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
-    .btn-primary{
-      background:linear-gradient(180deg,var(--primary),var(--primary2));
-      color:#04110a;
-    }
-
-    .btn-dark{
-      background:#0b1512;
-      border:1px solid var(--line);
-      color:var(--text);
-    }
-
-    .btn-gold{
-      background:linear-gradient(180deg,#fde68a,var(--gold));
-      color:#151203;
-    }
-
-    .btn-danger{
-      background:linear-gradient(180deg,#f87171,var(--danger));
-      color:#fff;
-    }
+    .btn-primary{background:linear-gradient(180deg,var(--primary),var(--primary2));color:#04110a}
+    .btn-dark{background:#0b1512;border:1px solid var(--line);color:var(--text)}
+    .btn-gold{background:linear-gradient(180deg,#fde68a,var(--gold));color:#151203}
+    .btn-danger{background:linear-gradient(180deg,#f87171,var(--danger));color:#fff}
+    .btn-soft{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text)}
 
     .kpis{
       display:grid;
@@ -318,6 +303,98 @@
       line-height:1.55;
     }
 
+    .queue-toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:end;
+    }
+
+    .queue-toolbar label{
+      flex:1;
+      min-width:180px;
+    }
+
+    .proof-list{
+      display:grid;
+      gap:12px;
+    }
+
+    .proof-item{
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:14px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .proof-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+
+    .proof-title{
+      margin:0;
+      font-size:16px;
+      letter-spacing:-.02em;
+    }
+
+    .proof-meta{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:12px;
+    }
+
+    @media (max-width: 900px){
+      .proof-meta{grid-template-columns:1fr 1fr}
+    }
+
+    @media (max-width: 560px){
+      .proof-meta{grid-template-columns:1fr}
+    }
+
+    .proof-cell{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.12);
+    }
+
+    .proof-cell .k{
+      font-size:11px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      margin-bottom:6px;
+      font-weight:800;
+    }
+
+    .proof-cell .v{
+      font-size:14px;
+      line-height:1.45;
+      font-weight:800;
+      word-break:break-word;
+    }
+
+    .proof-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .proof-empty{
+      border:1px dashed var(--line);
+      border-radius:18px;
+      padding:18px;
+      color:var(--muted);
+      text-align:center;
+      background:rgba(255,255,255,.02);
+    }
+
     .footer-note{
       margin-top:16px;
       color:var(--soft);
@@ -332,8 +409,8 @@
       <div class="eyebrow">🦅 DIGIYLYFE — Quartier Général</div>
       <h1>ADMIN COCKPIT — Backend stable branché</h1>
       <p class="lead">
-        Poste de commandement DIGIY. Login PIN, session JWT, check backend, logout, et passerelle RPC
-        branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
+        Poste de commandement DIGIY. Login PIN, session JWT, check backend, logout, passerelle RPC
+        et file d’attente des preuves PAY branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
       </p>
 
       <div class="topbar">
@@ -341,11 +418,11 @@
         <div class="chip"><span class="dot ok"></span> Systemd validé</div>
         <div class="chip"><span class="dot ok"></span> /health opérationnel</div>
         <div class="chip"><span class="dot ok"></span> PIN + JWT branchés</div>
+        <div class="chip"><span class="dot ok"></span> File PAY prête</div>
       </div>
     </section>
 
     <div class="grid">
-      <!-- COLONNE GAUCHE -->
       <section class="card">
         <div class="card-head">
           <div>
@@ -401,7 +478,6 @@
         </div>
       </section>
 
-      <!-- COLONNE DROITE -->
       <section class="card">
         <div class="card-head">
           <div>
@@ -433,15 +509,51 @@
           <div class="nav-cards">
             <div class="nav-card">
               <h3>🧠 État du terrain</h3>
-              <p>Le backend admin est stable, le rail auth est posé, et la passerelle RPC est prête pour les commandes réelles.</p>
+              <p>Le backend admin est stable, le rail auth est posé, la passerelle RPC marche, et la file PAY évite désormais le SQL manuel.</p>
             </div>
             <div class="nav-card">
               <h3>⚙️ Rail backend</h3>
-              <p>Le cockpit utilise exactement les routes de ton fichier Deno. On ne devine rien. On s’accroche au réel.</p>
+              <p>Le cockpit utilise exactement les routes de ton backend Deno et les vraies RPC Supabase. On ne devine rien. On s’accroche au réel.</p>
             </div>
             <div class="nav-card">
               <h3>🚀 Prochain cran</h3>
-              <p>Brancher les vraies RPC métier admin une par une : abonnés, activations, modules, support, supervision.</p>
+              <p>Valider les preuves PAY en 1 clic depuis ce cockpit, puis brancher ensuite les autres wagons admin : abonnés, support, supervision.</p>
+            </div>
+          </div>
+
+          <div class="panel stack">
+            <div>
+              <strong>PAY — File d’attente des preuves</strong>
+              <div class="mini" style="margin-top:6px">
+                Ici tu vois les preuves publiques PAY et tu confirmes ou refuses sans toucher au SQL.
+              </div>
+            </div>
+
+            <div class="queue-toolbar">
+              <label>
+                Filtre statut
+                <select id="proofStatus">
+                  <option value="pending_proof">En attente de preuve</option>
+                  <option value="confirmed">Confirmées</option>
+                  <option value="rejected">Refusées</option>
+                  <option value="">Toutes</option>
+                </select>
+              </label>
+
+              <label style="max-width:160px">
+                Limite
+                <select id="proofLimit">
+                  <option value="20">20</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+
+              <button id="proofRefreshBtn" class="btn btn-primary">🔄 Recharger la file</button>
+            </div>
+
+            <div id="proofList" class="proof-list">
+              <div class="proof-empty">Aucune preuve chargée pour le moment.</div>
             </div>
           </div>
 
@@ -455,7 +567,7 @@
 
             <label>
               Nom RPC
-              <input id="rpcName" type="text" placeholder="Ex : digiy_admin_list_subscriptions" />
+              <input id="rpcName" type="text" placeholder="Ex : digiy_pay_admin_list_public_proofs" />
             </label>
 
             <label>
@@ -483,9 +595,6 @@
   </div>
 
   <script>
-    // =========================
-    // CONFIG
-    // =========================
     const BACKEND_BASE =
       (window.DIGIY_ADMIN_BACKEND || "").trim() ||
       "https://admin.digiylyfe.com";
@@ -497,9 +606,11 @@
       label: "digiy_admin_label"
     };
 
-    // =========================
-    // DOM
-    // =========================
+    const RPC_NAMES = {
+      listProofs: "digiy_pay_admin_list_public_proofs",
+      validateProof: "digiy_pay_public_proof_validate"
+    };
+
     const $ = (id) => document.getElementById(id);
 
     const pinInput = $("pinInput");
@@ -509,6 +620,7 @@
     const healthBtn = $("healthBtn");
     const rpcBtn = $("rpcBtn");
     const rpcClearBtn = $("rpcClearBtn");
+    const proofRefreshBtn = $("proofRefreshBtn");
 
     const loginBox = $("loginBox");
     const sessionBox = $("sessionBox");
@@ -533,11 +645,12 @@
     const kRole = $("kRole");
     const kRPC = $("kRPC");
 
+    const proofStatus = $("proofStatus");
+    const proofLimit = $("proofLimit");
+    const proofList = $("proofList");
+
     backendOut.textContent = BACKEND_BASE;
 
-    // =========================
-    // UTILS
-    // =========================
     function log(...parts){
       const line = parts.map(v => {
         if (typeof v === "string") return v;
@@ -579,19 +692,47 @@
       localStorage.removeItem(STORE.role);
       localStorage.removeItem(STORE.label);
       renderSession();
+      renderProofs([]);
     }
 
     function fmtDate(ms){
       if (!ms) return "—";
-      try {
-        return new Date(ms).toLocaleString("fr-FR");
-      } catch {
-        return "—";
-      }
+      try { return new Date(ms).toLocaleString("fr-FR"); } catch { return "—"; }
     }
 
     function isProbablyLoggedIn(){
       return !!getToken();
+    }
+
+    function escapeHtml(v){
+      return String(v ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;");
+    }
+
+    function displayPhone(v){
+      const d = String(v || "").replace(/\D/g,"");
+      if (!d) return "—";
+      return d.startsWith("221") ? "+" + d : d;
+    }
+
+    function fmtFcfa(v){
+      const n = Number(String(v || "").replace(/[^\d]/g,"") || 0);
+      return n ? n.toLocaleString("fr-FR") + " FCFA" : "—";
+    }
+
+    function buildCockpitUrl(item){
+      const slug = String(item?.slug || "").trim();
+      return slug ? ("https://pay.digiylyfe.com/cockpit.html?slug=" + encodeURIComponent(slug)) : "";
+    }
+
+    function getStatusTone(status){
+      const s = String(status || "").toLowerCase();
+      if (["confirmed","validated","approved","paid","success","posted"].includes(s)) return ["ok","CONFIRMÉ"];
+      if (["rejected","failed","denied","cancelled","canceled","error"].includes(s)) return ["bad","REFUSÉ"];
+      return ["gold","PREUVE"];
     }
 
     function renderSession(){
@@ -647,18 +788,18 @@
       });
 
       let data = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = null;
-      }
+      try { data = await res.json(); } catch { data = null; }
 
       return { res, data };
     }
 
-    // =========================
-    // ACTIONS
-    // =========================
+    async function callBackendRpc(name, args){
+      return api("/api/rpc/" + encodeURIComponent(name), {
+        method: "POST",
+        body: JSON.stringify(args || {})
+      });
+    }
+
     async function checkHealth(){
       try{
         setDot(healthDot, "");
@@ -717,6 +858,7 @@
         pinInput.value = "";
         log("LOGIN OK", { role: data.role, label: data.label, exp: data.exp });
         await checkSession();
+        await refreshProofs();
       } catch (e){
         log("LOGIN ERROR", String(e));
         alert("Erreur réseau pendant le login.");
@@ -739,7 +881,7 @@
           if (res.status === 401){
             clearSession();
           }
-          return;
+          return false;
         }
 
         setDot(sessionDot, "ok");
@@ -755,8 +897,10 @@
         kSession.textContent = "ON";
         kRole.textContent = data.role || localStorage.getItem(STORE.role) || "—";
         log("CHECK OK", data);
+        return true;
       } catch (e){
         log("CHECK ERROR", String(e));
+        return false;
       }
     }
 
@@ -797,10 +941,7 @@
       rpcBtn.disabled = true;
       rpcBtn.textContent = "Exécution...";
       try{
-        const { res, data } = await api("/api/rpc/" + encodeURIComponent(name), {
-          method: "POST",
-          body: JSON.stringify(args)
-        });
+        const { res, data } = await callBackendRpc(name, args);
 
         kRPC.textContent = name;
         log(`RPC ${name}`, { status: res.status, data });
@@ -817,11 +958,154 @@
       }
     }
 
-    // =========================
-    // EVENTS
-    // =========================
+    function pickProofItems(data){
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.items)) return data.items;
+      if (Array.isArray(data?.data?.items)) return data.data.items;
+      if (Array.isArray(data?.rows)) return data.rows;
+      if (Array.isArray(data?.data?.rows)) return data.data.rows;
+      return [];
+    }
+
+    function renderProofs(items){
+      if (!Array.isArray(items) || !items.length){
+        proofList.innerHTML = '<div class="proof-empty">Aucune preuve dans cette file pour le moment.</div>';
+        return;
+      }
+
+      proofList.innerHTML = items.map((item) => {
+        const [tone, label] = getStatusTone(item.status);
+        const cockpitUrl = buildCockpitUrl(item);
+        const proofUrl = String(item.proof_url || "").trim();
+
+        return `
+          <article class="proof-item">
+            <div class="proof-top">
+              <div>
+                <h3 class="proof-title">${escapeHtml(item.public_label || item.code || item.ref || "Preuve PAY")}</h3>
+                <div class="mini mono" style="margin-top:6px">${escapeHtml(item.ref || "—")}</div>
+              </div>
+              <span class="tag ${tone}">${escapeHtml(label)}</span>
+            </div>
+
+            <div class="proof-meta">
+              <div class="proof-cell">
+                <div class="k">Montant</div>
+                <div class="v">${escapeHtml(fmtFcfa(item.amount_xof))}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Téléphone</div>
+                <div class="v mono">${escapeHtml(displayPhone(item.phone))}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Identifiant</div>
+                <div class="v mono">${escapeHtml(item.slug || "—")}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Code</div>
+                <div class="v mono">${escapeHtml(item.code || "—")}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Statut</div>
+                <div class="v mono">${escapeHtml(item.status || "—")}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Créée le</div>
+                <div class="v">${escapeHtml(fmtDate(item.created_at))}</div>
+              </div>
+            </div>
+
+            <div class="proof-actions">
+              <button class="btn btn-primary" data-action="confirm" data-ref="${escapeHtml(item.ref || "")}">✅ Confirmer</button>
+              <button class="btn btn-danger" data-action="reject" data-ref="${escapeHtml(item.ref || "")}">⛔ Refuser</button>
+              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir le cockpit</a>` : ""}
+              ${proofUrl ? `<a class="btn btn-soft" href="${escapeHtml(proofUrl)}" target="_blank" rel="noreferrer">🧾 Ouvrir la preuve</a>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function refreshProofs(){
+      if (!getToken()){
+        renderProofs([]);
+        return;
+      }
+
+      proofRefreshBtn.disabled = true;
+      proofRefreshBtn.textContent = "Chargement...";
+      try{
+        const args = {
+          p_status: proofStatus.value || null,
+          p_limit: Number(proofLimit.value || 50)
+        };
+
+        const { res, data } = await callBackendRpc(RPC_NAMES.listProofs, args);
+        log("PAY PROOFS LIST", { status: res.status, data });
+
+        if (!res.ok){
+          renderProofs([]);
+          alert(data?.error || "Impossible de charger la file PAY.");
+          return;
+        }
+
+        const items = pickProofItems(data);
+        renderProofs(items);
+      } catch (e){
+        log("PAY PROOFS LIST ERROR", String(e));
+        renderProofs([]);
+        alert("Erreur réseau pendant le chargement des preuves PAY.");
+      } finally {
+        proofRefreshBtn.disabled = false;
+        proofRefreshBtn.textContent = "🔄 Recharger la file";
+      }
+    }
+
+    async function validateProof(ref, status){
+      if (!ref) return;
+
+      const label = status === "confirmed" ? "confirmer" : "refuser";
+      if (!confirm(`Tu veux vraiment ${label} cette preuve ?`)) return;
+
+      try{
+        const args = {
+          p_ref: ref,
+          p_status: status,
+          p_redirect_url: null,
+          p_validated_by: localStorage.getItem(STORE.label) || "admin"
+        };
+
+        const { res, data } = await callBackendRpc(RPC_NAMES.validateProof, args);
+        log("PAY PROOF VALIDATE", { ref, status, http: res.status, data });
+
+        if (!res.ok || !data?.ok){
+          alert(data?.error || `Impossible de ${label} cette preuve.`);
+          return;
+        }
+
+        await refreshProofs();
+      } catch (e){
+        log("PAY PROOF VALIDATE ERROR", String(e));
+        alert("Erreur réseau pendant la validation.");
+      }
+    }
+
+    proofList.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+
+      const action = btn.getAttribute("data-action");
+      const ref = btn.getAttribute("data-ref") || "";
+
+      if (action === "confirm") validateProof(ref, "confirmed");
+      if (action === "reject") validateProof(ref, "rejected");
+    });
+
     loginBtn.addEventListener("click", doLogin);
-    checkBtn.addEventListener("click", checkSession);
+    checkBtn.addEventListener("click", async () => {
+      const ok = await checkSession();
+      if (ok) await refreshProofs();
+    });
     logoutBtn.addEventListener("click", doLogout);
     healthBtn.addEventListener("click", checkHealth);
     rpcBtn.addEventListener("click", callRPC);
@@ -831,20 +1115,22 @@
       kRPC.textContent = "0";
       log("RPC form vidé.");
     });
+    proofRefreshBtn.addEventListener("click", refreshProofs);
+    proofStatus.addEventListener("change", refreshProofs);
+    proofLimit.addEventListener("change", refreshProofs);
 
     pinInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doLogin();
     });
 
-    // =========================
-    // BOOT
-    // =========================
     (async function boot(){
       rpcArgs.value = "{}";
+      rpcName.value = RPC_NAMES.listProofs;
       renderSession();
       await checkHealth();
       if (isProbablyLoggedIn()){
-        await checkSession();
+        const ok = await checkSession();
+        if (ok) await refreshProofs();
       }
     })();
   </script>
