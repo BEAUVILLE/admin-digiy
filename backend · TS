@@ -24,8 +24,8 @@ if (!JWT_SECRET) {
   Deno.exit(1);
 }
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error("❌ SUPABASE_URL / SUPABASE_ANON_KEY manquants dans .env");
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
+  console.error("❌ SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_KEY manquants dans .env");
   Deno.exit(1);
 }
 
@@ -234,7 +234,9 @@ async function callSupabaseRPC(
       return { data: null, error: "missing_supabase_key" };
     }
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    const url = `${SUPABASE_URL}/rest/v1/rpc/${fnName}`;
+
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -254,6 +256,13 @@ async function callSupabaseRPC(
     }
 
     if (!res.ok) {
+      console.error("❌ SUPABASE RPC ERROR", {
+        fnName,
+        url,
+        status: res.status,
+        parsed,
+      });
+
       return {
         data: parsed,
         error: `supabase_rpc_http_${res.status}`,
@@ -316,10 +325,10 @@ async function handleLogin(req: Request): Promise<Response> {
     }
 
     const rpcRes = await callSupabaseRPC("admin_login", {
-  p_pin: pin,
-  p_user_agent: userAgent,
-  p_ip: ip,
-});
+      p_pin: pin,
+      p_user_agent: userAgent,
+      p_ip: ip,
+    });
 
     if (rpcRes.error) {
       return json({ ok: false, error: rpcRes.error }, 500);
@@ -415,7 +424,7 @@ async function handleRPC(req: Request, pathname: string): Promise<Response> {
     const args = await req.json().catch(() => ({} as Record<string, unknown>));
     args.p_token = auth.session.adminId;
 
-    const rpcRes = await callSupabaseRPC(rpcName, args, false);
+    const rpcRes = await callSupabaseRPC(rpcName, args, true);
 
     if (rpcRes.error) {
       return json({ ok: false, error: rpcRes.error, data: rpcRes.data ?? null }, 500);
