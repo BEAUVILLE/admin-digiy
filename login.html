@@ -40,12 +40,11 @@
     </form>
   </div>
 
-<script>
-  // ✅ Backend URL - CORRIGÉ POUR PROD
-  const BACKEND_URL = window.location.hostname === "localhost" 
-    ? "http://localhost:8000" 
-    : "https://apps.digiylyfe.com";
-
+<<script>
+  const BACKEND_URL = window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "https://admin.digiylyfe.com";
+</script>
   const KEY = {
     token: "digiy_admin_token",
     exp: "digiy_admin_exp",
