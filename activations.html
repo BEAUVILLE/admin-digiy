@@ -60,7 +60,6 @@ a{color:#facc15;text-decoration:none;font-weight:900}
 </div>
 
 <script>
-/* ✅ PREFILL ABOS → ACTIVATIONS (à coller avant les const) */
 (() => {
   const qp = new URLSearchParams(location.search);
 
@@ -87,8 +86,11 @@ a{color:#facc15;text-decoration:none;font-weight:900}
   }
 })();
 
-/* ✅ CONFIG */
-const BACKEND = "https://apps.digiylyfe.com";
+/* ✅ CONFIG UNIFIÉE BACKOFFICE */
+const BACKEND = window.location.hostname === "localhost"
+  ? "http://localhost:8000"
+  : "https://admin.digiylyfe.com";
+
 const token = (localStorage.getItem("digiy_admin_token") || "").trim();
 
 if(!token){
@@ -124,13 +126,14 @@ btn.onclick = async () => {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
+      credentials: "include",
       body: JSON.stringify({
         phone,
         module,
         plan,
         amount_xof: amount,
-        note,                 // ✅ on envoie la note/ref
-        payment_ref: note     // ✅ au cas où ton backend attend payment_ref
+        note,
+        payment_ref: note
       })
     });
 
