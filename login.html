@@ -133,31 +133,31 @@
     <div class="msg err" id="err">—</div>
     <div class="msg ok" id="ok">—</div>
 
-    <form id="f">
-      <label>PIN Admin</label>
-      <input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="3435" required>
-      <button class="btn" id="btn" type="submit">🔓 Entrer</button>
-    </form>
+    <label>PIN Admin</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="3435">
+    <button class="btn" id="btn" type="button">🔓 Entrer</button>
   </div>
 
 <script>
+(function () {
+  "use strict";
+
   const BACKEND_URL = window.location.hostname === "localhost"
     ? "http://localhost:8000"
     : "https://admin.digiylyfe.com";
 
   const KEY = {
-    token: "digiy_admin_token",
-    exp: "digiy_admin_exp",
-    role: "digiy_admin_role",
+    token: "digiy_admin_jwt",
+    exp:   "digiy_admin_exp",
+    role:  "digiy_admin_role",
     label: "digiy_admin_label"
   };
 
   const $ = (id) => document.getElementById(id);
-  const err = $("err");
-  const ok = $("ok");
-  const btn = $("btn");
-  const f = $("f");
-  const pin = $("pin");
+  const errEl = $("err");
+  const okEl  = $("ok");
+  const btn   = $("btn");
+  const pin   = $("pin");
 
   function show(el, text) {
     el.textContent = text || "—";
@@ -180,69 +180,60 @@
 
   pin.focus();
 
-  f.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    hide(err);
-    hide(ok);
+  async function doLogin() {
+    hide(errEl);
+    hide(okEl);
 
     const p = (pin.value || "").trim();
     if (!p || p.length < 4) {
-      show(err, "PIN invalide (4+ chiffres).");
+      show(errEl, "PIN invalide (4+ chiffres).");
       return;
     }
 
     btn.disabled = true;
     btn.textContent = "⏳ Vérification…";
-    show(ok, "⏳ Connexion…");
+    show(okEl, "⏳ Connexion…");
 
     try {
-      const ua = navigator.userAgent || null;
-
-      const response = await fetch(`${BACKEND_URL}/api/admin/login`, {
+      const response = await fetch(BACKEND_URL + "/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "omit",
-        body: JSON.stringify({ pin: p, ua })
+        credentials: "include",
+        body: JSON.stringify({ pin: p, ua: navigator.userAgent || "" })
       });
 
       const data = await response.json().catch(() => ({ ok: false, error: "bad_json" }));
 
-      if (!response.ok) {
-        show(err, data.error || "❌ Erreur serveur");
+      if (!response.ok || !data.ok || !data.token) {
+        show(errEl, data.error || "❌ Mauvais PIN.");
+        hide(okEl);
         pin.value = "";
         pin.focus();
         btn.disabled = false;
         btn.textContent = "🔓 Entrer";
-        hide(ok);
-        return;
-      }
-
-      if (!data.ok || !data.token) {
-        show(err, "❌ Mauvais PIN.");
-        pin.value = "";
-        pin.focus();
-        btn.disabled = false;
-        btn.textContent = "🔓 Entrer";
-        hide(ok);
         return;
       }
 
       localStorage.setItem(KEY.token, String(data.token));
-      localStorage.setItem(KEY.exp, String(data.exp));
-      localStorage.setItem(KEY.role, String(data.role || "OPS"));
+      localStorage.setItem(KEY.exp,   String(data.exp));
+      localStorage.setItem(KEY.role,  String(data.role  || "OPS"));
       localStorage.setItem(KEY.label, String(data.label || "—"));
 
-      show(ok, "✅ OK. Redirection…");
+      show(okEl, "✅ OK. Redirection…");
       setTimeout(() => location.replace("index.html"), 250);
 
     } catch (ex) {
       console.error(ex);
-      hide(ok);
-      show(err, "⚠️ " + String(ex?.message || ex));
+      hide(okEl);
+      show(errEl, "⚠️ " + String(ex?.message || ex));
       btn.disabled = false;
       btn.textContent = "🔓 Entrer";
     }
-  });
+  }
+
+  btn.addEventListener("click", doLogin);
+  pin.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+})();
 </script>
 </body>
 </html>
