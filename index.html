@@ -938,6 +938,13 @@
         }
       }
 
+      if (
+        name === RPC_NAMES.listProofs &&
+        !Object.prototype.hasOwnProperty.call(args, "inject_token")
+      ){
+        args.inject_token = false;
+      }
+
       rpcBtn.disabled = true;
       rpcBtn.textContent = "Exécution...";
       try{
@@ -1035,12 +1042,15 @@
       proofRefreshBtn.disabled = true;
       proofRefreshBtn.textContent = "Chargement...";
       try{
-        const args = {
-          p_status: proofStatus.value || null,
-          p_limit: Number(proofLimit.value || 50)
-        };
+        /*
+          Cette RPC existe côté Supabase sans argument p_token.
+          Le backend admin authentifie déjà la session par JWT.
+          On bloque donc l'injection automatique de p_token ici.
+        */
+        const { res, data } = await callBackendRpc(RPC_NAMES.listProofs, {
+          inject_token: false
+        });
 
-        const { res, data } = await callBackendRpc(RPC_NAMES.listProofs, args);
         log("PAY PROOFS LIST", { status: res.status, data });
 
         if (!res.ok){
@@ -1049,7 +1059,18 @@
           return;
         }
 
-        const items = pickProofItems(data);
+        let items = pickProofItems(data);
+
+        const wantedStatus = String(proofStatus.value || "").trim();
+        if (wantedStatus){
+          items = items.filter((item) => String(item.status || "").toLowerCase() === wantedStatus.toLowerCase());
+        }
+
+        const limit = Number(proofLimit.value || 50);
+        if (limit > 0){
+          items = items.slice(0, limit);
+        }
+
         renderProofs(items);
       } catch (e){
         log("PAY PROOFS LIST ERROR", String(e));
@@ -1072,7 +1093,8 @@
           p_ref: ref,
           p_status: status,
           p_redirect_url: null,
-          p_validated_by: localStorage.getItem(STORE.label) || "admin"
+          p_validated_by: localStorage.getItem(STORE.label) || "admin",
+          inject_token: false
         };
 
         const { res, data } = await callBackendRpc(RPC_NAMES.validateProof, args);
