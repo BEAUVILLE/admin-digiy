@@ -395,6 +395,32 @@
       background:rgba(255,255,255,.02);
     }
 
+
+    .subscriber-link-box{
+      border:1px solid rgba(34,197,94,.22);
+      border-radius:20px;
+      padding:14px;
+      background:rgba(34,197,94,.06);
+    }
+
+    .subscriber-output{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:#08110d;
+      color:#d7ffe6;
+      font-size:13px;
+      line-height:1.55;
+      word-break:break-word;
+    }
+
+    .subscriber-output a{
+      color:#bbf7d0;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+
     .footer-note{
       margin-top:16px;
       color:var(--soft);
@@ -558,6 +584,56 @@
             </div>
           </div>
 
+
+          <div class="panel stack subscriber-link-box">
+            <div>
+              <strong>🔗 Générer lien abonné</strong>
+              <div class="mini" style="margin-top:6px">
+                Pour un paiement reçu par WhatsApp/SMS : choisis le module, mets le téléphone,
+                DIGIY fabrique le lien privé <span class="mono">module + phone + slug</span>.
+                Ce lien ouvre seulement l’espace PRO du module, pas l’admin.
+              </div>
+            </div>
+
+            <div class="queue-toolbar">
+              <label>
+                Module
+                <select id="subscriberModule">
+                  <option value="DRIVER">DRIVER — Je conduis</option>
+                  <option value="LOC">LOC — Je loue</option>
+                  <option value="RESA">RESA — Je réserve</option>
+                  <option value="POS">POS — Mon commerce</option>
+                  <option value="MARKET">MARKET — Je vends</option>
+                  <option value="BUILD">BUILD — Mes services</option>
+                  <option value="EXPLORE">EXPLORE — Me faire connaître</option>
+                  <option value="PAY">PAY — Mon argent</option>
+                  <option value="JOBS">JOBS</option>
+                </select>
+              </label>
+
+              <label>
+                Téléphone abonné
+                <input id="subscriberPhone" type="tel" inputmode="numeric" placeholder="Ex : 221771234567" />
+              </label>
+
+              <label>
+                Slug optionnel
+                <input id="subscriberSlug" type="text" placeholder="Auto si vide : loc-221..." />
+              </label>
+            </div>
+
+            <div class="row">
+              <button id="subscriberGenerateBtn" class="btn btn-primary" type="button">🔗 Générer lien abonné</button>
+              <button id="subscriberCopyBtn" class="btn btn-gold" type="button">📋 Copier</button>
+              <button id="subscriberWaBtn" class="btn btn-dark" type="button">💬 WhatsApp</button>
+            </div>
+
+            <div id="subscriberLinkOut" class="subscriber-output">
+              Le lien privé apparaîtra ici.
+            </div>
+          </div>
+
+
           <div class="panel stack">
             <div>
               <strong>Appel RPC générique</strong>
@@ -631,6 +707,14 @@
     const proofRefreshBtn = $("proofRefreshBtn");
     const hideLegacyTestsBtn = $("hideLegacyTestsBtn");
     const logClearBtn = $("logClearBtn");
+
+    const subscriberModule = $("subscriberModule");
+    const subscriberPhone = $("subscriberPhone");
+    const subscriberSlug = $("subscriberSlug");
+    const subscriberGenerateBtn = $("subscriberGenerateBtn");
+    const subscriberCopyBtn = $("subscriberCopyBtn");
+    const subscriberWaBtn = $("subscriberWaBtn");
+    const subscriberLinkOut = $("subscriberLinkOut");
 
     const loginBox = $("loginBox");
     const sessionBox = $("sessionBox");
@@ -1324,6 +1408,96 @@
       }
     }
 
+
+    function subscriberSlugPrefix(module){
+      const mod = normalizeModule(module);
+      const map = {
+        POS:"pos",
+        PACK:"commerce",
+        DRIVER:"driver",
+        LOC:"loc",
+        RESA:"resa",
+        MARKET:"market",
+        BUILD:"build",
+        EXPLORE:"explore",
+        PAY:"pay",
+        JOBS:"jobs"
+      };
+      return map[mod] || String(mod || "digiy").toLowerCase();
+    }
+
+    function buildSubscriberManualLink(){
+      const mod = normalizeModule(subscriberModule?.value || "DRIVER");
+      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
+      if (!phone) {
+        alert("Mets le téléphone de l’abonné.");
+        subscriberPhone?.focus();
+        return "";
+      }
+
+      const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
+      let slug = String(subscriberSlug?.value || "").trim().toLowerCase();
+      if (!slug) {
+        slug = subscriberSlugPrefix(mod) + "-" + phone;
+        if (subscriberSlug) subscriberSlug.value = slug;
+      }
+
+      const u = new URL(base, location.href);
+      u.searchParams.set("from", "digiy-admin");
+      u.searchParams.set("module", mod);
+      u.searchParams.set("phone", phone);
+      u.searchParams.set("slug", slug);
+      return u.toString();
+    }
+
+    function renderSubscriberLink(){
+      const url = buildSubscriberManualLink();
+      if (!url) return "";
+      const mod = normalizeModule(subscriberModule?.value || "");
+      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
+      const slug = String(subscriberSlug?.value || "").trim();
+
+      subscriberLinkOut.innerHTML = `
+        <div><strong>Lien privé abonné prêt :</strong></div>
+        <div style="margin-top:8px"><a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a></div>
+        <div class="mini" style="margin-top:10px">
+          Module : <span class="mono">${escapeHtml(mod)}</span> ·
+          Téléphone : <span class="mono">${escapeHtml(phone)}</span> ·
+          Slug : <span class="mono">${escapeHtml(slug)}</span>
+        </div>
+      `;
+      log("LIEN ABONNÉ GÉNÉRÉ", { module: mod, phone, slug, url });
+      return url;
+    }
+
+    async function copySubscriberLink(){
+      const url = renderSubscriberLink();
+      if (!url) return;
+      try{
+        await navigator.clipboard.writeText(url);
+        log("Lien abonné copié.");
+      }catch(_){
+        alert("Copie impossible automatiquement. Le lien est affiché à l’écran.");
+      }
+    }
+
+    function openSubscriberWhatsapp(){
+      const url = renderSubscriberLink();
+      if (!url) return;
+      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
+      const msg = [
+        "Ton accès DIGIY est prêt.",
+        "",
+        "Ouvre ton espace ici :",
+        url,
+        "",
+        "Garde ce lien. Il ouvre ton espace pro."
+      ].join("\n");
+      const wa = phone ? ("https://wa.me/" + phone + "?text=" + encodeURIComponent(msg)) : ("https://wa.me/?text=" + encodeURIComponent(msg));
+      window.open(wa, "_blank", "noopener,noreferrer");
+    }
+
+
     proofList.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-action]");
       if (!btn) return;
@@ -1349,6 +1523,10 @@
       kRPC.textContent = "0";
       log("Formulaire RPC vidé. La file des preuves n’est pas supprimée.");
     });
+    subscriberGenerateBtn?.addEventListener("click", renderSubscriberLink);
+    subscriberCopyBtn?.addEventListener("click", copySubscriberLink);
+    subscriberWaBtn?.addEventListener("click", openSubscriberWhatsapp);
+
     proofRefreshBtn.addEventListener("click", refreshProofs);
     hideLegacyTestsBtn?.addEventListener("click", async () => {
       hideLegacyTests = !hideLegacyTests;
