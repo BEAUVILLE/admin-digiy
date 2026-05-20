@@ -525,7 +525,7 @@
             <div>
               <strong>ABO — File d’attente des preuves</strong>
               <div class="mini" style="margin-top:6px">
-                Ici tu vois les preuves d’abonnement DIGIY et tu confirmes ou refuses sans toucher au SQL.
+                Ici tu vois les preuves d’abonnement DIGIY. Le lien privé généré contient le module, le téléphone et le slug de l’abonné.
               </div>
             </div>
 
@@ -819,10 +819,49 @@
       }
     }
 
-    function buildModuleHubUrl(item){
+
+    function moduleSlugPrefix(module){
+      const mod = normalizeModule(module);
+      const map = {
+        POS:"pos", PACK:"commerce", DRIVER:"driver", LOC:"loc", RESA:"resa",
+        MARKET:"market", BUILD:"build", EXPLORE:"explore", PAY:"pay", JOBS:"jobs"
+      };
+      return map[mod] || String(mod || "digiy").toLowerCase();
+    }
+
+    function expectedPrivateSlug(module, phone){
+      const digits = String(phone || "").replace(/\D/g,"");
+      return digits ? `${moduleSlugPrefix(module)}-${digits}` : "";
+    }
+
+    function buildPrivateAccessUrl(item){
       const mod = inferModuleFromItem(item);
       const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
-      return cleanAccessUrl(base, "digiy-admin");
+      const phone = String(item?.phone || item?.tel || item?.owner_phone || "").replace(/\D/g,"");
+      let slug = String(item?.slug || item?.subscription_slug || item?.pay_slug || "").trim().toLowerCase();
+
+      /*
+        DIGIY doctrine :
+        - côté public : ne pas bloquer avec tel/slug
+        - lien privé envoyé après activation : tel + slug + module
+        Sinon l'abonné tombe sur le moule générique.
+      */
+      if (!slug && phone) slug = expectedPrivateSlug(mod, phone);
+
+      try{
+        const u = new URL(base, location.href);
+        u.searchParams.set("from", "digiy-admin");
+        if (mod) u.searchParams.set("module", mod);
+        if (phone) u.searchParams.set("phone", phone);
+        if (slug) u.searchParams.set("slug", slug);
+        return u.toString();
+      }catch{
+        return base;
+      }
+    }
+
+    function buildModuleHubUrl(item){
+      return buildPrivateAccessUrl(item);
     }
 
 
@@ -1132,7 +1171,7 @@
                 <div class="v mono">${escapeHtml(moduleCode || "—")}</div>
               </div>
               <div class="proof-cell">
-                <div class="k">Lien module</div>
+                <div class="k">Lien privé module</div>
                 <div class="v mono">${cockpitUrl ? `<a href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">${escapeHtml(cockpitUrl)}</a>` : "—"}</div>
               </div>
               <div class="proof-cell">
@@ -1152,7 +1191,7 @@
             <div class="proof-actions">
               <button class="btn btn-primary" data-action="confirm" data-ref="${escapeHtml(item.ref || "")}">✅ Confirmer</button>
               <button class="btn btn-danger" data-action="reject" data-ref="${escapeHtml(item.ref || "")}">⛔ Refuser</button>
-              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir le module</a>` : ""}
+              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir accès privé</a>` : ""}
               ${proofUrl ? `<a class="btn btn-soft" href="${escapeHtml(proofUrl)}" target="_blank" rel="noreferrer">🧾 Ouvrir la preuve</a>` : ""}
             </div>
           </article>
@@ -1299,3 +1338,4 @@
   </script>
 </body>
 </html>
+
