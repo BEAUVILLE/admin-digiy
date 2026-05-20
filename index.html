@@ -410,7 +410,7 @@
       <h1>ADMIN COCKPIT — Backend stable branché</h1>
       <p class="lead">
         Poste de commandement DIGIY. Login PIN, session JWT, check backend, logout, passerelle RPC
-        et file d’attente des preuves PAY branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
+        et file d’attente des preuves abonnements DIGIY branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
       </p>
 
       <div class="topbar">
@@ -418,7 +418,7 @@
         <div class="chip"><span class="dot ok"></span> Systemd validé</div>
         <div class="chip"><span class="dot ok"></span> /health opérationnel</div>
         <div class="chip"><span class="dot ok"></span> PIN + JWT branchés</div>
-        <div class="chip"><span class="dot ok"></span> File PAY prête</div>
+        <div class="chip"><span class="dot ok"></span> File abonnements prête</div>
       </div>
     </section>
 
@@ -509,7 +509,7 @@
           <div class="nav-cards">
             <div class="nav-card">
               <h3>🧠 État du terrain</h3>
-              <p>Le backend admin est stable, le rail auth est posé, la passerelle RPC marche, et la file PAY évite désormais le SQL manuel.</p>
+              <p>Le backend admin est stable, le rail auth est posé, la passerelle RPC marche, et la file abonnements évite désormais le SQL manuel.</p>
             </div>
             <div class="nav-card">
               <h3>⚙️ Rail backend</h3>
@@ -523,9 +523,9 @@
 
           <div class="panel stack">
             <div>
-              <strong>PAY — File d’attente des preuves</strong>
+              <strong>ABO — File d’attente des preuves</strong>
               <div class="mini" style="margin-top:6px">
-                Ici tu vois les preuves publiques PAY et tu confirmes ou refuses sans toucher au SQL.
+                Ici tu vois les preuves d’abonnement DIGIY et tu confirmes ou refuses sans toucher au SQL.
               </div>
             </div>
 
@@ -651,6 +651,8 @@
 
     backendOut.textContent = BACKEND_BASE;
 
+    let LAST_PROOF_ITEMS = [];
+
     function log(...parts){
       const line = parts.map(v => {
         if (typeof v === "string") return v;
@@ -723,9 +725,109 @@
       return n ? n.toLocaleString("fr-FR") + " FCFA" : "—";
     }
 
+
+    function normalizeModule(value){
+      const raw = String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+      const aliases = {
+        CAISSE: "POS",
+        POS_PRO: "POS",
+        CAISSE_BOUTIQUE: "POS",
+        COMMERCE: "POS",
+        RESA_TABLE: "RESA",
+        RESTO_RESA: "RESA",
+        RESTO: "RESA",
+        MULTI_SERVICE: "BUILD",
+        SERVICES: "BUILD",
+        MON_ARGENT: "PAY",
+        COMMERCE_DUO: "PACK",
+        EXPLORE_BOOST: "EXPLORE",
+        BOOST: "EXPLORE"
+      };
+      return aliases[raw] || raw || "";
+    }
+
+    const MODULE_HUB_URLS = {
+      POS: "https://commerce-pro.digiylyfe.com/hub.html",
+      PACK: "https://commerce-pro.digiylyfe.com/hub.html",
+      DRIVER: "https://pro-driver.digiylyfe.com/hub.html",
+      LOC: "https://pro-loc.digiylyfe.com/hub.html",
+      RESA: "https://pro-resa-resto.digiylyfe.com/hub.html",
+      MARKET: "https://pro-market.digiylyfe.com/hub.html",
+      BUILD: "https://pro-build.digiylyfe.com/hub.html",
+      EXPLORE: "https://pro-explore.digiylyfe.com/hub.html",
+      PAY: "https://pro-pay.digiylyfe.com/hub.html",
+      JOBS: "https://pro-job.digiylyfe.com/hub.html"
+    };
+
+    function inferModuleFromItem(item){
+      const direct = normalizeModule(
+        item?.module ||
+        item?.resolved_module ||
+        item?.module_code ||
+        item?.product_module ||
+        item?.subscription_module ||
+        item?.tool_module
+      );
+      if (direct) return direct;
+
+      const ref = String(item?.ref || item?.reference || "").trim().toUpperCase();
+      const slug = String(item?.slug || "").trim().toLowerCase();
+      const code = String(item?.code || item?.plan || "").trim().toUpperCase();
+
+      const fromRef = ref.split("-")[0] || "";
+      const refModule = normalizeModule(fromRef);
+      if (refModule && MODULE_HUB_URLS[refModule]) return refModule;
+
+      if (slug.startsWith("driver-")) return "DRIVER";
+      if (slug.startsWith("loc-")) return "LOC";
+      if (slug.startsWith("resa-")) return "RESA";
+      if (slug.startsWith("market-")) return "MARKET";
+      if (slug.startsWith("build-")) return "BUILD";
+      if (slug.startsWith("explore-")) return "EXPLORE";
+      if (slug.startsWith("pay-")) return "PAY";
+      if (slug.startsWith("jobs-")) return "JOBS";
+      if (slug.startsWith("pos-") || slug.startsWith("commerce-")) return "POS";
+
+      if (/^1[A-Z]?/.test(code)) return "DRIVER";
+      if (/^2[A-Z]?/.test(code)) return "LOC";
+      if (/^4[A-Z]?/.test(code)) return "RESA";
+      if (/^5/.test(code)) return "POS";
+      if (/^6/.test(code)) return "MARKET";
+      if (/^56/.test(code)) return "PACK";
+      if (/^7/.test(code)) return "BUILD";
+      if (/^8/.test(code) || /^E[0-9]/.test(code)) return "EXPLORE";
+      if (/^9/.test(code)) return "PAY";
+
+      return "PAY";
+    }
+
+    function cleanAccessUrl(raw, source){
+      const value = String(raw || "").trim();
+      if (!value) return "";
+      try{
+        const u = new URL(value, location.href);
+        [
+          "phone","tel","owner_phone","owner_id","slug","pay_slug","subscription_slug",
+          "business_phone","wave_phone","wallet_phone","pay_phone","access_note",
+          "keybox_code","keybox_location","token","session_token","pin","return",
+          "redirect","redirect_url","url"
+        ].forEach(k => u.searchParams.delete(k));
+        u.searchParams.set("from", source || "digiy-admin");
+        return u.toString();
+      }catch{
+        return value;
+      }
+    }
+
+    function buildModuleHubUrl(item){
+      const mod = inferModuleFromItem(item);
+      const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
+      return cleanAccessUrl(base, "digiy-admin");
+    }
+
+
     function buildCockpitUrl(item){
-      const slug = String(item?.slug || "").trim();
-      return slug ? ("https://pay.digiylyfe.com/cockpit.html?slug=" + encodeURIComponent(slug)) : "";
+      return buildModuleHubUrl(item);
     }
 
     function getStatusTone(status){
@@ -976,12 +1078,13 @@
 
     function renderProofs(items){
       if (!Array.isArray(items) || !items.length){
-        proofList.innerHTML = '<div class="proof-empty">Aucune preuve dans cette file pour le moment.</div>';
+        proofList.innerHTML = '<div class="proof-empty">Aucune preuve abonnement dans cette file pour le moment.</div>';
         return;
       }
 
       proofList.innerHTML = items.map((item) => {
         const [tone, label] = getStatusTone(item.status);
+        const moduleCode = inferModuleFromItem(item);
         const cockpitUrl = buildCockpitUrl(item);
         const proofUrl = String(item.proof_url || "").trim();
 
@@ -989,7 +1092,7 @@
           <article class="proof-item">
             <div class="proof-top">
               <div>
-                <h3 class="proof-title">${escapeHtml(item.public_label || item.code || item.ref || "Preuve PAY")}</h3>
+                <h3 class="proof-title">${escapeHtml(item.public_label || item.code || item.ref || "Preuve abonnement DIGIY")}</h3>
                 <div class="mini mono" style="margin-top:6px">${escapeHtml(item.ref || "—")}</div>
               </div>
               <span class="tag ${tone}">${escapeHtml(label)}</span>
@@ -1009,8 +1112,16 @@
                 <div class="v mono">${escapeHtml(item.slug || "—")}</div>
               </div>
               <div class="proof-cell">
+                <div class="k">Module</div>
+                <div class="v mono">${escapeHtml(moduleCode || "—")}</div>
+              </div>
+              <div class="proof-cell">
+                <div class="k">Lien module</div>
+                <div class="v mono">${cockpitUrl ? `<a href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">${escapeHtml(cockpitUrl)}</a>` : "—"}</div>
+              </div>
+              <div class="proof-cell">
                 <div class="k">Code</div>
-                <div class="v mono">${escapeHtml(item.code || "—")}</div>
+                <div class="v mono">${escapeHtml(item.code || item.plan || "—")}</div>
               </div>
               <div class="proof-cell">
                 <div class="k">Statut</div>
@@ -1025,7 +1136,7 @@
             <div class="proof-actions">
               <button class="btn btn-primary" data-action="confirm" data-ref="${escapeHtml(item.ref || "")}">✅ Confirmer</button>
               <button class="btn btn-danger" data-action="reject" data-ref="${escapeHtml(item.ref || "")}">⛔ Refuser</button>
-              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir le cockpit</a>` : ""}
+              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir le module</a>` : ""}
               ${proofUrl ? `<a class="btn btn-soft" href="${escapeHtml(proofUrl)}" target="_blank" rel="noreferrer">🧾 Ouvrir la preuve</a>` : ""}
             </div>
           </article>
@@ -1051,7 +1162,7 @@
           inject_token: false
         });
 
-        log("PAY PROOFS LIST", { status: res.status, data });
+        log("ABO PROOFS LIST", { status: res.status, data });
 
         if (!res.ok){
           renderProofs([]);
@@ -1071,11 +1182,12 @@
           items = items.slice(0, limit);
         }
 
+        LAST_PROOF_ITEMS = items.slice();
         renderProofs(items);
       } catch (e){
-        log("PAY PROOFS LIST ERROR", String(e));
+        log("ABO PROOFS LIST ERROR", String(e));
         renderProofs([]);
-        alert("Erreur réseau pendant le chargement des preuves PAY.");
+        alert("Erreur réseau pendant le chargement des preuves abonnement.");
       } finally {
         proofRefreshBtn.disabled = false;
         proofRefreshBtn.textContent = "🔄 Recharger la file";
@@ -1089,10 +1201,11 @@
       if (!confirm(`Tu veux vraiment ${label} cette preuve ?`)) return;
 
       try{
+        const item = LAST_PROOF_ITEMS.find((x) => String(x.ref || "") === String(ref)) || { ref };
         const args = {
           p_ref: ref,
           p_status: status,
-          p_redirect_url: null,
+          p_redirect_url: buildModuleHubUrl(item),
           p_validated_by: localStorage.getItem(STORE.label) || "admin",
           inject_token: false
         };
