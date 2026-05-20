@@ -1,1573 +1,1022 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>DIGIY ADMIN — Cockpit</title>
-  <meta name="theme-color" content="#07140f" />
-  <meta name="description" content="Cockpit admin DIGIYLYFE branché sur le backend stable." />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DIGIY • Dashboard Caisse Centrale</title>
+  <meta name="theme-color" content="#16a34a"/>
+  <meta name="robots" content="noindex"/>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg:#07140f;
-      --bg2:#0b1d16;
-      --card:#10241b;
-      --card2:#0f1f19;
-      --line:rgba(255,255,255,.09);
-      --text:#ecfff4;
-      --muted:rgba(236,255,244,.72);
-      --soft:rgba(236,255,244,.55);
-      --primary:#22c55e;
-      --primary2:#16a34a;
-      --gold:#facc15;
-      --danger:#ef4444;
-      --warning:#f59e0b;
-      --shadow:0 24px 70px rgba(0,0,0,.35);
-      --radius:24px;
-      --max:1200px;
+      --bg:#061b14; --card:#0b2a1f; --line:rgba(255,255,255,.14);
+      --text:#eafff1; --muted:rgba(234,255,241,.75);
+      --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --gold:#facc15;
+      --radius:18px; --shadow:0 18px 50px rgba(0,0,0,.35);
     }
-
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:linear-gradient(180deg,var(--bg) 0%, #06110d 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    a{color:inherit;text-decoration:none}
-    button,input,textarea,select{font:inherit}
-
-    .wrap{
-      width:min(var(--max),calc(100% - 24px));
-      margin:0 auto;
-      padding:20px 0 80px;
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:var(--bg);
+      color:var(--text);
+      padding:16px;
     }
-
-    .hero{
-      margin-top:8px;
-      padding:24px;
-      border:1px solid var(--line);
-      border-radius:32px;
-      background:
-        radial-gradient(circle at top right, rgba(34,197,94,.16), transparent 28%),
-        radial-gradient(circle at top left, rgba(250,204,21,.10), transparent 24%),
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      box-shadow:var(--shadow);
-    }
-
-    .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid rgba(250,204,21,.22);
-      color:var(--gold);
-      background:rgba(250,204,21,.08);
-      font-size:13px;
-      font-weight:700;
-      letter-spacing:.03em;
-      text-transform:uppercase;
-    }
-
-    h1{
-      margin:14px 0 8px;
-      font-size:clamp(28px,4vw,46px);
-      line-height:1.04;
-      letter-spacing:-.03em;
-    }
-
-    .lead{
-      margin:0;
-      max-width:820px;
-      color:var(--muted);
-      font-size:16px;
-      line-height:1.6;
-    }
-
-    .topbar{
-      margin-top:18px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--soft);
-      font-size:14px;
-    }
-
-    .grid{
-      margin-top:18px;
-      display:grid;
-      grid-template-columns: 380px 1fr;
-      gap:18px;
-    }
-
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-    }
-
+    .wrap{ max-width:1600px; margin:0 auto; }
     .card{
+      background:var(--card);
       border:1px solid var(--line);
       border-radius:var(--radius);
-      background:linear-gradient(180deg,var(--card),var(--card2));
+      padding:20px;
       box-shadow:var(--shadow);
+      margin-bottom:16px;
     }
+    h1{ font-size:28px; font-weight:1200; margin-bottom:8px; }
+    h2{ font-size:20px; font-weight:1100; margin-bottom:12px; }
+    h3{ font-size:16px; font-weight:1000; margin-bottom:8px; }
+    .small{ font-size:13px; color:var(--muted); line-height:1.4; }
+    .hr{ height:1px; background:var(--line); margin:16px 0; }
 
-    .card-head{
-      padding:18px 18px 0;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .card-title{
-      margin:0;
-      font-size:20px;
-      letter-spacing:-.02em;
-    }
-
-    .card-sub{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.5;
-    }
-
-    .card-body{
-      padding:18px;
-    }
-
-    .stack{display:grid;gap:12px}
-    .stack-lg{display:grid;gap:16px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row-end{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-
-    label{
+    .kpi-grid{
       display:grid;
-      gap:8px;
-      font-size:14px;
-      color:var(--muted);
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+      gap:16px;
+      margin-bottom:20px;
     }
-
-    input,textarea,select{
-      width:100%;
+    .kpi{
+      background:rgba(0,0,0,.2);
       border:1px solid var(--line);
       border-radius:16px;
-      padding:14px 14px;
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      outline:none;
+      padding:20px;
+      text-align:center;
+    }
+    .kpi-icon{ font-size:36px; margin-bottom:8px; }
+    .kpi-value{ font-size:32px; font-weight:1200; margin:8px 0; }
+    .kpi-label{ font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .kpi.ok{ border-color:rgba(34,197,94,.55); }
+    .kpi.warn{ border-color:rgba(245,158,11,.55); }
+    .kpi.gold{ border-color:rgba(250,204,21,.55); }
+
+    .chart-container{
+      position:relative;
+      height:300px;
+      margin:20px 0;
     }
 
-    textarea{
-      min-height:120px;
-      resize:vertical;
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:16px;
     }
+    th{
+      background:rgba(0,0,0,.3);
+      padding:12px;
+      text-align:left;
+      font-weight:1100;
+      border-bottom:2px solid var(--line);
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+    td{
+      padding:12px;
+      border-bottom:1px solid var(--line);
+      font-size:14px;
+      vertical-align:top;
+    }
+    tr:hover{ background:rgba(255,255,255,.05); }
 
-    input::placeholder,textarea::placeholder{color:rgba(236,255,244,.4)}
+    .badge{
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+    .badge.ok{ background:rgba(34,197,94,.2); color:var(--ok); border:1px solid rgba(34,197,94,.5); }
+    .badge.warn{ background:rgba(245,158,11,.2); color:var(--warn); border:1px solid rgba(245,158,11,.5); }
+    .badge.bad{ background:rgba(239,68,68,.2); color:var(--bad); border:1px solid rgba(239,68,68,.5); }
 
     .btn{
-      appearance:none;
-      border:none;
-      border-radius:16px;
-      padding:13px 16px;
-      font-weight:800;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      padding:8px 14px;
+      border-radius:10px;
       cursor:pointer;
-      transition:.18s ease;
-    }
-
-    .btn:hover{transform:translateY(-1px)}
-    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
-
-    .btn-primary{background:linear-gradient(180deg,var(--primary),var(--primary2));color:#04110a}
-    .btn-dark{background:#0b1512;border:1px solid var(--line);color:var(--text)}
-    .btn-gold{background:linear-gradient(180deg,#fde68a,var(--gold));color:#151203}
-    .btn-danger{background:linear-gradient(180deg,#f87171,var(--danger));color:#fff}
-    .btn-soft{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text)}
-
-    .kpis{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:12px;
-    }
-
-    @media (max-width: 760px){
-      .kpis{grid-template-columns:repeat(2,1fr)}
-    }
-
-    .kpi{
-      border:1px solid var(--line);
-      border-radius:20px;
-      padding:16px;
-      background:rgba(255,255,255,.03);
-    }
-
-    .kpi .n{
-      font-size:24px;
       font-weight:900;
-      letter-spacing:-.03em;
-    }
-
-    .kpi .l{
-      margin-top:6px;
-      font-size:13px;
-      color:var(--muted);
-    }
-
-    .status{
-      display:flex;
+      font-size:12px;
+      display:inline-flex;
       align-items:center;
-      gap:8px;
-      font-size:14px;
-      color:var(--muted);
+      gap:6px;
+      white-space:nowrap;
+    }
+    .btn:hover{ background:rgba(255,255,255,.1); }
+    .btn:disabled{ opacity:.4; cursor:not-allowed; }
+    .btn.ok{ border-color:rgba(34,197,94,.55); color:var(--ok); }
+    .btn.gold{ border-color:rgba(250,204,21,.55); color:var(--gold); }
+    .btn.warn{ border-color:rgba(245,158,11,.55); color:var(--warn); }
+    .btn.bad{ border-color:rgba(239,68,68,.55); color:var(--bad); }
+
+    .btn-group{
+      display:flex;
+      gap:6px;
       flex-wrap:wrap;
     }
 
-    .dot{
-      width:10px;
-      height:10px;
-      border-radius:999px;
-      background:#64748b;
-      box-shadow:0 0 0 4px rgba(100,116,139,.16);
-      flex:0 0 auto;
-    }
-
-    .dot.ok{background:var(--primary);box-shadow:0 0 0 4px rgba(34,197,94,.14)}
-    .dot.warn{background:var(--warning);box-shadow:0 0 0 4px rgba(245,158,11,.14)}
-    .dot.bad{background:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.14)}
-
-    .panel{
-      border:1px solid var(--line);
-      border-radius:20px;
-      padding:14px;
-      background:rgba(255,255,255,.03);
-    }
-
-    .mini{
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.5;
-    }
-
-    .mono{
-      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-      word-break:break-word;
-    }
-
-    .log{
-      white-space:pre-wrap;
-      font-size:13px;
-      line-height:1.6;
-      color:#d7ffe6;
-      background:#08110d;
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:14px;
-      min-height:140px;
-    }
-
-    .hidden{display:none !important}
-
-    .nav-cards{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
+    .filters{
+      display:flex;
       gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
     }
-
-    @media (max-width: 920px){
-      .nav-cards{grid-template-columns:1fr}
-    }
-
-    .nav-card{
+    select{
+      padding:10px 16px;
       border:1px solid var(--line);
-      border-radius:22px;
-      padding:16px;
-      background:rgba(255,255,255,.03);
+      border-radius:12px;
+      background:rgba(0,0,0,.2);
+      color:var(--text);
+      font-weight:500;
+      cursor:pointer;
     }
 
-    .nav-card h3{
-      margin:0 0 8px;
+    .mono{ font-family: ui-monospace, Menlo, Monaco, monospace; font-size:13px; }
+
+    #loading{
+      display:none;
+      text-align:center;
+      padding:40px;
       font-size:18px;
-      letter-spacing:-.02em;
-    }
-
-    .nav-card p{
-      margin:0;
       color:var(--muted);
-      font-size:14px;
-      line-height:1.55;
     }
 
-    .queue-toolbar{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:end;
-    }
-
-    .queue-toolbar label{
-      flex:1;
-      min-width:180px;
-    }
-
-    .proof-list{
+    .grid-2{
       display:grid;
-      gap:12px;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+    }
+    @media(max-width:768px){
+      .grid-2{ grid-template-columns:1fr; }
     }
 
-    .proof-item{
-      border:1px solid var(--line);
-      border-radius:20px;
-      padding:14px;
-      background:rgba(255,255,255,.03);
+    .slug-display{
+      background:rgba(34,197,94,.1);
+      border:1px solid rgba(34,197,94,.3);
+      padding:8px 12px;
+      border-radius:8px;
+      font-family:monospace;
+      font-size:12px;
+      color:var(--ok);
+      margin-top:4px;
     }
 
-    .proof-top{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:flex-start;
-    }
-
-    .proof-title{
-      margin:0;
-      font-size:16px;
-      letter-spacing:-.02em;
-    }
-
-    .proof-meta{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:10px;
-      margin-top:12px;
-    }
-
-    @media (max-width: 900px){
-      .proof-meta{grid-template-columns:1fr 1fr}
-    }
-
-    @media (max-width: 560px){
-      .proof-meta{grid-template-columns:1fr}
-    }
-
-    .proof-cell{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px 12px;
-      background:rgba(0,0,0,.12);
-    }
-
-    .proof-cell .k{
+    .url-display{
       font-size:11px;
       color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.06em;
-      margin-bottom:6px;
-      font-weight:800;
+      word-break:break-all;
+      margin-top:4px;
     }
 
-    .proof-cell .v{
-      font-size:14px;
-      line-height:1.45;
-      font-weight:800;
-      word-break:break-word;
-    }
-
-    .proof-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:12px;
-    }
-
-    .proof-empty{
-      border:1px dashed var(--line);
-      border-radius:18px;
-      padding:18px;
-      color:var(--muted);
+    .session-box{
+      max-width:460px;
+      margin:90px auto;
       text-align:center;
-      background:rgba(255,255,255,.02);
     }
 
-
-    .subscriber-link-box{
-      border:1px solid rgba(34,197,94,.22);
-      border-radius:20px;
-      padding:14px;
-      background:rgba(34,197,94,.06);
-    }
-
-    .subscriber-output{
+    .session-note{
       margin-top:10px;
-      border:1px solid var(--line);
-      border-radius:16px;
       padding:12px;
-      background:#08110d;
-      color:#d7ffe6;
+      border:1px solid rgba(34,197,94,.25);
+      background:rgba(34,197,94,.08);
+      border-radius:12px;
       font-size:13px;
-      line-height:1.55;
-      word-break:break-word;
-    }
-
-    .subscriber-output a{
-      color:#bbf7d0;
-      text-decoration:underline;
-      text-underline-offset:3px;
-    }
-
-    .footer-note{
-      margin-top:16px;
-      color:var(--soft);
-      font-size:13px;
-      text-align:center;
+      color:#dcfce7;
+      line-height:1.45;
+      text-align:left;
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <section class="hero">
-      <div class="eyebrow">🦅 DIGIYLYFE — Quartier Général</div>
-      <h1>ADMIN COCKPIT — Backend stable branché</h1>
-      <p class="lead">
-        Poste de commandement DIGIY. Login PIN, session JWT, check backend, logout, passerelle RPC
-        et file d’attente des preuves abonnements DIGIY branchés sur le vrai rail <span class="mono">admin.digiylyfe.com</span>.
+
+    <!-- GATE -->
+    <div class="card session-box" id="sessionBox" style="display:block;">
+      <h1>🔐 Caisse protégée</h1>
+      <p class="small">
+        Cette page est dans le dépôt public <b>commencer-a-payer</b>, donc elle ne doit jamais ouvrir la caisse sans session admin.
+        Si tu vois ce panneau, la sécurité fait son travail.
       </p>
-
-      <div class="topbar">
-        <div class="chip"><span class="dot ok"></span> Backend Deno stable</div>
-        <div class="chip"><span class="dot ok"></span> Systemd validé</div>
-        <div class="chip"><span class="dot ok"></span> /health opérationnel</div>
-        <div class="chip"><span class="dot ok"></span> PIN + JWT branchés</div>
-        <div class="chip"><span class="dot ok"></span> File abonnements prête</div>
-        <a class="chip" href="https://commencer-a-payer.digiylyfe.com/dashboard-caisse.html" target="_blank" rel="noreferrer"><span class="dot ok"></span> 🏦 Caisse abonnements</a>
+      <div class="session-note">
+        <b>Doctrine DIGIY :</b><br>
+        Paiement public = simple et visible.<br>
+        Caisse admin = protégée, ouverte seulement depuis l’espace admin ou avec une session caisse.
       </div>
-    </section>
-
-    <div class="grid">
-      <section class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">Accès admin</h2>
-            <p class="card-sub">Connexion sécurisée par PIN, avec session backend réelle.</p>
-          </div>
-        </div>
-
-        <div class="card-body stack-lg">
-          <div id="loginBox" class="stack">
-            <label>
-              PIN admin
-              <input id="pinInput" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Ex : 1234" />
-            </label>
-
-            <div class="row">
-              <button id="loginBtn" class="btn btn-primary">🔐 Ouvrir le cockpit</button>
-              <button id="healthBtn" class="btn btn-dark">💓 Vérifier backend</button>
-            </div>
-          </div>
-
-          <div id="sessionBox" class="stack hidden">
-            <div class="panel stack">
-              <div class="status"><span id="sessionDot" class="dot"></span><span id="sessionText">Session inconnue</span></div>
-              <div class="mini">Rôle : <strong id="roleOut">—</strong></div>
-              <div class="mini">Label : <strong id="labelOut">—</strong></div>
-              <div class="mini">Expire le : <strong id="expOut">—</strong></div>
-              <div class="mini">Token : <span id="tokenOut" class="mono">—</span></div>
-            </div>
-
-            <div class="row">
-              <button id="checkBtn" class="btn btn-gold">🛡️ Vérifier ma session</button>
-              <button id="logoutBtn" class="btn btn-danger">🚪 Déconnexion</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="status"><span id="healthDot" class="dot"></span><span id="healthText">Santé backend non testée</span></div>
-            <div class="mini" style="margin-top:10px">
-              URL backend : <strong id="backendOut" class="mono"></strong>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="mini">
-              Le backend attend :
-              <br><span class="mono">POST /api/admin/login</span>
-              <br><span class="mono">GET /api/admin/check</span>
-              <br><span class="mono">POST /api/admin/logout</span>
-              <br><span class="mono">POST /api/rpc/:rpcName</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <div>
-            <h2 class="card-title">Cockpit de pilotage</h2>
-            <p class="card-sub">Shell admin branché sur le backend stable. Zéro faux endpoint, zéro démo backend inventée.</p>
-          </div>
-        </div>
-
-        <div class="card-body stack-lg">
-          <div class="kpis">
-            <div class="kpi">
-              <div id="kHealth" class="n">—</div>
-              <div class="l">Backend</div>
-            </div>
-            <div class="kpi">
-              <div id="kSession" class="n">—</div>
-              <div class="l">Session</div>
-            </div>
-            <div class="kpi">
-              <div id="kRole" class="n">—</div>
-              <div class="l">Rôle</div>
-            </div>
-            <div class="kpi">
-              <div id="kRPC" class="n">0</div>
-              <div class="l">Dernier appel RPC</div>
-            </div>
-          </div>
-
-          <div class="nav-cards">
-            <div class="nav-card">
-              <h3>🧠 État du terrain</h3>
-              <p>Le backend admin est stable, le rail auth est posé, la passerelle RPC marche, et la file abonnements évite désormais le SQL manuel.</p>
-            </div>
-            <div class="nav-card">
-              <h3>⚙️ Rail backend</h3>
-              <p>Le cockpit utilise exactement les routes de ton backend Deno et les vraies RPC Supabase. On ne devine rien. On s’accroche au réel.</p>
-            </div>
-            <div class="nav-card">
-              <h3>🚀 Prochain cran</h3>
-              <p>Valider les preuves d’abonnement en 1 clic depuis ce cockpit, puis brancher ensuite les autres wagons admin : abonnés, support, supervision.</p>
-            </div>
-
-            <a class="nav-card" href="https://commencer-a-payer.digiylyfe.com/dashboard-caisse.html" target="_blank" rel="noreferrer">
-              <h3>🏦 Caisse abonnements</h3>
-              <p>Ouvre le dashboard caisse du dépôt commencer-a-payer : suivi paiement, validation et activation abonnement.</p>
-            </a>
-          </div>
-
-
-
-
-          <div class="panel stack subscriber-link-box">
-            <div>
-              <strong>🔗 Générer lien abonné</strong>
-              <div class="mini" style="margin-top:6px">
-                Pour un paiement reçu par WhatsApp/SMS : choisis le module, mets le téléphone,
-                DIGIY fabrique le lien privé <span class="mono">module + phone + slug</span>.
-                Ce lien ouvre seulement l’espace PRO du module, pas l’admin. La caisse reste côté admin.
-              </div>
-            </div>
-
-            <div class="queue-toolbar">
-              <label>
-                Module
-                <select id="subscriberModule">
-                  <option value="DRIVER">DRIVER — Je conduis</option>
-                  <option value="LOC">LOC — Je loue</option>
-                  <option value="RESA">RESA — Je réserve</option>
-                  <option value="POS">POS — Mon commerce</option>
-                  <option value="MARKET">MARKET — Je vends</option>
-                  <option value="BUILD">BUILD — Mes services</option>
-                  <option value="EXPLORE">EXPLORE — Me faire connaître</option>
-                  <option value="PAY">PAY — Mon argent</option>
-                  <option value="JOBS">JOBS</option>
-                </select>
-              </label>
-
-              <label>
-                Téléphone abonné
-                <input id="subscriberPhone" type="tel" inputmode="numeric" placeholder="Ex : 221771234567" />
-              </label>
-
-              <label>
-                Slug optionnel
-                <input id="subscriberSlug" type="text" placeholder="Auto si vide : loc-221..." />
-              </label>
-            </div>
-
-            <div class="row">
-              <button id="subscriberGenerateBtn" class="btn btn-primary" type="button">🔗 Générer lien abonné</button>
-              <button id="subscriberCopyBtn" class="btn btn-gold" type="button">📋 Copier</button>
-              <button id="subscriberWaBtn" class="btn btn-dark" type="button">💬 WhatsApp</button>
-              <a id="openCaisseBtn" class="btn btn-soft" href="https://commencer-a-payer.digiylyfe.com/dashboard-caisse.html" target="_blank" rel="noreferrer">🏦 Ouvrir caisse</a>
-            </div>
-
-            <div id="subscriberLinkOut" class="subscriber-output">
-              Le lien privé apparaîtra ici.
-            </div>
-          </div>
-
-
-          <div class="panel stack">
-            <div>
-              <strong>ABO — File d’attente des preuves</strong>
-              <div class="mini" style="margin-top:6px">
-                Ici tu vois les preuves utiles d’abonnement DIGIY. Les anciens tests PAY rejetés sont masqués par défaut pour garder l’admin propre. Le lien privé généré contient le module, le téléphone et le slug de l’abonné.
-              </div>
-            </div>
-
-            <div class="queue-toolbar">
-              <label>
-                Filtre statut
-                <select id="proofStatus">
-                  <option value="" selected>Toutes</option>
-                  <option value="pending_proof">En attente de preuve</option>
-                  <option value="confirmed">Confirmées</option>
-                  <option value="rejected">Refusées</option>
-                </select>
-              </label>
-
-              <label style="max-width:160px">
-                Limite
-                <select id="proofLimit">
-                  <option value="20">20</option>
-                  <option value="50" selected>50</option>
-                  <option value="100">100</option>
-                </select>
-              </label>
-
-              <button id="proofRefreshBtn" class="btn btn-primary">🔄 Recharger la file</button>
-              <button id="hideLegacyTestsBtn" class="btn btn-dark" type="button">🧹 Masquer tests PAY</button>
-            </div>
-
-            <div id="proofList" class="proof-list">
-              <div class="proof-empty">Aucune preuve chargée pour le moment. Le filtre démarre maintenant sur Toutes.</div>
-            </div>
-          </div>
-
-          <div class="panel stack">
-            <div>
-              <strong>Appel RPC générique</strong>
-              <div class="mini" style="margin-top:6px">
-                Cette zone te permet déjà de tester les vraies RPC admin sans refaire un autre outil.
-              </div>
-            </div>
-
-            <label>
-              Nom RPC
-              <input id="rpcName" type="text" placeholder="Ex : digiy_pay_admin_list_public_proofs" />
-            </label>
-
-            <label>
-              Arguments JSON
-              <textarea id="rpcArgs" placeholder='{}'></textarea>
-            </label>
-
-            <div class="row">
-              <button id="rpcBtn" class="btn btn-primary">⚡ Lancer la RPC</button>
-              <button id="rpcClearBtn" class="btn btn-dark">🧹 Vider formulaire RPC</button>
-            </div>
-            <div class="mini">
-              Ce bouton ne supprime pas les preuves : il vide seulement le nom RPC et les arguments JSON.
-              Pour cacher les anciens tests, utilise <strong>Masquer tests PAY</strong>.
-            </div>
-          </div>
-
-          <div class="stack">
-            <div class="row" style="align-items:center;justify-content:space-between">
-              <strong>Journal cockpit</strong>
-              <button id="logClearBtn" class="btn btn-dark" type="button">🧼 Vider le journal</button>
-            </div>
-            <div id="logBox" class="log">DIGIY ADMIN cockpit prêt.</div>
-          </div>
-        </div>
-      </section>
+      <div class="hr"></div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn ok" id="btnBackGate">⬅️ Retour</button>
+        <a class="btn gold" href="https://admin-digiy.digiylyfe.com/" rel="noopener">🦅 Retour admin</a>
+        <a class="btn" href="https://commencer-a-payer.digiylyfe.com/" rel="noopener">🏠 Paiement public</a>
+      </div>
     </div>
 
-    <div class="footer-note">
-      DIGIY ADMIN — Ferrari branchée sur le backend stable.
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="display:none;">
+      <!-- HEADER -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h1>🏦 CAISSE CENTRALE DIGIYLYFE</h1>
+            <p class="small">Dashboard temps réel • 0% commission • Made in Sénégal 🇸🇳</p>
+            <p class="small" id="sessionInfo" style="margin-top:8px;"></p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn ok" id="btnRefresh">🔄 Actualiser</button>
+            <button class="btn bad" id="btnLogout">🚪 Déconnexion</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOADING -->
+      <div id="loading">⏳ Chargement des données...</div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi gold">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-value" id="kpiTotal">—</div>
+          <div class="kpi-label">Total Encaissements</div>
+        </div>
+
+        <div class="kpi ok">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-value" id="kpiConfirmes">—</div>
+          <div class="kpi-label">Confirmés / Actifs</div>
+        </div>
+
+        <div class="kpi warn">
+          <div class="kpi-icon">⏳</div>
+          <div class="kpi-value" id="kpiAttente">—</div>
+          <div class="kpi-label">En Attente</div>
+        </div>
+
+        <div class="kpi gold">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-value" id="kpiMRR">—</div>
+          <div class="kpi-label">MRR (Monthly)</div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="grid-2">
+        <div class="card">
+          <h3>📦 Encaissements par Module</h3>
+          <div class="chart-container">
+            <canvas id="chartModules"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📈 Évolution des Encaissements</h3>
+          <div class="chart-container">
+            <canvas id="chartTimeline"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="card">
+        <h2>📋 Liste des Encaissements</h2>
+        <div class="filters">
+          <select id="filterStatut">
+            <option value="">Tous les statuts</option>
+            <option value="EN_ATTENTE">En attente</option>
+            <option value="WAVE_RECU">Wave reçu</option>
+            <option value="CONFIRME">Confirmé</option>
+            <option value="ACTIF">Actif</option>
+            <option value="ANNULE">Annulé</option>
+          </select>
+
+          <select id="filterModule">
+            <option value="">Tous les modules</option>
+          </select>
+
+          <select id="filterPeriode">
+            <option value="7">7 derniers jours</option>
+            <option value="30" selected>30 derniers jours</option>
+            <option value="90">90 derniers jours</option>
+            <option value="365">1 an</option>
+            <option value="all">Tout</option>
+          </select>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Téléphone</th>
+                <th>Module</th>
+                <th>Plan</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th>Slug / infos</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="9" style="text-align:center; padding:40px;">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MODULE BREAKDOWN -->
+      <div class="card">
+        <h2>📊 Analyse par Module</h2>
+        <div id="moduleStats"></div>
+      </div>
     </div>
   </div>
 
   <script>
-    const BACKEND_BASE =
-      (window.DIGIY_ADMIN_BACKEND || "").trim() ||
-      "https://admin.digiylyfe.com";
-
-    const STORE = {
-      token: "digiy_admin_jwt",
-      exp: "digiy_admin_exp",
-      role: "digiy_admin_role",
-      label: "digiy_admin_label"
-    };
-
-    const RPC_NAMES = {
-      listProofs: "digiy_pay_admin_list_public_proofs",
-      validateProof: "digiy_pay_public_proof_validate"
-    };
-
-    const $ = (id) => document.getElementById(id);
-
-    const pinInput = $("pinInput");
-    const loginBtn = $("loginBtn");
-    const checkBtn = $("checkBtn");
-    const logoutBtn = $("logoutBtn");
-    const healthBtn = $("healthBtn");
-    const rpcBtn = $("rpcBtn");
-    const rpcClearBtn = $("rpcClearBtn");
-    const proofRefreshBtn = $("proofRefreshBtn");
-    const hideLegacyTestsBtn = $("hideLegacyTestsBtn");
-    const logClearBtn = $("logClearBtn");
-
-    const subscriberModule = $("subscriberModule");
-    const subscriberPhone = $("subscriberPhone");
-    const subscriberSlug = $("subscriberSlug");
-    const subscriberGenerateBtn = $("subscriberGenerateBtn");
-    const subscriberCopyBtn = $("subscriberCopyBtn");
-    const subscriberWaBtn = $("subscriberWaBtn");
-    const subscriberLinkOut = $("subscriberLinkOut");
-
-    const loginBox = $("loginBox");
-    const sessionBox = $("sessionBox");
-
-    const sessionDot = $("sessionDot");
-    const sessionText = $("sessionText");
-    const roleOut = $("roleOut");
-    const labelOut = $("labelOut");
-    const expOut = $("expOut");
-    const tokenOut = $("tokenOut");
-
-    const healthDot = $("healthDot");
-    const healthText = $("healthText");
-    const backendOut = $("backendOut");
-
-    const rpcName = $("rpcName");
-    const rpcArgs = $("rpcArgs");
-    const logBox = $("logBox");
-
-    const kHealth = $("kHealth");
-    const kSession = $("kSession");
-    const kRole = $("kRole");
-    const kRPC = $("kRPC");
-
-    const proofStatus = $("proofStatus");
-    const proofLimit = $("proofLimit");
-    const proofList = $("proofList");
-
-    backendOut.textContent = BACKEND_BASE;
-
-    let LAST_PROOF_ITEMS = [];
-    const HIDE_LEGACY_TESTS_KEY = "digiy_admin_hide_legacy_pay_tests";
-    let hideLegacyTests = localStorage.getItem(HIDE_LEGACY_TESTS_KEY) !== "0";
-
-    function log(...parts){
-      const line = parts.map(v => {
-        if (typeof v === "string") return v;
-        try { return JSON.stringify(v, null, 2); } catch { return String(v); }
-      }).join(" ");
-      const stamp = new Date().toLocaleString("fr-FR");
-      logBox.textContent = `[${stamp}] ${line}\n\n` + logBox.textContent;
-    }
-
-    function setDot(el, kind){
-      el.className = "dot" + (kind ? " " + kind : "");
-    }
-
-    function shortToken(token){
-      if (!token) return "—";
-      if (token.length <= 32) return token;
-      return token.slice(0, 18) + "..." + token.slice(-12);
-    }
-
-    function getToken(){
-      return localStorage.getItem(STORE.token) || "";
-    }
-
-    function getExp(){
-      return Number(localStorage.getItem(STORE.exp) || "0");
-    }
-
-    function setSession(data){
-      if (data?.token) localStorage.setItem(STORE.token, data.token);
-      if (data?.exp) localStorage.setItem(STORE.exp, String(data.exp));
-      if (data?.role) localStorage.setItem(STORE.role, data.role);
-      if (data?.label) localStorage.setItem(STORE.label, data.label);
-      renderSession();
-    }
-
-    function clearSession(){
-      localStorage.removeItem(STORE.token);
-      localStorage.removeItem(STORE.exp);
-      localStorage.removeItem(STORE.role);
-      localStorage.removeItem(STORE.label);
-      renderSession();
-      renderProofs([]);
-    }
-
-    function fmtDate(ms){
-      if (!ms) return "—";
-      try { return new Date(ms).toLocaleString("fr-FR"); } catch { return "—"; }
-    }
-
-    function isProbablyLoggedIn(){
-      return !!getToken();
-    }
-
-    function escapeHtml(v){
-      return String(v ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;");
-    }
-
-    function displayPhone(v){
-      const d = String(v || "").replace(/\D/g,"");
-      if (!d) return "—";
-      return d.startsWith("221") ? "+" + d : d;
-    }
-
-    function fmtFcfa(v){
-      const n = Number(String(v || "").replace(/[^\d]/g,"") || 0);
-      return n ? n.toLocaleString("fr-FR") + " FCFA" : "—";
-    }
-
-
-    function normalizeModule(value){
-      const raw = String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
-      const aliases = {
-        CAISSE: "POS",
-        POS_PRO: "POS",
-        CAISSE_BOUTIQUE: "POS",
-        COMMERCE: "POS",
-        RESA_TABLE: "RESA",
-        RESTO_RESA: "RESA",
-        RESTO: "RESA",
-        MULTI_SERVICE: "BUILD",
-        SERVICES: "BUILD",
-        MON_ARGENT: "PAY",
-        COMMERCE_DUO: "PACK",
-        EXPLORE_BOOST: "EXPLORE",
-        BOOST: "EXPLORE"
-      };
-      return aliases[raw] || raw || "";
-    }
-
-    const MODULE_HUB_URLS = {
-      POS: "https://commerce-pro.digiylyfe.com/hub.html",
-      PACK: "https://commerce-pro.digiylyfe.com/hub.html",
-      DRIVER: "https://pro-driver.digiylyfe.com/hub.html",
-      LOC: "https://pro-loc.digiylyfe.com/hub.html",
-      RESA: "https://pro-resa-resto.digiylyfe.com/hub.html",
-      MARKET: "https://pro-market.digiylyfe.com/hub.html",
-      BUILD: "https://pro-build.digiylyfe.com/hub.html",
-      EXPLORE: "https://pro-explore.digiylyfe.com/hub.html",
-      PAY: "https://pro-pay.digiylyfe.com/hub.html",
-      JOBS: "https://pro-job.digiylyfe.com/hub.html"
-    };
-
-    function inferModuleFromItem(item){
-      const direct = normalizeModule(
-        item?.module ||
-        item?.resolved_module ||
-        item?.module_code ||
-        item?.product_module ||
-        item?.subscription_module ||
-        item?.tool_module
-      );
-      if (direct) return direct;
-
-      const ref = String(item?.ref || item?.reference || "").trim().toUpperCase();
-      const slug = String(item?.slug || "").trim().toLowerCase();
-      const code = String(item?.code || item?.plan || "").trim().toUpperCase();
-
-      const fromRef = ref.split("-")[0] || "";
-      const refModule = normalizeModule(fromRef);
-      if (refModule && MODULE_HUB_URLS[refModule]) return refModule;
-
-      if (slug.startsWith("driver-")) return "DRIVER";
-      if (slug.startsWith("loc-")) return "LOC";
-      if (slug.startsWith("resa-")) return "RESA";
-      if (slug.startsWith("market-")) return "MARKET";
-      if (slug.startsWith("build-")) return "BUILD";
-      if (slug.startsWith("explore-")) return "EXPLORE";
-      if (slug.startsWith("pay-")) return "PAY";
-      if (slug.startsWith("jobs-")) return "JOBS";
-      if (slug.startsWith("pos-") || slug.startsWith("commerce-")) return "POS";
-
-      if (/^1[A-Z]?/.test(code)) return "DRIVER";
-      if (/^2[A-Z]?/.test(code)) return "LOC";
-      if (/^4[A-Z]?/.test(code)) return "RESA";
-      if (/^5/.test(code)) return "POS";
-      if (/^6/.test(code)) return "MARKET";
-      if (/^56/.test(code)) return "PACK";
-      if (/^7/.test(code)) return "BUILD";
-      if (/^8/.test(code) || /^E[0-9]/.test(code)) return "EXPLORE";
-      if (/^9/.test(code)) return "PAY";
-
-      return "PAY";
-    }
-
-    function cleanAccessUrl(raw, source){
-      const value = String(raw || "").trim();
-      if (!value) return "";
-      try{
-        const u = new URL(value, location.href);
-        [
-          "phone","tel","owner_phone","owner_id","slug","pay_slug","subscription_slug",
-          "business_phone","wave_phone","wallet_phone","pay_phone","access_note",
-          "keybox_code","keybox_location","token","session_token","pin","return",
-          "redirect","redirect_url","url"
-        ].forEach(k => u.searchParams.delete(k));
-        u.searchParams.set("from", source || "digiy-admin");
-        return u.toString();
-      }catch{
-        return value;
-      }
-    }
-
-
-    function moduleSlugPrefix(module){
-      const mod = normalizeModule(module);
-      const map = {
-        POS:"pos", PACK:"commerce", DRIVER:"driver", LOC:"loc", RESA:"resa",
-        MARKET:"market", BUILD:"build", EXPLORE:"explore", PAY:"pay", JOBS:"jobs"
-      };
-      return map[mod] || String(mod || "digiy").toLowerCase();
-    }
-
-    function expectedPrivateSlug(module, phone){
-      const digits = String(phone || "").replace(/\D/g,"");
-      return digits ? `${moduleSlugPrefix(module)}-${digits}` : "";
-    }
-
-    function buildPrivateAccessUrl(item){
-      const mod = inferModuleFromItem(item);
-      const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
-      const phone = String(item?.phone || item?.tel || item?.owner_phone || "").replace(/\D/g,"");
-      let slug = String(item?.slug || item?.subscription_slug || item?.pay_slug || "").trim().toLowerCase();
-
-      /*
-        DIGIY doctrine :
-        - côté public : ne pas bloquer avec tel/slug
-        - lien privé envoyé après activation : tel + slug + module
-        Sinon l'abonné tombe sur le moule générique.
-      */
-      if (!slug && phone) slug = expectedPrivateSlug(mod, phone);
-
-      try{
-        const u = new URL(base, location.href);
-        u.searchParams.set("from", "digiy-admin");
-        if (mod) u.searchParams.set("module", mod);
-        if (phone) u.searchParams.set("phone", phone);
-        if (slug) u.searchParams.set("slug", slug);
-        return u.toString();
-      }catch{
-        return base;
-      }
-    }
-
-    function buildModuleHubUrl(item){
-      return buildPrivateAccessUrl(item);
-    }
-
-
-    function buildCockpitUrl(item){
-      return buildModuleHubUrl(item);
-    }
-
-    function getStatusTone(status){
-      const s = String(status || "").toLowerCase();
-      if (["confirmed","validated","approved","paid","success","posted"].includes(s)) return ["ok","CONFIRMÉ"];
-      if (["rejected","failed","denied","cancelled","canceled","error"].includes(s)) return ["bad","REFUSÉ"];
-      return ["gold","PREUVE"];
-    }
-
-    function renderSession(){
-      const token = getToken();
-      const exp = getExp();
-      const role = localStorage.getItem(STORE.role) || "—";
-      const label = localStorage.getItem(STORE.label) || "—";
-
-      if (!token){
-        loginBox.classList.remove("hidden");
-        sessionBox.classList.add("hidden");
-        setDot(sessionDot, "");
-        sessionText.textContent = "Aucune session active";
-        roleOut.textContent = "—";
-        labelOut.textContent = "—";
-        expOut.textContent = "—";
-        tokenOut.textContent = "—";
-        kSession.textContent = "OFF";
-        kRole.textContent = "—";
-        return;
-      }
-
-      loginBox.classList.add("hidden");
-      sessionBox.classList.remove("hidden");
-
-      const expired = exp && Date.now() > exp;
-      setDot(sessionDot, expired ? "warn" : "ok");
-      sessionText.textContent = expired ? "Session stockée mais possiblement expirée" : "Session active détectée";
-      roleOut.textContent = role;
-      labelOut.textContent = label;
-      expOut.textContent = fmtDate(exp);
-      tokenOut.textContent = shortToken(token);
-
-      kSession.textContent = expired ? "EXP?" : "ON";
-      kRole.textContent = role || "—";
-    }
-
-    async function api(path, options = {}){
-      const token = getToken();
-      const headers = new Headers(options.headers || {});
-      if (!headers.has("Content-Type") && !(options.body instanceof FormData)){
-        headers.set("Content-Type", "application/json");
-      }
-      if (token){
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      const res = await fetch(BACKEND_BASE + path, {
-        method: options.method || "GET",
-        headers,
-        body: options.body,
-        credentials: "include"
-      });
-
-      let data = null;
-      try { data = await res.json(); } catch { data = null; }
-
-      return { res, data };
-    }
-
-    async function callBackendRpc(name, args){
-      return api("/api/rpc/" + encodeURIComponent(name), {
-        method: "POST",
-        body: JSON.stringify(args || {})
-      });
-    }
-
-    async function checkHealth(){
-      try{
-        setDot(healthDot, "");
-        healthText.textContent = "Test backend en cours...";
-        kHealth.textContent = "...";
-
-        const res = await fetch(BACKEND_BASE + "/health", { credentials: "include" });
-        const data = await res.json();
-
-        if (res.ok && data?.ok){
-          setDot(healthDot, "ok");
-          healthText.textContent = `Backend OK — service=${data.service || "digiy_admin_backend"}`;
-          kHealth.textContent = "OK";
-          log("HEALTH OK", data);
-        } else {
-          setDot(healthDot, "bad");
-          healthText.textContent = "Backend KO";
-          kHealth.textContent = "KO";
-          log("HEALTH KO", data);
-        }
-      } catch (e){
-        setDot(healthDot, "bad");
-        healthText.textContent = "Backend injoignable";
-        kHealth.textContent = "KO";
-        log("HEALTH ERROR", String(e));
-      }
-    }
-
-    async function doLogin(){
-      const pin = String(pinInput.value || "").trim();
-
-      if (!pin){
-        log("LOGIN", "PIN manquant.");
-        pinInput.focus();
-        return;
-      }
-
-      loginBtn.disabled = true;
-      loginBtn.textContent = "Connexion...";
-      try{
-        const { res, data } = await api("/api/admin/login", {
-          method: "POST",
-          body: JSON.stringify({
-            pin,
-            ua: navigator.userAgent || ""
-          })
-        });
-
-        if (!res.ok || !data?.ok){
-          log("LOGIN KO", data || { status: res.status });
-          alert(data?.error || "Connexion refusée.");
-          return;
-        }
-
-        setSession(data);
-        pinInput.value = "";
-        log("LOGIN OK", { role: data.role, label: data.label, exp: data.exp });
-        await checkSession();
-        await refreshProofs();
-      } catch (e){
-        log("LOGIN ERROR", String(e));
-        alert("Erreur réseau pendant le login.");
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = "🔐 Ouvrir le cockpit";
-      }
-    }
-
-    async function checkSession(){
-      try{
-        const { res, data } = await api("/api/admin/check", { method: "GET" });
-
-        if (!res.ok || !data?.ok){
-          setDot(sessionDot, "bad");
-          sessionText.textContent = "Session invalide ou expirée";
-          kSession.textContent = "OFF";
-          log("CHECK KO", data || { status: res.status });
-
-          if (res.status === 401){
-            clearSession();
+    (function(){
+      "use strict";
+
+      const SUPABASE_URL = "https://wesqmwjjtsefyjnluosj.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_tGHItRgeWDmGjnd0CK1DVQ_BIep4Ug3";
+      const CAISSE_KEY = "DIGIY_CAISSE_ADMIN_SESSION_V2";
+      const TTL_MS = 8 * 60 * 60 * 1000;
+
+      let sb = null;
+      if(window.supabase && window.supabase.createClient){
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
           }
-          return false;
-        }
-
-        setDot(sessionDot, "ok");
-        sessionText.textContent = `Session valide — âge ${Math.round((data.sessionAgeMs || 0) / 60000)} min`;
-        if (data.role) {
-          roleOut.textContent = data.role;
-          localStorage.setItem(STORE.role, data.role);
-        }
-        if (data.label) {
-          labelOut.textContent = data.label;
-          localStorage.setItem(STORE.label, data.label);
-        }
-        kSession.textContent = "ON";
-        kRole.textContent = data.role || localStorage.getItem(STORE.role) || "—";
-        log("CHECK OK", data);
-        return true;
-      } catch (e){
-        log("CHECK ERROR", String(e));
-        return false;
-      }
-    }
-
-    async function doLogout(){
-      try{
-        const { res, data } = await api("/api/admin/logout", {
-          method: "POST",
-          body: JSON.stringify({})
         });
-
-        log("LOGOUT", data || { status: res.status });
-      } catch (e){
-        log("LOGOUT ERROR", String(e));
-      } finally {
-        clearSession();
-      }
-    }
-
-    async function callRPC(){
-      const name = String(rpcName.value || "").trim();
-      if (!name){
-        alert("Nom RPC manquant.");
-        rpcName.focus();
-        return;
       }
 
-      let args = {};
-      const raw = String(rpcArgs.value || "").trim();
-      if (raw){
+      const $ = id => document.getElementById(id);
+      const qp = new URLSearchParams(location.search);
+
+      let allData = [];
+      let chartModules = null;
+      let chartTimeline = null;
+
+      function safeUrl(raw){
+        const value = String(raw || "").trim();
+        if (!value) return "";
         try{
-          args = JSON.parse(raw);
-        } catch {
-          alert("Le JSON des arguments est invalide.");
-          return;
+          const u = new URL(value, location.href);
+          if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+          return "";
+        }catch{
+          return "";
         }
       }
 
-      if (
-        name === RPC_NAMES.listProofs &&
-        !Object.prototype.hasOwnProperty.call(args, "inject_token")
-      ){
-        args.inject_token = false;
+      function normalizeModule(value){
+        const raw = String(value || "").trim().toUpperCase();
+        const alias = {
+          POS_PRO: "POS",
+          CAISSE: "POS",
+          CAISSE_BOUTIQUE: "POS",
+          RESA: "RESA",
+          RESA_TABLE: "RESA",
+          RESTO_RESA: "RESA",
+          MULTI_SERVICE: "BUILD",
+          PAY: "PAY",
+          MON_ARGENT: "PAY",
+          JOBS: "JOBS",
+          PACK: "PACK",
+          COMMERCE_DUO: "PACK",
+          EXPLORE_BOOST: "EXPLORE",
+          BOOST: "EXPLORE"
+        };
+        return alias[raw] || raw || "AUTRE";
       }
 
-      rpcBtn.disabled = true;
-      rpcBtn.textContent = "Exécution...";
-      try{
-        const { res, data } = await callBackendRpc(name, args);
+      function moduleLabel(value){
+        const mod = normalizeModule(value);
+        const labels = {
+          DRIVER: "DRIVER",
+          LOC: "LOC",
+          RESA: "RÉSA",
+          RESTO: "RESTO",
+          POS: "POS",
+          MARKET: "MARKET",
+          BUILD: "BUILD",
+          EXPLORE: "EXPLORE",
+          FRET_PRO: "FRET PRO",
+          FRET_CLIENT_PRO: "FRET CLIENT",
+          PAY: "PAY",
+          JOBS: "JOBS",
+          PACK: "PACK"
+        };
+        return labels[mod] || mod;
+      }
 
-        kRPC.textContent = name;
-        log(`RPC ${name}`, { status: res.status, data });
+      const MODULE_HUB_URLS = {
+        POS: "https://commerce-pro.digiylyfe.com/hub.html",
+        CAISSE: "https://commerce-pro.digiylyfe.com/hub.html",
+        COMMERCE: "https://commerce-pro.digiylyfe.com/hub.html",
+        DRIVER: "https://pro-driver.digiylyfe.com/hub.html",
+        LOC: "https://pro-loc.digiylyfe.com/hub.html",
+        RESA: "https://pro-resa-resto.digiylyfe.com/hub.html",
+        RESTO: "https://pro-resa-resto.digiylyfe.com/hub.html",
+        MARKET: "https://pro-market.digiylyfe.com/hub.html",
+        BUILD: "https://pro-build.digiylyfe.com/hub.html",
+        MULTI_SERVICE: "https://pro-build.digiylyfe.com/hub.html",
+        SERVICES: "https://pro-build.digiylyfe.com/hub.html",
+        EXPLORE: "https://pro-explore.digiylyfe.com/hub.html",
+        EXPLORE_BOOST: "https://pro-explore.digiylyfe.com/hub.html",
+        BOOST: "https://pro-explore.digiylyfe.com/hub.html",
+        PAY: "https://pro-pay.digiylyfe.com/hub.html",
+        MON_ARGENT: "https://pro-pay.digiylyfe.com/hub.html",
+        JOBS: "https://pro-job.digiylyfe.com/hub.html",
+        PACK: "https://commerce-pro.digiylyfe.com/hub.html",
+        COMMERCE_DUO: "https://commerce-pro.digiylyfe.com/hub.html"
+      };
 
-        if (!res.ok){
-          alert(data?.error || `Erreur RPC (${res.status})`);
+      function moduleHubUrl(value){
+        const mod = normalizeModule(value);
+        return MODULE_HUB_URLS[mod] || "";
+      }
+
+
+      function moduleSlugPrefix(value){
+        const mod = normalizeModule(value);
+        const map = {
+          POS:"pos", CAISSE:"pos", COMMERCE:"pos", PACK:"commerce",
+          DRIVER:"driver", LOC:"loc", RESA:"resa", RESTO:"resa",
+          MARKET:"market", BUILD:"build", MULTI_SERVICE:"build",
+          EXPLORE:"explore", EXPLORE_BOOST:"explore", BOOST:"explore",
+          PAY:"pay", MON_ARGENT:"pay", JOBS:"jobs"
+        };
+        return map[mod] || String(mod || "digiy").toLowerCase();
+      }
+
+      function expectedPrivateSlug(module, phone){
+        const digits = String(phone || "").replace(/\D/g,"");
+        return digits ? `${moduleSlugPrefix(module)}-${digits}` : "";
+      }
+
+      function buildPrivateAccessUrl(row){
+        const mod = normalizeModule(row?.module || row?.resolved_module || row?.product_module || "");
+        const base = moduleHubUrl(mod) || row?.url || row?.module_url || row?.access_url || "";
+        if(!base) return "";
+        const phone = String(row?.phone || row?.tel || row?.owner_phone || "").replace(/\D/g,"");
+        let slug = String(row?.slug || row?.subscription_slug || row?.pay_slug || "").trim().toLowerCase();
+        if(!slug && phone) slug = expectedPrivateSlug(mod, phone);
+
+        try{
+          const u = new URL(base, location.href);
+          u.searchParams.set("from", "digiy-caisse");
+          if(mod) u.searchParams.set("module", mod);
+          if(phone) u.searchParams.set("phone", phone);
+          if(slug) u.searchParams.set("slug", slug);
+          return u.toString();
+        }catch(_){
+          return base;
         }
-      } catch (e){
-        log("RPC ERROR", String(e));
-        alert("Erreur réseau pendant la RPC.");
-      } finally {
-        rpcBtn.disabled = false;
-        rpcBtn.textContent = "⚡ Lancer la RPC";
-      }
-    }
-
-    function pickProofItems(data){
-      if (Array.isArray(data)) return data;
-      if (Array.isArray(data?.items)) return data.items;
-      if (Array.isArray(data?.data?.items)) return data.data.items;
-      if (Array.isArray(data?.rows)) return data.rows;
-      if (Array.isArray(data?.data?.rows)) return data.data.rows;
-      return [];
-    }
-
-    function proofLooksLegacyPay(item){
-      const ref = String(item?.ref || "").toUpperCase();
-      const code = String(item?.code || "").toUpperCase();
-      const slug = String(item?.slug || "").toLowerCase();
-      return ref.startsWith("PAY-") && slug.startsWith("pay-") && !/^9[A-Z]?/.test(code);
-    }
-
-    function updateHideLegacyButton(){
-      if (!hideLegacyTestsBtn) return;
-      hideLegacyTestsBtn.textContent = hideLegacyTests ? "👁️ Afficher anciens tests" : "🧹 Masquer anciens tests";
-      hideLegacyTestsBtn.className = hideLegacyTests ? "btn btn-gold" : "btn btn-dark";
-    }
-
-    function renderProofs(items){
-      if (!Array.isArray(items) || !items.length){
-        proofList.innerHTML = '<div class="proof-empty">Aucune preuve abonnement dans cette file pour le moment.</div>';
-        return;
       }
 
-      const legacyCount = items.filter(proofLooksLegacyPay).length;
-      const legacyNotice = legacyCount
-        ? `<div class="proof-empty" style="text-align:left;border-color:rgba(250,204,21,.28);background:rgba(250,204,21,.06)">
-             <strong>Ancien flux PAY détecté.</strong><br>
-             ${legacyCount} preuve(s) viennent encore de l’ancien circuit PAY avec slug <span class="mono">pay-...</span>.
-             Les nouveaux abonnements module doivent arriver avec refs du type <span class="mono">DRIVER-...</span>, <span class="mono">LOC-...</span>, <span class="mono">RESA-...</span>.
-           </div>`
-        : "";
+      function cleanModuleUrl(raw){
+        const value = String(raw || "").trim();
+        if(!value) return "";
+        try{
+          const u = new URL(value, location.href);
+          ["phone","tel","owner_phone","owner_id","slug","pay_slug","subscription_slug","business_phone","wave_phone","wallet_phone","pay_phone","access_note","keybox_code","keybox_location","token","session_token","pin","return","redirect","redirect_url","url"].forEach(k => u.searchParams.delete(k));
+          u.searchParams.set("from", "digiy-caisse");
+          return u.toString();
+        }catch(_){
+          return value;
+        }
+      }
 
-      proofList.innerHTML = legacyNotice + items.map((item) => {
-        const [tone, label] = getStatusTone(item.status);
-        const moduleCode = inferModuleFromItem(item);
-        const cockpitUrl = buildCockpitUrl(item);
-        const proofUrl = String(item.proof_url || "").trim();
 
-        return `
-          <article class="proof-item">
-            <div class="proof-top">
-              <div>
-                <h3 class="proof-title">${escapeHtml(item.public_label || item.code || item.ref || "Preuve abonnement DIGIY")}</h3>
-                <div class="mini mono" style="margin-top:6px">${escapeHtml(item.ref || "—")}</div>
-              </div>
-              <span class="tag ${tone}">${escapeHtml(label)}</span>
-            </div>
+      function loadCaisseSession(){
+        try{
+          const raw = localStorage.getItem(CAISSE_KEY);
+          if(!raw) return null;
 
-            <div class="proof-meta">
-              <div class="proof-cell">
-                <div class="k">Montant</div>
-                <div class="v">${escapeHtml(fmtFcfa(item.amount_xof))}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Téléphone</div>
-                <div class="v mono">${escapeHtml(displayPhone(item.phone))}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Identifiant</div>
-                <div class="v mono">${escapeHtml(item.slug || "—")}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Module</div>
-                <div class="v mono">${escapeHtml(moduleCode || "—")}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Lien privé module</div>
-                <div class="v mono">${cockpitUrl ? `<a href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">${escapeHtml(cockpitUrl)}</a>` : "—"}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Code</div>
-                <div class="v mono">${escapeHtml(item.code || item.plan || "—")}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Statut</div>
-                <div class="v mono">${escapeHtml(item.status || "—")}</div>
-              </div>
-              <div class="proof-cell">
-                <div class="k">Créée le</div>
-                <div class="v">${escapeHtml(fmtDate(item.created_at))}</div>
-              </div>
-            </div>
+          const s = JSON.parse(raw);
+          if(!s || !s.ts){
+            localStorage.removeItem(CAISSE_KEY);
+            return null;
+          }
 
-            <div class="proof-actions">
-              <button class="btn btn-primary" data-action="confirm" data-ref="${escapeHtml(item.ref || "")}">✅ Confirmer</button>
-              <button class="btn btn-danger" data-action="reject" data-ref="${escapeHtml(item.ref || "")}">⛔ Refuser</button>
-              ${cockpitUrl ? `<a class="btn btn-dark" href="${escapeHtml(cockpitUrl)}" target="_blank" rel="noreferrer">🚪 Ouvrir accès privé</a>` : ""}
-              ${proofUrl ? `<a class="btn btn-soft" href="${escapeHtml(proofUrl)}" target="_blank" rel="noreferrer">🧾 Ouvrir la preuve</a>` : ""}
-            </div>
-          </article>
+          if(Date.now() - Number(s.ts) > TTL_MS){
+            localStorage.removeItem(CAISSE_KEY);
+            return null;
+          }
+
+          return s;
+        }catch(e){
+          localStorage.removeItem(CAISSE_KEY);
+          return null;
+        }
+      }
+
+      function clearCaisseSession(){
+        localStorage.removeItem(CAISSE_KEY);
+      }
+
+      function showGate(){
+        $("sessionBox").style.display = "block";
+        $("dashboard").style.display = "none";
+      }
+
+      function sessionSummary(session){
+        const bits = [];
+        bits.push("🔐 Session caisse active");
+        bits.push("rôle: " + (session.role || "caisse_admin"));
+        if (session.module) bits.push("module: " + session.module);
+        if (session.phone) bits.push("phone: " + session.phone);
+        if (session.slug) bits.push("slug: " + session.slug);
+        return bits.join(" • ");
+      }
+
+      function showDashboard(session){
+        $("sessionBox").style.display = "none";
+        $("dashboard").style.display = "block";
+        $("sessionInfo").textContent = sessionSummary(session);
+        loadData();
+      }
+
+      function fmt(n){
+        return Number(n || 0).toLocaleString("fr-FR");
+      }
+
+      function formatDate(dateStr){
+        if(!dateStr) return "—";
+        try{
+          return new Date(dateStr).toLocaleDateString("fr-FR", {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+          });
+        }catch{
+          return "—";
+        }
+      }
+
+      function filteredPeriodData(){
+        let data = allData.slice();
+
+        const statut = $("filterStatut").value;
+        const module = $("filterModule").value;
+
+        if(statut) data = data.filter(r => String(r.statut || "").toUpperCase() === statut);
+        if(module) data = data.filter(r => normalizeModule(r.module) === module);
+
+        return data;
+      }
+
+      function populateModuleFilter(){
+        const select = $("filterModule");
+        const current = select.value;
+
+        const mods = [...new Set(allData.map(r => normalizeModule(r.module)).filter(Boolean))].sort();
+
+        select.innerHTML = `
+          <option value="">Tous les modules</option>
+          ${mods.map(mod => `<option value="${mod}">${moduleLabel(mod)}</option>`).join("")}
         `;
-      }).join("");
-    }
 
-    async function refreshProofs(){
-      if (!getToken()){
-        renderProofs([]);
-        return;
+        if(mods.includes(current)) {
+          select.value = current;
+        }
       }
 
-      proofRefreshBtn.disabled = true;
-      proofRefreshBtn.textContent = "Chargement...";
-      try{
-        /*
-          Cette RPC existe côté Supabase sans argument p_token.
-          Le backend admin authentifie déjà la session par JWT.
-          On bloque donc l'injection automatique de p_token ici.
-        */
-        const { res, data } = await callBackendRpc(RPC_NAMES.listProofs, {
-          inject_token: false
-        });
+      async function loadData(){
+        $("loading").style.display = "block";
 
-        log("ABO PROOFS LIST", { status: res.status, data });
+        try{
+          if(!sb){
+            throw new Error("Supabase non chargé. La caisse reste fermée.");
+          }
+          const periode = $("filterPeriode").value;
+          let query = sb.from("encaissements_digiylyfe").select("*").order("created_at", { ascending: false });
 
-        if (!res.ok){
-          renderProofs([]);
-          alert(data?.error || "Impossible de charger la file PAY.");
-          return;
+          if(periode !== "all"){
+            const dateDebut = new Date();
+            dateDebut.setDate(dateDebut.getDate() - parseInt(periode, 10));
+            query = query.gte("created_at", dateDebut.toISOString());
+          }
+
+          const result = await query;
+          if(result.error) throw result.error;
+
+          allData = Array.isArray(result.data) ? result.data : [];
+          populateModuleFilter();
+          renderAll();
+        }catch(e){
+          console.error(e);
+          alert("Erreur chargement: " + e.message);
+        }finally{
+          $("loading").style.display = "none";
         }
+      }
 
-        let items = pickProofItems(data);
+      function renderAll(){
+        renderKPIs();
+        renderTable();
+        renderCharts();
+        renderModuleStats();
+      }
 
-        const rawItems = items.slice();
-        const wantedStatus = String(proofStatus.value || "").trim();
-        if (wantedStatus){
-          items = items.filter((item) => String(item.status || "").toLowerCase() === wantedStatus.toLowerCase());
+      function renderKPIs(){
+        const filtered = filteredPeriodData();
+
+        const total = filtered.reduce((sum, row) => sum + Number(row.montant || 0), 0);
+        const confirmes = filtered.filter(r => ["CONFIRME","ACTIF"].includes(String(r.statut || "").toUpperCase())).length;
+        const attente = filtered.filter(r => String(r.statut || "").toUpperCase() === "EN_ATTENTE").length;
+        const mrr = filtered
+          .filter(r => ["CONFIRME","ACTIF"].includes(String(r.statut || "").toUpperCase()))
+          .reduce((sum, row) => sum + Number(row.montant || 0), 0);
+
+        $("kpiTotal").textContent = fmt(total) + " F";
+        $("kpiConfirmes").textContent = confirmes;
+        $("kpiAttente").textContent = attente;
+        $("kpiMRR").textContent = fmt(mrr) + " F";
+      }
+
+      async function confirmerPaiement(id, nom){
+        if(!confirm(`Confirmer le paiement de ${nom} ?`)) return;
+
+        try{
+          const result = await sb
+            .from("encaissements_digiylyfe")
+            .update({
+              statut: "CONFIRME",
+              date_confirmation: new Date().toISOString()
+            })
+            .eq("id", id);
+
+          if(result.error) throw result.error;
+
+          alert("✅ Paiement confirmé.");
+          loadData();
+        }catch(e){
+          alert("❌ Erreur: " + e.message);
         }
+      }
 
-        if (wantedStatus && rawItems.length && !items.length){
-          proofList.innerHTML =
-            '<div class="proof-empty" style="text-align:left">' +
-            '<strong>Aucune preuve avec ce statut.</strong><br>' +
-            'Le backend a renvoyé ' + rawItems.length + ' preuve(s), mais aucune en statut <span class="mono">' +
-            escapeHtml(wantedStatus) + '</span>. Passe le filtre sur <strong>Toutes</strong> pour les voir.' +
-            '</div>';
-          LAST_PROOF_ITEMS = [];
-          return;
-        }
+      async function activerModule(id, nom){
+        if(!confirm(`Activer le module pour ${nom} ?`)) return;
 
-        if (hideLegacyTests){
-          items = items.filter((item) => !proofLooksLegacyPay(item));
-          if (rawItems.length && !items.length){
-            proofList.innerHTML =
-              '<div class="proof-empty" style="text-align:left">' +
-              '<strong>Anciens tests PAY masqués.</strong><br>' +
-              'Les anciennes preuves de test existent encore dans la base, mais elles sont cachées côté interface. ' +
-              'Pour les supprimer définitivement, il faut une RPC backend de purge/archive.' +
-              '</div>';
-            LAST_PROOF_ITEMS = [];
+        try{
+          const result = await sb.rpc("digiy_activate_subscription", {
+            p_encaissement_id: id
+          });
+
+          if(result.error) throw result.error;
+
+          const data = result.data;
+          if(!data?.ok){
+            alert("❌ Erreur: " + (data?.error || "Activation échouée"));
             return;
           }
-        }
 
-        const limit = Number(proofLimit.value || 50);
-        if (limit > 0){
-          items = items.slice(0, limit);
+          const sourceRow = allData.find(r => String(r.id) === String(id)) || {};\n          const hubUrl = buildPrivateAccessUrl({ ...sourceRow, ...data, module: data.module || data.resolved_module || sourceRow.module });\n          alert(`✅ Module activé !\n\nSlug: ${data.slug || "—"}\nHUB module: ${hubUrl || "—"}`);
+          loadData();
+        }catch(e){
+          alert("❌ Erreur: " + e.message);
         }
-
-        LAST_PROOF_ITEMS = items.slice();
-        renderProofs(items);
-      } catch (e){
-        log("ABO PROOFS LIST ERROR", String(e));
-        renderProofs([]);
-        alert("Erreur réseau pendant le chargement des preuves abonnement.");
-      } finally {
-        proofRefreshBtn.disabled = false;
-        proofRefreshBtn.textContent = "🔄 Recharger la file";
       }
-    }
 
-    async function validateProof(ref, status){
-      if (!ref) return;
+      function extractPossibleUrl(row){
+        const privateUrl = buildPrivateAccessUrl(row);
+        if(privateUrl) return privateUrl;
 
-      const label = status === "confirmed" ? "confirmer" : "refuser";
-      if (!confirm(`Tu veux vraiment ${label} cette preuve ?`)) return;
+        const candidates = [
+          row?.url,
+          row?.public_url,
+          row?.module_url,
+          row?.redirect_url,
+          row?.access_url,
+          row?.cockpit_url
+        ];
 
-      try{
-        const item = LAST_PROOF_ITEMS.find((x) => String(x.ref || "") === String(ref)) || { ref };
-        const args = {
-          p_ref: ref,
-          p_status: status,
-          p_redirect_url: buildModuleHubUrl(item),
-          p_validated_by: localStorage.getItem(STORE.label) || "admin",
-          inject_token: false
-        };
-
-        const { res, data } = await callBackendRpc(RPC_NAMES.validateProof, args);
-        log("PAY PROOF VALIDATE", { ref, status, http: res.status, data });
-
-        if (!res.ok || !data?.ok){
-          alert(data?.error || `Impossible de ${label} cette preuve.`);
-          return;
+        for(const c of candidates){
+          const u = safeUrl(c);
+          if(u) return u;
         }
 
-        await refreshProofs();
-      } catch (e){
-        log("PAY PROOF VALIDATE ERROR", String(e));
-        alert("Erreur réseau pendant la validation.");
-      }
-    }
-
-
-    function subscriberSlugPrefix(module){
-      const mod = normalizeModule(module);
-      const map = {
-        POS:"pos",
-        PACK:"commerce",
-        DRIVER:"driver",
-        LOC:"loc",
-        RESA:"resa",
-        MARKET:"market",
-        BUILD:"build",
-        EXPLORE:"explore",
-        PAY:"pay",
-        JOBS:"jobs"
-      };
-      return map[mod] || String(mod || "digiy").toLowerCase();
-    }
-
-    function buildSubscriberManualLink(){
-      const mod = normalizeModule(subscriberModule?.value || "DRIVER");
-      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
-      if (!phone) {
-        alert("Mets le téléphone de l’abonné.");
-        subscriberPhone?.focus();
         return "";
       }
 
-      const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
-      let slug = String(subscriberSlug?.value || "").trim().toLowerCase();
-      if (!slug) {
-        slug = subscriberSlugPrefix(mod) + "-" + phone;
-        if (subscriberSlug) subscriberSlug.value = slug;
+        return "";
       }
 
-      const u = new URL(base, location.href);
-      u.searchParams.set("from", "digiy-admin");
-      u.searchParams.set("module", mod);
-      u.searchParams.set("phone", phone);
-      u.searchParams.set("slug", slug);
-      return u.toString();
-    }
+      async function envoyerWhatsApp(id){
+        try{
+          const result = await sb
+            .from("encaissements_digiylyfe")
+            .select("*")
+            .eq("id", id)
+            .single();
 
-    function renderSubscriberLink(){
-      const url = buildSubscriberManualLink();
-      if (!url) return "";
-      const mod = normalizeModule(subscriberModule?.value || "");
-      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
-      const slug = String(subscriberSlug?.value || "").trim();
+          if(result.error) throw result.error;
+          const row = result.data;
 
-      subscriberLinkOut.innerHTML = `
-        <div><strong>Lien privé abonné prêt :</strong></div>
-        <div style="margin-top:8px"><a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a></div>
-        <div class="mini" style="margin-top:10px">
-          Module : <span class="mono">${escapeHtml(mod)}</span> ·
-          Téléphone : <span class="mono">${escapeHtml(phone)}</span> ·
-          Slug : <span class="mono">${escapeHtml(slug)}</span>
-        </div>
-      `;
-      log("LIEN ABONNÉ GÉNÉRÉ", { module: mod, phone, slug, url });
-      return url;
-    }
+          if(!row.slug){
+            alert("⚠️ Ce module n'est pas encore activé.");
+            return;
+          }
 
-    async function copySubscriberLink(){
-      const url = renderSubscriberLink();
-      if (!url) return;
-      try{
-        await navigator.clipboard.writeText(url);
-        log("Lien abonné copié.");
-      }catch(_){
-        alert("Copie impossible automatiquement. Le lien est affiché à l’écran.");
+          const nom = [row.prenom, row.nom].filter(Boolean).join(" ") || "Cher client";
+
+          const baseDate = row.date_activation ? new Date(row.date_activation) : new Date();
+          const expiresAt = new Date(baseDate);
+          expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+          const directUrl = extractPossibleUrl(row);
+
+          let msg = `
+🎉 DIGIYLYFE - Activation confirmée !
+
+Bonjour ${nom},
+
+Ton abonnement ${moduleLabel(row.module)} (${row.plan || "—"}) est maintenant ACTIF 🚀
+
+🔑 Ton slug : ${row.slug}
+📱 Connexion : ${row.phone || "—"}
+📅 Valable jusqu'au : ${expiresAt.toLocaleDateString('fr-FR')}
+
+💪 Tu es maintenant autonome avec 0% de commission.
+Support : wa.me/221771342889
+—
+DIGIYLYFE • Made in Sénégal 🇸🇳
+          `.trim();
+
+          if(directUrl){
+            msg = `
+🎉 DIGIYLYFE - Activation confirmée !
+
+Bonjour ${nom},
+
+Ton abonnement ${moduleLabel(row.module)} (${row.plan || "—"}) est maintenant ACTIF 🚀
+
+📱 Accès direct :
+${directUrl}
+
+🔑 Ton slug : ${row.slug}
+📱 Connexion : ${row.phone || "—"}
+📅 Valable jusqu'au : ${expiresAt.toLocaleDateString('fr-FR')}
+
+💪 Tu es maintenant autonome avec 0% de commission.
+Support : wa.me/221771342889
+—
+DIGIYLYFE • Made in Sénégal 🇸🇳
+            `.trim();
+          }
+
+          window.open(`https://wa.me/${String(row.phone || "").replace(/\+/g, "")}?text=${encodeURIComponent(msg)}`);
+        }catch(e){
+          alert("❌ Erreur: " + e.message);
+        }
       }
-    }
 
-    function openSubscriberWhatsapp(){
-      const url = renderSubscriberLink();
-      if (!url) return;
-      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
-      const msg = [
-        "Ton accès DIGIY est prêt.",
-        "",
-        "Ouvre ton espace ici :",
-        url,
-        "",
-        "Garde ce lien. Il ouvre ton espace pro."
-      ].join("\n");
-      const wa = phone ? ("https://wa.me/" + phone + "?text=" + encodeURIComponent(msg)) : ("https://wa.me/?text=" + encodeURIComponent(msg));
-      window.open(wa, "_blank", "noopener,noreferrer");
-    }
+      function renderTable(){
+        const filtered = filteredPeriodData();
+        const tbody = $("tableBody");
 
+        if(!filtered.length){
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px;">Aucun encaissement</td></tr>';
+          return;
+        }
 
-    proofList.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-action]");
-      if (!btn) return;
+        tbody.innerHTML = filtered.map(row => {
+          const date = formatDate(row.created_at);
+          const nom = [row.prenom, row.nom].filter(Boolean).join(" ") || "—";
+          const statut = String(row.statut || "—").toUpperCase();
 
-      const action = btn.getAttribute("data-action");
-      const ref = btn.getAttribute("data-ref") || "";
+          let badgeClass = "badge";
+          if(["CONFIRME","ACTIF"].includes(statut)) badgeClass += " ok";
+          else if(statut === "EN_ATTENTE" || statut === "WAVE_RECU") badgeClass += " warn";
+          else if(statut === "ANNULE") badgeClass += " bad";
 
-      if (action === "confirm") validateProof(ref, "confirmed");
-      if (action === "reject") validateProof(ref, "rejected");
-    });
+          let slugDisplay = "—";
+          if(row.slug){
+            slugDisplay = `
+              <div class="slug-display">${row.slug}</div>
+              ${extractPossibleUrl(row) ? `<div class="url-display">${extractPossibleUrl(row)}</div>` : ""}
+            `;
+          }
 
-    loginBtn.addEventListener("click", doLogin);
-    checkBtn.addEventListener("click", async () => {
-      const ok = await checkSession();
-      if (ok) await refreshProofs();
-    });
-    logoutBtn.addEventListener("click", doLogout);
-    healthBtn.addEventListener("click", checkHealth);
-    rpcBtn.addEventListener("click", callRPC);
-    rpcClearBtn.addEventListener("click", () => {
-      rpcName.value = "";
-      rpcArgs.value = "{}";
-      kRPC.textContent = "0";
-      log("Formulaire RPC vidé. La file des preuves n’est pas supprimée.");
-    });
-    subscriberGenerateBtn?.addEventListener("click", renderSubscriberLink);
-    subscriberCopyBtn?.addEventListener("click", copySubscriberLink);
-    subscriberWaBtn?.addEventListener("click", openSubscriberWhatsapp);
+          let actions = "—";
 
-    proofRefreshBtn.addEventListener("click", refreshProofs);
-    hideLegacyTestsBtn?.addEventListener("click", async () => {
-      hideLegacyTests = !hideLegacyTests;
-      localStorage.setItem(HIDE_LEGACY_TESTS_KEY, hideLegacyTests ? "1" : "0");
-      updateHideLegacyButton();
-      log(hideLegacyTests ? "TESTS PAY MASQUÉS côté interface." : "TESTS PAY RÉAFFICHÉS côté interface.");
-      await refreshProofs();
-    });
-    logClearBtn?.addEventListener("click", () => {
-      logBox.textContent = "Journal vidé côté interface. Les preuves en base ne sont pas supprimées.";
-    });
-    proofStatus.addEventListener("change", refreshProofs);
-    proofLimit.addEventListener("change", refreshProofs);
+          if(statut === "EN_ATTENTE" || statut === "WAVE_RECU"){
+            actions = `
+              <div class="btn-group">
+                <button class="btn ok" data-action="confirm" data-id="${row.id}" data-name="${encodeURIComponent(nom)}">
+                  ✅ Confirmer
+                </button>
+              </div>
+            `;
+          } else if(statut === "CONFIRME" && !row.slug){
+            actions = `
+              <div class="btn-group">
+                <button class="btn gold" data-action="activate" data-id="${row.id}" data-name="${encodeURIComponent(nom)}">
+                  🚀 Activer
+                </button>
+              </div>
+            `;
+          } else if((statut === "ACTIF" || statut === "CONFIRME") && row.slug){
+            actions = `
+              <div class="btn-group">
+                <button class="btn warn" data-action="wa" data-id="${row.id}">
+                  📱 WhatsApp
+                </button>
+              </div>
+            `;
+          }
 
-    pinInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doLogin();
-    });
-
-    (async function boot(){
-      rpcArgs.value = "{}";
-      rpcName.value = RPC_NAMES.listProofs;
-      updateHideLegacyButton();
-      renderSession();
-      await checkHealth();
-      if (isProbablyLoggedIn()){
-        const ok = await checkSession();
-        if (ok) await refreshProofs();
+          return `
+            <tr>
+              <td>${date}</td>
+              <td><b>${nom}</b></td>
+              <td class="mono">${row.phone || "—"}</td>
+              <td><b>${moduleLabel(row.module)}</b></td>
+              <td class="small">${row.plan || "—"}</td>
+              <td><b>${fmt(row.montant)} F</b></td>
+              <td><span class="${badgeClass}">${statut}</span></td>
+              <td>${slugDisplay}</td>
+              <td>${actions}</td>
+            </tr>
+          `;
+        }).join("");
       }
+
+      function renderCharts(){
+        const filtered = filteredPeriodData();
+
+        const moduleData = {};
+        filtered.forEach(row => {
+          const m = moduleLabel(row.module);
+          moduleData[m] = (moduleData[m] || 0) + Number(row.montant || 0);
+        });
+
+        const moduleLabels = Object.keys(moduleData);
+        const moduleValues = Object.values(moduleData);
+
+        if(chartModules) chartModules.destroy();
+        chartModules = new Chart($("chartModules"), {
+          type: "doughnut",
+          data: {
+            labels: moduleLabels,
+            datasets: [{
+              data: moduleValues,
+              backgroundColor: ["#22c55e","#facc15","#f59e0b","#ef4444","#3b82f6","#8b5cf6","#ec4899","#06b6d4","#14b8a6","#a855f7"]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "bottom", labels: { color: "#eafff1" } }
+            }
+          }
+        });
+
+        const timelineData = {};
+        filtered.forEach(row => {
+          const date = formatDate(row.created_at);
+          timelineData[date] = (timelineData[date] || 0) + Number(row.montant || 0);
+        });
+
+        const timelineLabels = Object.keys(timelineData).slice(-14);
+        const timelineValues = timelineLabels.map(d => timelineData[d] || 0);
+
+        if(chartTimeline) chartTimeline.destroy();
+        chartTimeline = new Chart($("chartTimeline"), {
+          type: "line",
+          data: {
+            labels: timelineLabels,
+            datasets: [{
+              label: "Encaissements (F CFA)",
+              data: timelineValues,
+              borderColor: "#22c55e",
+              backgroundColor: "rgba(34,197,94,0.1)",
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: "#eafff1" } }
+            },
+            scales: {
+              x: { ticks: { color: "#eafff1" }, grid: { color: "rgba(255,255,255,0.1)" } },
+              y: { ticks: { color: "#eafff1" }, grid: { color: "rgba(255,255,255,0.1)" } }
+            }
+          }
+        });
+      }
+
+      function renderModuleStats(){
+        const filtered = filteredPeriodData();
+        const moduleStats = {};
+
+        filtered.forEach(row => {
+          const m = moduleLabel(row.module);
+          if(!moduleStats[m]){
+            moduleStats[m] = { count: 0, total: 0, actifs: 0 };
+          }
+          moduleStats[m].count++;
+          moduleStats[m].total += Number(row.montant || 0);
+          if(["CONFIRME","ACTIF"].includes(String(row.statut || "").toUpperCase())) moduleStats[m].actifs++;
+        });
+
+        const html = Object.entries(moduleStats).map(([module, stats]) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--line); border-radius:12px; margin:8px 0; gap:12px; flex-wrap:wrap;">
+            <div>
+              <b style="font-size:16px;">${module}</b>
+              <div class="small">${stats.count} abonnement(s) · ${stats.actifs} actif(s)</div>
+            </div>
+            <div style="text-align:right;">
+              <b style="font-size:20px; color:var(--gold);">${fmt(stats.total)} F</b>
+              <div class="small">Moyenne: ${fmt(stats.total / (stats.count || 1))} F</div>
+            </div>
+          </div>
+        `).join("");
+
+        $("moduleStats").innerHTML = html || '<p class="small">Aucune donnée</p>';
+      }
+
+      $("tableBody").addEventListener("click", async function(e){
+        const btn = e.target.closest("button[data-action]");
+        if(!btn) return;
+
+        const action = btn.dataset.action;
+        const id = btn.dataset.id || "";
+        const name = decodeURIComponent(btn.dataset.name || "");
+
+        if(action === "confirm"){
+          await confirmerPaiement(id, name);
+        } else if(action === "activate"){
+          await activerModule(id, name);
+        } else if(action === "wa"){
+          await envoyerWhatsApp(id);
+        }
+      });
+
+      $("btnRefresh").onclick = loadData;
+      $("filterStatut").onchange = renderAll;
+      $("filterModule").onchange = renderAll;
+      $("filterPeriode").onchange = loadData;
+
+      $("btnLogout").onclick = function(){
+        clearCaisseSession();
+        location.reload();
+      };
+
+      $("btnBackGate").onclick = function(){
+        if(document.referrer){
+          history.back();
+        } else {
+          location.href = safeUrl(qp.get("return")) || "./index.html";
+        }
+      };
+
+      $("btnGoIndexGate").onclick = function(){
+        location.href = "./index.html";
+      };
+
+      const caisseSession = loadCaisseSession();
+      if(caisseSession){
+        showDashboard(caisseSession);
+      } else {
+        showGate();
+      }
+
+      setTimeout(function(){
+        try{
+          const gate = $("sessionBox");
+          const dash = $("dashboard");
+          if(gate && dash && gate.style.display === "none" && dash.style.display === "none"){
+            gate.style.display = "block";
+          }
+        }catch(_){}
+      }, 300);
+
     })();
   </script>
 </body>
 </html>
+
 
 
 
