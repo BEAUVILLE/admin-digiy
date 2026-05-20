@@ -547,42 +547,7 @@
             </div>
           </div>
 
-          <div class="panel stack">
-            <div>
-              <strong>ABO — File d’attente des preuves</strong>
-              <div class="mini" style="margin-top:6px">
-                Ici tu vois les preuves d’abonnement DIGIY. Le lien privé généré contient le module, le téléphone et le slug de l’abonné.
-              </div>
-            </div>
 
-            <div class="queue-toolbar">
-              <label>
-                Filtre statut
-                <select id="proofStatus">
-                  <option value="" selected>Toutes</option>
-                  <option value="pending_proof">En attente de preuve</option>
-                  <option value="confirmed">Confirmées</option>
-                  <option value="rejected">Refusées</option>
-                </select>
-              </label>
-
-              <label style="max-width:160px">
-                Limite
-                <select id="proofLimit">
-                  <option value="20">20</option>
-                  <option value="50" selected>50</option>
-                  <option value="100">100</option>
-                </select>
-              </label>
-
-              <button id="proofRefreshBtn" class="btn btn-primary">🔄 Recharger la file</button>
-              <button id="hideLegacyTestsBtn" class="btn btn-dark" type="button">🧹 Masquer tests PAY</button>
-            </div>
-
-            <div id="proofList" class="proof-list">
-              <div class="proof-empty">Aucune preuve chargée pour le moment. Le filtre démarre maintenant sur Toutes.</div>
-            </div>
-          </div>
 
 
           <div class="panel stack subscriber-link-box">
@@ -633,6 +598,43 @@
             </div>
           </div>
 
+
+          <div class="panel stack">
+            <div>
+              <strong>ABO — File d’attente des preuves</strong>
+              <div class="mini" style="margin-top:6px">
+                Ici tu vois les preuves utiles d’abonnement DIGIY. Les anciens tests PAY rejetés sont masqués par défaut pour garder l’admin propre. Le lien privé généré contient le module, le téléphone et le slug de l’abonné.
+              </div>
+            </div>
+
+            <div class="queue-toolbar">
+              <label>
+                Filtre statut
+                <select id="proofStatus">
+                  <option value="" selected>Toutes</option>
+                  <option value="pending_proof">En attente de preuve</option>
+                  <option value="confirmed">Confirmées</option>
+                  <option value="rejected">Refusées</option>
+                </select>
+              </label>
+
+              <label style="max-width:160px">
+                Limite
+                <select id="proofLimit">
+                  <option value="20">20</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+
+              <button id="proofRefreshBtn" class="btn btn-primary">🔄 Recharger la file</button>
+              <button id="hideLegacyTestsBtn" class="btn btn-dark" type="button">🧹 Masquer tests PAY</button>
+            </div>
+
+            <div id="proofList" class="proof-list">
+              <div class="proof-empty">Aucune preuve chargée pour le moment. Le filtre démarre maintenant sur Toutes.</div>
+            </div>
+          </div>
 
           <div class="panel stack">
             <div>
@@ -747,7 +749,7 @@
 
     let LAST_PROOF_ITEMS = [];
     const HIDE_LEGACY_TESTS_KEY = "digiy_admin_hide_legacy_pay_tests";
-    let hideLegacyTests = localStorage.getItem(HIDE_LEGACY_TESTS_KEY) === "1";
+    let hideLegacyTests = localStorage.getItem(HIDE_LEGACY_TESTS_KEY) !== "0";
 
     function log(...parts){
       const line = parts.map(v => {
@@ -1220,7 +1222,7 @@
 
     function updateHideLegacyButton(){
       if (!hideLegacyTestsBtn) return;
-      hideLegacyTestsBtn.textContent = hideLegacyTests ? "👁️ Afficher tests PAY" : "🧹 Masquer tests PAY";
+      hideLegacyTestsBtn.textContent = hideLegacyTests ? "👁️ Afficher anciens tests" : "🧹 Masquer anciens tests";
       hideLegacyTestsBtn.className = hideLegacyTests ? "btn btn-gold" : "btn btn-dark";
     }
 
@@ -1351,7 +1353,7 @@
           if (rawItems.length && !items.length){
             proofList.innerHTML =
               '<div class="proof-empty" style="text-align:left">' +
-              '<strong>Tests PAY masqués.</strong><br>' +
+              '<strong>Anciens tests PAY masqués.</strong><br>' +
               'Les anciennes preuves de test existent encore dans la base, mais elles sont cachées côté interface. ' +
               'Pour les supprimer définitivement, il faut une RPC backend de purge/archive.' +
               '</div>';
@@ -1559,5 +1561,6 @@
   </script>
 </body>
 </html>
+
 
 
