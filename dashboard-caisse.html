@@ -692,7 +692,9 @@
             return;
           }
 
-          const sourceRow = allData.find(r => String(r.id) === String(id)) || {};\n          const hubUrl = buildPrivateAccessUrl({ ...sourceRow, ...data, module: data.module || data.resolved_module || sourceRow.module });\n          alert(`✅ Module activé !\n\nSlug: ${data.slug || "—"}\nHUB module: ${hubUrl || "—"}`);
+          const sourceRow = allData.find(r => String(r.id) === String(id)) || {};
+          const hubUrl = buildPrivateAccessUrl({ ...sourceRow, ...data, module: data.module || data.resolved_module || sourceRow.module });
+          alert(`✅ Module activé !\n\nSlug: ${data.slug || "—"}\nHUB module: ${hubUrl || "—"}`);
           loadData();
         }catch(e){
           alert("❌ Erreur: " + e.message);
@@ -716,9 +718,6 @@
           const u = safeUrl(c);
           if(u) return u;
         }
-
-        return "";
-      }
 
         return "";
       }
@@ -978,27 +977,27 @@ DIGIYLYFE • Made in Sénégal 🇸🇳
         }
       });
 
-      $("btnRefresh").onclick = loadData;
-      $("filterStatut").onchange = renderAll;
-      $("filterModule").onchange = renderAll;
-      $("filterPeriode").onchange = loadData;
+      $("btnRefresh") && ($("btnRefresh").onclick = loadData);
+      $("filterStatut") && ($("filterStatut").onchange = renderAll);
+      $("filterModule") && ($("filterModule").onchange = renderAll);
+      $("filterPeriode") && ($("filterPeriode").onchange = loadData);
 
-      $("btnLogout").onclick = function(){
+      $("btnLogout") && ($("btnLogout").onclick = function(){
         clearCaisseSession();
         location.reload();
-      };
+      });
 
-      $("btnBackGate").onclick = function(){
+      $("btnBackGate") && ($("btnBackGate").onclick = function(){
         if(document.referrer){
           history.back();
         } else {
           location.href = safeUrl(qp.get("return")) || "./index.html";
         }
-      };
+      });
 
-      $("btnGoIndexGate").onclick = function(){
+      $("btnGoIndexGate") && ($("btnGoIndexGate").onclick = function(){
         location.href = "./index.html";
-      };
+      });
 
 
       async function loginCaisseWithPin(){
@@ -1078,4 +1077,5 @@ DIGIYLYFE • Made in Sénégal 🇸🇳
   </script>
 </body>
 </html>
+
 
