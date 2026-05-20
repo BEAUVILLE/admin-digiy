@@ -517,7 +517,7 @@
             </div>
             <div class="nav-card">
               <h3>🚀 Prochain cran</h3>
-              <p>Valider les preuves PAY en 1 clic depuis ce cockpit, puis brancher ensuite les autres wagons admin : abonnés, support, supervision.</p>
+              <p>Valider les preuves d’abonnement en 1 clic depuis ce cockpit, puis brancher ensuite les autres wagons admin : abonnés, support, supervision.</p>
             </div>
           </div>
 
@@ -533,10 +533,10 @@
               <label>
                 Filtre statut
                 <select id="proofStatus">
+                  <option value="" selected>Toutes</option>
                   <option value="pending_proof">En attente de preuve</option>
                   <option value="confirmed">Confirmées</option>
                   <option value="rejected">Refusées</option>
-                  <option value="">Toutes</option>
                 </select>
               </label>
 
@@ -553,7 +553,7 @@
             </div>
 
             <div id="proofList" class="proof-list">
-              <div class="proof-empty">Aucune preuve chargée pour le moment.</div>
+              <div class="proof-empty">Aucune preuve chargée pour le moment. Le filtre démarre maintenant sur Toutes.</div>
             </div>
           </div>
 
@@ -1076,13 +1076,29 @@
       return [];
     }
 
+    function proofLooksLegacyPay(item){
+      const ref = String(item?.ref || "").toUpperCase();
+      const code = String(item?.code || "").toUpperCase();
+      const slug = String(item?.slug || "").toLowerCase();
+      return ref.startsWith("PAY-") && slug.startsWith("pay-") && !/^9[A-Z]?/.test(code);
+    }
+
     function renderProofs(items){
       if (!Array.isArray(items) || !items.length){
         proofList.innerHTML = '<div class="proof-empty">Aucune preuve abonnement dans cette file pour le moment.</div>';
         return;
       }
 
-      proofList.innerHTML = items.map((item) => {
+      const legacyCount = items.filter(proofLooksLegacyPay).length;
+      const legacyNotice = legacyCount
+        ? `<div class="proof-empty" style="text-align:left;border-color:rgba(250,204,21,.28);background:rgba(250,204,21,.06)">
+             <strong>Ancien flux PAY détecté.</strong><br>
+             ${legacyCount} preuve(s) viennent encore de l’ancien circuit PAY avec slug <span class="mono">pay-...</span>.
+             Les nouveaux abonnements module doivent arriver avec refs du type <span class="mono">DRIVER-...</span>, <span class="mono">LOC-...</span>, <span class="mono">RESA-...</span>.
+           </div>`
+        : "";
+
+      proofList.innerHTML = legacyNotice + items.map((item) => {
         const [tone, label] = getStatusTone(item.status);
         const moduleCode = inferModuleFromItem(item);
         const cockpitUrl = buildCockpitUrl(item);
@@ -1172,9 +1188,21 @@
 
         let items = pickProofItems(data);
 
+        const rawItems = items.slice();
         const wantedStatus = String(proofStatus.value || "").trim();
         if (wantedStatus){
           items = items.filter((item) => String(item.status || "").toLowerCase() === wantedStatus.toLowerCase());
+        }
+
+        if (wantedStatus && rawItems.length && !items.length){
+          proofList.innerHTML =
+            '<div class="proof-empty" style="text-align:left">' +
+            '<strong>Aucune preuve avec ce statut.</strong><br>' +
+            'Le backend a renvoyé ' + rawItems.length + ' preuve(s), mais aucune en statut <span class="mono">' +
+            escapeHtml(wantedStatus) + '</span>. Passe le filtre sur <strong>Toutes</strong> pour les voir.' +
+            '</div>';
+          LAST_PROOF_ITEMS = [];
+          return;
         }
 
         const limit = Number(proofLimit.value || 50);
