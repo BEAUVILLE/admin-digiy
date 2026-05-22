@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DIGIY — Activations</title>
+<title>DIGIY — Activations · RÉSEAU DIGIY</title>
 <meta name="theme-color" content="#0a0e1a" />
 
 <style>
@@ -150,7 +150,8 @@ a{
   line-height:1.45;
 }
 
-.posBox{
+.posBox,
+.reseauBox{
   display:none;
   margin-top:16px;
   border:1px solid rgba(34,197,94,.28);
@@ -159,11 +160,13 @@ a{
   padding:14px;
 }
 
-.posBox.show{
+.posBox.show,
+.reseauBox.show{
   display:block;
 }
 
-.posTitle{
+.posTitle,
+.reseauTitle{
   font-weight:950;
   color:#bbf7d0;
   font-size:1.05rem;
@@ -234,6 +237,7 @@ a{
           <option value="BUILD">BUILD</option>
           <option value="EXPLORE">EXPLORE</option>
           <option value="PAY">PAY</option>
+          <option value="RESEAU_DIGIY">RÉSEAU DIGIY · COM AU CLIC</option>
         </select>
       </div>
     </div>
@@ -246,6 +250,10 @@ a{
           <option value="pro">pro</option>
           <option value="commerce-duo">commerce-duo</option>
           <option value="pos-simple">pos-simple</option>
+          <option value="reseau_7j">RÉSEAU · 7 jours · 15 000</option>
+          <option value="reseau_15j">RÉSEAU · 15 jours · 25 000</option>
+          <option value="reseau_30j">RÉSEAU · 30 jours · 45 000</option>
+          <option value="reseau_first">RÉSEAU · Mise en classe FIRST · 150 000</option>
         </select>
       </div>
 
@@ -296,6 +304,30 @@ a{
       <div class="codeBox" id="posOutput"></div>
     </div>
 
+    <div class="reseauBox" id="reseauBox">
+      <div class="reseauTitle">📣 RÉSEAU DIGIY · COM AU CLIC</div>
+      <div class="small">
+        Publication qualifiée : pro DIGIY validé ou Mise en classe FIRST.
+        PAY garde la preuve, ADMIN active, RÉSEAU affiche seulement ce qui est validé.
+      </div>
+
+      <div class="notice">
+        Formules officielles : 7 jours · 15 000 FCFA / 15 jours · 25 000 FCFA /
+        30 jours · 45 000 FCFA / FIRST · 150 000 FCFA · 1 mois.
+      </div>
+
+      <div class="rowBtns">
+        <button id="reseau7" class="btn secondary" type="button">7j · 15 000</button>
+        <button id="reseau15" class="btn secondary" type="button">15j · 25 000</button>
+        <button id="reseau30" class="btn secondary" type="button">30j · 45 000</button>
+        <button id="reseauFirst" class="btn green" type="button">FIRST · 150 000</button>
+      </div>
+
+      <div class="small" id="reseauSummary">
+        Choisis une formule. Le montant et la note admin seront préparés automatiquement.
+      </div>
+    </div>
+
     <button id="go" class="btn">✅ Activer via backend</button>
 
     <div class="msg" id="msg"></div>
@@ -322,6 +354,33 @@ a{
   const PRO_BASE = "https://commerce-pro.digiylyfe.com";
   const PUBLIC_BASE = "https://mon-commerce.digiylyfe.com";
   const PAY_BASE = "https://commencer-a-payer.digiylyfe.com";
+
+  const RESEAU_PLANS = {
+    reseau_7j: {
+      label: "RÉSEAU DIGIY · 7 jours",
+      amount: 15000,
+      days: 7,
+      note: "RÉSEAU DIGIY · 7 jours · 15 000 FCFA · preuve à vérifier"
+    },
+    reseau_15j: {
+      label: "RÉSEAU DIGIY · 15 jours",
+      amount: 25000,
+      days: 15,
+      note: "RÉSEAU DIGIY · 15 jours · 25 000 FCFA · preuve à vérifier"
+    },
+    reseau_30j: {
+      label: "RÉSEAU DIGIY · 30 jours",
+      amount: 45000,
+      days: 30,
+      note: "RÉSEAU DIGIY · 30 jours · 45 000 FCFA · preuve à vérifier"
+    },
+    reseau_first: {
+      label: "RÉSEAU DIGIY · Mise en classe FIRST",
+      amount: 150000,
+      days: 30,
+      note: "RÉSEAU DIGIY · Mise en classe FIRST · 150 000 FCFA · 1 mois · qualification + fiche + QR + lien + messages"
+    }
+  };
 
   const $ = (id) => document.getElementById(id);
 
@@ -363,9 +422,62 @@ a{
     return u.toString();
   }
 
+  function isReseau(){
+    return $("module").value === "RESEAU_DIGIY";
+  }
+
+  function setReseauPlan(planCode){
+    const info = RESEAU_PLANS[planCode] || RESEAU_PLANS.reseau_7j;
+    $("module").value = "RESEAU_DIGIY";
+    $("plan").value = planCode;
+    $("amount").value = String(info.amount);
+
+    const note = $("note").value.trim();
+    const suffix = info.note;
+    if(!note || note.indexOf("RÉSEAU DIGIY") === -1){
+      $("note").value = suffix;
+    }
+
+    refreshModuleUI();
+  }
+
+  function refreshReseauSummary(){
+    const box = $("reseauSummary");
+    if(!box) return;
+
+    const info = RESEAU_PLANS[$("plan").value];
+    if(!isReseau() || !info){
+      box.textContent = "Choisis une formule. Le montant et la note admin seront préparés automatiquement.";
+      return;
+    }
+
+    box.textContent = info.label + " · " + info.amount.toLocaleString("fr-FR") + " FCFA · " + info.days + " jours visibles.";
+  }
+
   function refreshModuleUI(){
     const isPOS = $("module").value === "POS";
     $("posBox").classList.toggle("show", isPOS);
+
+    const reseau = isReseau();
+    $("reseauBox").classList.toggle("show", reseau);
+
+    if(reseau){
+      const plan = $("plan").value;
+      if(!RESEAU_PLANS[plan]){
+        $("plan").value = "reseau_7j";
+      }
+
+      const info = RESEAU_PLANS[$("plan").value];
+      if(info && (!$("amount").value || Number($("amount").value) < 100)){
+        $("amount").value = String(info.amount);
+      }
+
+      if(info && !$("note").value.trim()){
+        $("note").value = info.note;
+      }
+    }
+
+    refreshReseauSummary();
   }
 
   function preparePOSDossier(){
@@ -511,7 +623,7 @@ Le terrain garde la main.`;
 
     const phone  = (qp.get("phone")  || qp.get("tel") || "").trim();
     const module = (qp.get("module") || "").trim().toUpperCase();
-    const plan   = (qp.get("plan")   || "").trim().toLowerCase();
+    let plan   = (qp.get("plan")   || "").trim().toLowerCase().replace(/-/g, "_");
     const amount = (qp.get("amount") || qp.get("amount_xof") || "").trim();
     const note   = (qp.get("note")   || qp.get("payment_ref") || qp.get("ref") || "").trim();
 
@@ -556,6 +668,12 @@ Le terrain garde la main.`;
   if (!token) return;
 
   $("module").addEventListener("change", refreshModuleUI);
+  $("plan").addEventListener("change", refreshModuleUI);
+
+  $("reseau7").addEventListener("click", () => setReseauPlan("reseau_7j"));
+  $("reseau15").addEventListener("click", () => setReseauPlan("reseau_15j"));
+  $("reseau30").addEventListener("click", () => setReseauPlan("reseau_30j"));
+  $("reseauFirst").addEventListener("click", () => setReseauPlan("reseau_first"));
 
   $("phone").addEventListener("input", () => {
     $("phone").value = digits($("phone").value);
@@ -582,6 +700,22 @@ Le terrain garde la main.`;
     setMsg("⏳ Activation...", "#facc15");
 
     try {
+      const payload = {
+        phone,
+        module,
+        plan,
+        amount_xof: amount,
+        note,
+        payment_ref: note
+      };
+
+      if(module === "RESEAU_DIGIY"){
+        const info = RESEAU_PLANS[plan] || null;
+        payload.reseau_digiy = true;
+        payload.duration_days = info ? info.days : 7;
+        payload.activation_scope = plan === "reseau_first" ? "first" : "validated_pro_visibility";
+      }
+
       const r = await fetch(BACKEND + "/api/admin/activate", {
         method: "POST",
         headers: {
@@ -589,14 +723,7 @@ Le terrain garde la main.`;
           "Authorization": `Bearer ${token}`
         },
         credentials: "include",
-        body: JSON.stringify({
-          phone,
-          module,
-          plan,
-          amount_xof: amount,
-          note,
-          payment_ref: note
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await r.json().catch(() => ({ ok: false, error: "bad_json" }));
@@ -609,7 +736,12 @@ Le terrain garde la main.`;
       }
 
       if (!r.ok || !data.ok) {
-        setMsg("❌ " + (data.error || `Erreur (${r.status})`), "red");
+        const err = data.error || `Erreur (${r.status})`;
+        if(String(err).includes("supabase_rpc_http_404")){
+          setMsg("❌ RPC Supabase introuvable pour ce module/plan. Le front est prêt : il faut poser ou autoriser la RPC côté backend/Supabase.", "red");
+        }else{
+          setMsg("❌ " + err, "red");
+        }
         btn.disabled = false;
         return;
       }
@@ -627,3 +759,4 @@ Le terrain garde la main.`;
 
 </body>
 </html>
+
