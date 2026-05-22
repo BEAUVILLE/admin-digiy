@@ -1,7 +1,7 @@
 // digiy_admin_backend.ts
 // ============================================
 // DIGIY ADMIN BACKEND - Deno
-// version recousue propre
+// version recousue propre · RÉSEAU DIGIY activation route
 // ============================================
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -441,6 +441,7 @@ async function handleRPC(req: Request, pathname: string): Promise<Response> {
 }
 
 // --- ACTIVATE (route manuelle admin) ---
+// PAY garde le mouvement. ADMIN valide la preuve. RÉSEAU affiche seulement ce qui est activé.
 async function handleActivate(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return json({ ok: false, error: "POST_only" }, 405);
@@ -452,18 +453,69 @@ async function handleActivate(req: Request): Promise<Response> {
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
 
+    const module = String(body.module || "").trim().toUpperCase();
+    const plan = String(body.plan || "").trim().toLowerCase().replaceAll("-", "_");
+    const phone = String(body.phone || "").replace(/[^\d]/g, "");
+    const amountXof = Number(body.amount_xof || 0);
+    const note = String(body.note || "").trim();
+    const paymentRef = String(body.payment_ref || note || "").trim();
+
+    if (!phone || phone.length < 9) {
+      return json({ ok: false, error: "invalid_phone" }, 400);
+    }
+
+    if (!amountXof || amountXof < 100) {
+      return json({ ok: false, error: "invalid_amount_xof" }, 400);
+    }
+
+    // RÉSEAU DIGIY a son rail propre :
+    // 7j = 15k, 15j = 25k, 30j = 45k, FIRST = 150k.
+    // On ne force pas l'ancien RPC abonnement à deviner ce nouveau module.
+    if (module === "RESEAU_DIGIY") {
+      const rpcRes = await callSupabaseRPC("digiy_admin_activate_reseau_digiy", {
+        p_token: auth.session.adminId,
+        p_phone: phone,
+        p_plan: plan,
+        p_amount_xof: amountXof,
+        p_note: note,
+        p_payment_ref: paymentRef,
+        p_duration_days: body.duration_days,
+        p_activation_scope: body.activation_scope,
+      }, true);
+
+      if (rpcRes.error) {
+        return json({
+          ok: false,
+          error: rpcRes.error,
+          rpc: "digiy_admin_activate_reseau_digiy",
+          hint: rpcRes.error === "supabase_rpc_http_404"
+            ? "La RPC RÉSEAU DIGIY n'est pas encore posée dans Supabase. Pose le SQL digiy_admin_activate_reseau_digiy."
+            : "Erreur Supabase pendant l'activation RÉSEAU DIGIY.",
+          data: rpcRes.data ?? null,
+        }, 500);
+      }
+
+      return json(rpcRes.data ?? { ok: true, module: "RESEAU_DIGIY" });
+    }
+
+    // Modules historiques : on garde le rail existant.
     const rpcRes = await callSupabaseRPC("digiy_admin_activate_subscription", {
       p_token: auth.session.adminId,
-      p_phone: body.phone,
-      p_module: body.module,
-      p_plan: body.plan,
-      p_amount_xof: body.amount_xof,
-      p_note: body.note,
-      p_payment_ref: body.payment_ref,
+      p_phone: phone,
+      p_module: module || body.module,
+      p_plan: plan || body.plan,
+      p_amount_xof: amountXof,
+      p_note: note,
+      p_payment_ref: paymentRef,
     }, true);
 
     if (rpcRes.error) {
-      return json({ ok: false, error: rpcRes.error }, 500);
+      return json({
+        ok: false,
+        error: rpcRes.error,
+        rpc: "digiy_admin_activate_subscription",
+        data: rpcRes.data ?? null,
+      }, 500);
     }
 
     return json(rpcRes.data ?? { ok: true });
