@@ -421,6 +421,32 @@
       text-underline-offset:3px;
     }
 
+
+    .nav-card-link{
+      display:block;
+      transition:.18s ease;
+    }
+
+    .nav-card-link:hover{
+      transform:translateY(-2px);
+      border-color:rgba(250,204,21,.35);
+      background:rgba(250,204,21,.06);
+    }
+
+    .activation-card{
+      border-color:rgba(250,204,21,.28);
+      background:
+        radial-gradient(circle at top right, rgba(250,204,21,.12), transparent 42%),
+        rgba(255,255,255,.035);
+    }
+
+    .activation-box{
+      border-color:rgba(250,204,21,.25);
+      background:
+        radial-gradient(circle at top right, rgba(250,204,21,.10), transparent 38%),
+        rgba(250,204,21,.045);
+    }
+
     .footer-note{
       margin-top:16px;
       color:var(--soft);
@@ -445,6 +471,7 @@
         <div class="chip"><span class="dot ok"></span> /health opérationnel</div>
         <div class="chip"><span class="dot ok"></span> PIN + JWT branchés</div>
         <div class="chip"><span class="dot ok"></span> File abonnements prête</div>
+        <a class="chip" href="./activations.html"><span class="dot ok"></span> 🔑 Activations</a>
 
       </div>
     </section>
@@ -499,6 +526,7 @@
               <br><span class="mono">POST /api/admin/login</span>
               <br><span class="mono">GET /api/admin/check</span>
               <br><span class="mono">POST /api/admin/logout</span>
+              <br><span class="mono">POST /api/admin/activate</span>
               <br><span class="mono">POST /api/rpc/:rpcName</span>
             </div>
           </div>
@@ -534,6 +562,10 @@
           </div>
 
           <div class="nav-cards">
+            <a class="nav-card nav-card-link activation-card" href="./activations.html">
+              <h3>🔑 Activations</h3>
+              <p>Ouvrir la page qui active les modules via backend : PAY, POS, RÉSEAU DIGIY et les autres portes validées.</p>
+            </a>
             <div class="nav-card">
               <h3>🧠 État du terrain</h3>
               <p>Le backend admin est stable, le rail auth est posé, la passerelle RPC marche, et la file abonnements évite désormais le SQL manuel.</p>
@@ -544,11 +576,32 @@
             </div>
             <div class="nav-card">
               <h3>🚀 Prochain cran</h3>
-              <p>Valider les preuves d’abonnement en 1 clic depuis ce cockpit, puis brancher ensuite les autres wagons admin : abonnés, support, supervision.</p>
+              <p>Valider les preuves d’abonnement en 1 clic, puis brancher les autres wagons admin : abonnés, support, supervision.</p>
             </div>
           </div>
 
 
+
+
+          <div class="panel stack activation-box">
+            <div>
+              <strong>🔑 Activations manuelles</strong>
+              <div class="mini" style="margin-top:6px">
+                Ici on ouvre la page d’activation finale. PAY peut garder le mouvement, mais ADMIN valide l’accès.
+                Pour RÉSEAU DIGIY : 7j / 15j / 30j / FIRST.
+              </div>
+            </div>
+
+            <div class="row">
+              <a class="btn btn-gold" href="./activations.html">🔑 Ouvrir activations</a>
+              <button id="activationReseau7Btn" class="btn btn-primary" type="button">📣 RÉSEAU 7j</button>
+              <button id="activationReseauFirstBtn" class="btn btn-dark" type="button">👑 FIRST</button>
+            </div>
+
+            <div class="mini">
+              Les boutons RÉSEAU utilisent le téléphone abonné si tu l’as rempli plus bas. Sinon ils ouvrent la page propre et tu complètes.
+            </div>
+          </div>
 
 
           <div class="panel stack subscriber-link-box">
@@ -718,6 +771,8 @@
     const subscriberCopyBtn = $("subscriberCopyBtn");
     const subscriberWaBtn = $("subscriberWaBtn");
     const subscriberLinkOut = $("subscriberLinkOut");
+    const activationReseau7Btn = $("activationReseau7Btn");
+    const activationReseauFirstBtn = $("activationReseauFirstBtn");
 
     const loginBox = $("loginBox");
     const sessionBox = $("sessionBox");
@@ -855,7 +910,8 @@
       BUILD: "https://pro-build.digiylyfe.com/hub.html",
       EXPLORE: "https://pro-explore.digiylyfe.com/hub.html",
       PAY: "https://pro-pay.digiylyfe.com/hub.html",
-      JOBS: "https://pro-job.digiylyfe.com/hub.html"
+      JOBS: "https://pro-job.digiylyfe.com/hub.html",
+      RESEAU_DIGIY: "https://reseau-digiy.digiylyfe.com/hub.html"
     };
 
     function inferModuleFromItem(item){
@@ -1484,6 +1540,30 @@
       }
     }
 
+    function buildActivationUrl(params){
+      const u = new URL("./activations.html", location.href);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        const val = String(value || "").trim();
+        if(val) u.searchParams.set(key, val);
+      });
+      return u.toString();
+    }
+
+    function openReseauActivation(plan, amount){
+      const phone = String(subscriberPhone?.value || "").replace(/\D/g,"");
+      const params = {
+        module: "RESEAU_DIGIY",
+        plan,
+        amount: String(amount),
+        note: plan === "reseau_first"
+          ? "RÉSEAU DIGIY · Mise en classe FIRST · 150 000 FCFA · 1 mois"
+          : "RÉSEAU DIGIY · 7 jours · 15 000 FCFA"
+      };
+      if(phone) params.phone = phone;
+      window.location.href = buildActivationUrl(params);
+    }
+
+
     function openSubscriberWhatsapp(){
       const url = renderSubscriberLink();
       if (!url) return;
@@ -1529,6 +1609,8 @@
     subscriberGenerateBtn?.addEventListener("click", renderSubscriberLink);
     subscriberCopyBtn?.addEventListener("click", copySubscriberLink);
     subscriberWaBtn?.addEventListener("click", openSubscriberWhatsapp);
+    activationReseau7Btn?.addEventListener("click", () => openReseauActivation("reseau_7j", 15000));
+    activationReseauFirstBtn?.addEventListener("click", () => openReseauActivation("reseau_first", 150000));
 
     proofRefreshBtn.addEventListener("click", refreshProofs);
     hideLegacyTestsBtn?.addEventListener("click", async () => {
@@ -1562,6 +1644,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 
