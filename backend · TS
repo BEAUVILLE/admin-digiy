@@ -275,6 +275,117 @@ async function callSupabaseRPC(
   }
 }
 
+
+// --- SUPABASE REST SERVICE ---
+// Utilisé par ADMIN pour lire/valider les demandes RÉSEAU.
+// La service key reste ici côté backend, jamais dans GitHub Pages.
+async function callSupabaseREST(
+  path: string,
+  options: {
+    method?: string;
+    body?: unknown;
+    prefer?: string;
+  } = {},
+): Promise<{ data: unknown; error?: string; status?: number }> {
+  try {
+    const key = SUPABASE_SERVICE_KEY;
+    if (!key) {
+      return { data: null, error: "missing_supabase_service_key" };
+    }
+
+    const cleanPath = path.replace(/^\/+/, "");
+    const url = `${SUPABASE_URL}/rest/v1/${cleanPath}`;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`,
+      "apikey": key,
+    };
+
+    if (options.prefer) {
+      headers["Prefer"] = options.prefer;
+    }
+
+    const res = await fetch(url, {
+      method: options.method || "GET",
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+
+    const text = await res.text();
+    let parsed: unknown = null;
+
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = text;
+    }
+
+    if (!res.ok) {
+      console.error("❌ SUPABASE REST ERROR", {
+        path,
+        url,
+        status: res.status,
+        parsed,
+      });
+
+      return {
+        data: parsed,
+        error: `supabase_rest_http_${res.status}`,
+        status: res.status,
+      };
+    }
+
+    return { data: parsed, status: res.status };
+  } catch (e) {
+    return { data: null, error: String(e) };
+  }
+}
+
+function normalizeReseauPlan(plan: unknown): string {
+  const p = String(plan || "").trim().toLowerCase().replaceAll("-", "_");
+  const map: Record<string, string> = {
+    week: "reseau_7j",
+    quinzaine: "reseau_15j",
+    month: "reseau_30j",
+    first: "reseau_first",
+    reseau_7j: "reseau_7j",
+    reseau_15j: "reseau_15j",
+    reseau_30j: "reseau_30j",
+    reseau_first: "reseau_first",
+  };
+  return map[p] || "reseau_7j";
+}
+
+function reseauDurationDays(plan: string, fallback: unknown): number {
+  const fromBody = Number(fallback || 0);
+  if (fromBody > 0) return fromBody;
+
+  const map: Record<string, number> = {
+    reseau_7j: 7,
+    reseau_15j: 15,
+    reseau_30j: 30,
+    reseau_first: 30,
+  };
+
+  return map[plan] || 7;
+}
+
+function reseauAmount(plan: string, fallback: unknown): number {
+  const fromBody = Number(fallback || 0);
+  if (fromBody > 0) return fromBody;
+
+  const map: Record<string, number> = {
+    reseau_7j: 15000,
+    reseau_15j: 25000,
+    reseau_30j: 45000,
+    reseau_first: 150000,
+  };
+
+  return map[plan] || 15000;
+}
+
+
 // --- AUTH ---
 async function requireSession(req: Request): Promise<
   | {
@@ -440,6 +551,190 @@ async function handleRPC(req: Request, pathname: string): Promise<Response> {
   }
 }
 
+
+// --- RÉSEAU DIGIY ADMIN REQUESTS ---
+async function handleReseauRequests(req: Request): Promise<Response> {
+  if (req.method !== "GET") {
+    return json({ ok: false, error: "GET_only" }, 405);
+  }
+
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  const url = new URL(req.url);
+  const mode = (url.searchParams.get("mode") || "pending").toLowerCase();
+
+  let path =
+    "digiy_reseau_requests?select=*" +
+    "&request_status=in.(pending_admin,preuve_envoyee_attente_admin)" +
+    "&order=created_at.desc" +
+    "&limit=80";
+
+  if (mode === "all") {
+    path = "digiy_reseau_requests?select=*&order=created_at.desc&limit=120";
+  }
+
+  if (mode === "active") {
+    path =
+      "digiy_reseau_requests?select=*" +
+      "&request_status=eq.active" +
+      "&order=updated_at.desc" +
+      "&limit=80";
+  }
+
+  const rest = await callSupabaseREST(path);
+
+  if (rest.error) {
+    return json({
+      ok: false,
+      error: rest.error,
+      data: rest.data ?? null,
+    }, 500);
+  }
+
+  return json({
+    ok: true,
+    mode,
+    requests: Array.isArray(rest.data) ? rest.data : [],
+  });
+}
+
+async function handleReseauValidate(req: Request): Promise<Response> {
+  if (req.method !== "POST") {
+    return json({ ok: false, error: "POST_only" }, 405);
+  }
+
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const id = String(body.id || "").trim();
+
+    if (!id) {
+      return json({ ok: false, error: "missing_request_id" }, 400);
+    }
+
+    const plan = normalizeReseauPlan(body.plan);
+    const durationDays = reseauDurationDays(plan, body.duration_days);
+    const amountXof = reseauAmount(plan, body.amount_xof);
+    const startsAt = body.starts_at
+      ? new Date(String(body.starts_at)).toISOString()
+      : new Date().toISOString();
+    const expiresAt = body.expires_at
+      ? new Date(String(body.expires_at)).toISOString()
+      : new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const patch: Record<string, unknown> = {
+      request_status: "active",
+      is_validated: true,
+      is_published: true,
+      plan,
+      price_fcfa: amountXof,
+      starts_at: startsAt,
+      expires_at: expiresAt,
+      validated_by: auth.session.label || auth.session.adminId || "ADMIN",
+      validated_at: new Date().toISOString(),
+    };
+
+    const note = String(body.note || "").trim();
+    if (note) {
+      patch.note = note;
+    }
+
+    const rest = await callSupabaseREST(
+      `digiy_reseau_requests?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: patch,
+        prefer: "return=representation",
+      },
+    );
+
+    if (rest.error) {
+      return json({
+        ok: false,
+        error: rest.error,
+        data: rest.data ?? null,
+      }, 500);
+    }
+
+    const rows = Array.isArray(rest.data) ? rest.data : [];
+
+    if (!rows.length) {
+      return json({ ok: false, error: "request_not_found" }, 404);
+    }
+
+    return json({
+      ok: true,
+      request: rows[0],
+      message: "RÉSEAU DIGIY validé et publié.",
+    });
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
+async function handleReseauReject(req: Request): Promise<Response> {
+  if (req.method !== "POST") {
+    return json({ ok: false, error: "POST_only" }, 405);
+  }
+
+  const auth = await requireSession(req);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const id = String(body.id || "").trim();
+    const reason = String(body.reason || "Fiche à corriger avant publication").trim();
+
+    if (!id) {
+      return json({ ok: false, error: "missing_request_id" }, 400);
+    }
+
+    const patch: Record<string, unknown> = {
+      request_status: "rejected",
+      is_validated: false,
+      is_published: false,
+      validated_by: auth.session.label || auth.session.adminId || "ADMIN",
+      validated_at: new Date().toISOString(),
+      note: `REFUS ADMIN RÉSEAU DIGIY : ${reason}`,
+    };
+
+    const rest = await callSupabaseREST(
+      `digiy_reseau_requests?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        body: patch,
+        prefer: "return=representation",
+      },
+    );
+
+    if (rest.error) {
+      return json({
+        ok: false,
+        error: rest.error,
+        data: rest.data ?? null,
+      }, 500);
+    }
+
+    const rows = Array.isArray(rest.data) ? rest.data : [];
+
+    if (!rows.length) {
+      return json({ ok: false, error: "request_not_found" }, 404);
+    }
+
+    return json({
+      ok: true,
+      request: rows[0],
+      message: "Demande RÉSEAU refusée / renvoyée à correction.",
+    });
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+}
+
+
 // --- ACTIVATE (route manuelle admin) ---
 // PAY garde le mouvement. ADMIN valide la preuve. RÉSEAU affiche seulement ce qui est activé.
 async function handleActivate(req: Request): Promise<Response> {
@@ -566,6 +861,12 @@ async function handler(req: Request): Promise<Response> {
     res = await handleLogout(req);
   } else if (pathname === "/api/admin/check") {
     res = await handleCheck(req);
+  } else if (pathname === "/api/admin/reseau/requests") {
+    res = await handleReseauRequests(req);
+  } else if (pathname === "/api/admin/reseau/validate") {
+    res = await handleReseauValidate(req);
+  } else if (pathname === "/api/admin/reseau/reject") {
+    res = await handleReseauReject(req);
   } else if (pathname === "/api/admin/activate") {
     res = await handleActivate(req);
   } else if (pathname.startsWith("/api/rpc/")) {
@@ -590,3 +891,4 @@ console.log(`
 `);
 
 serve(handler, { port: PORT });
+
