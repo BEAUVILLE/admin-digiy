@@ -197,6 +197,125 @@ a{
   gap:10px;
 }
 
+
+.adminRequestsBox{
+  display:none;
+  margin-top:16px;
+  border:1px solid rgba(56,189,248,.28);
+  background:rgba(56,189,248,.07);
+  border-radius:18px;
+  padding:14px;
+}
+
+.adminRequestsBox.show{
+  display:block;
+}
+
+.adminRequestsHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.adminRequestsTitle{
+  font-weight:950;
+  color:#bae6fd;
+  font-size:1.05rem;
+}
+
+.requestsList{
+  display:grid;
+  gap:12px;
+  margin-top:12px;
+}
+
+.requestCard{
+  border:1px solid rgba(148,163,184,.24);
+  background:rgba(15,23,42,.82);
+  border-radius:18px;
+  padding:14px;
+}
+
+.requestTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.requestCard h3{
+  margin:0;
+  font-size:1.05rem;
+  line-height:1.15;
+  color:#fff;
+}
+
+.requestCard p{
+  margin:7px 0 0;
+  color:#cbd5e1;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.45;
+}
+
+.requestTag{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  border-radius:999px;
+  padding:5px 9px;
+  border:1px solid rgba(250,204,21,.32);
+  background:rgba(250,204,21,.10);
+  color:#fde68a;
+  font-size:11px;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+.requestMeta{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+.requestMeta span{
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.05);
+  border-radius:12px;
+  padding:9px;
+  color:#e5e7eb;
+  font-size:12px;
+  font-weight:850;
+  line-height:1.35;
+}
+
+.requestActions{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.requestActions .btn{
+  margin-top:0;
+  padding:11px 9px;
+  font-size:12px;
+}
+
+.btn.red{
+  background:rgba(239,68,68,.16);
+  color:#fecaca;
+  border:1px solid rgba(239,68,68,.32);
+}
+
+@media(max-width:720px){
+  .requestMeta,.requestActions{grid-template-columns:1fr}
+}
+
 @media(max-width:720px){
   body{padding:14px}
   .grid,.rowBtns{grid-template-columns:1fr}
@@ -326,6 +445,27 @@ a{
       <div class="small" id="reseauSummary">
         Choisis une formule. Le montant et la note admin seront préparés automatiquement.
       </div>
+    </div>
+
+
+    <div class="adminRequestsBox" id="reseauRequestsBox">
+      <div class="adminRequestsHead">
+        <div>
+          <div class="adminRequestsTitle">📥 Demandes RÉSEAU en attente</div>
+          <div class="small">
+            Ici arrivent les fiches déposées depuis RÉSEAU DIGIY. Rien n’apparaît au public avant validation ADMIN.
+          </div>
+        </div>
+        <button id="loadReseauRequests" class="btn secondary" type="button" style="width:auto;margin-top:0">🔄 Charger</button>
+      </div>
+
+      <div class="notice">
+        Circuit : dépôt public → <strong>pending_admin</strong> → contrôle JB → <strong>active + publié</strong>.
+        La validation passe par le backend sécurisé, avec la clé service côté serveur.
+      </div>
+
+      <div class="msg" id="reseauRequestsMsg"></div>
+      <div class="requestsList" id="reseauRequestsList"></div>
     </div>
 
     <button id="go" class="btn">✅ Activer via backend</button>
@@ -460,6 +600,7 @@ a{
 
     const reseau = isReseau();
     $("reseauBox").classList.toggle("show", reseau);
+    $("reseauRequestsBox")?.classList.toggle("show", reseau);
 
     if(reseau){
       const plan = $("plan").value;
@@ -597,6 +738,274 @@ Le terrain garde la main.`;
     }
   }
 
+
+  function escHtml(v){
+    return String(v ?? "")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  }
+
+  function normalizeReseauPlan(code){
+    const c = String(code || "").trim().toLowerCase().replace(/-/g, "_");
+    const map = {
+      week: "reseau_7j",
+      quinzaine: "reseau_15j",
+      month: "reseau_30j",
+      first: "reseau_first",
+      reseau_7j: "reseau_7j",
+      reseau_15j: "reseau_15j",
+      reseau_30j: "reseau_30j",
+      reseau_first: "reseau_first"
+    };
+    return map[c] || "reseau_7j";
+  }
+
+  function humanDate(v){
+    if(!v) return "—";
+    try{
+      return new Date(v).toLocaleString("fr-SN", {
+        day:"2-digit",
+        month:"short",
+        year:"numeric",
+        hour:"2-digit",
+        minute:"2-digit"
+      });
+    }catch(_){
+      return String(v);
+    }
+  }
+
+  function requestPhone(row){
+    return digits(row?.whatsapp_phone || row?.phone || "");
+  }
+
+  function requestTitle(row){
+    return row?.offer_title || row?.business || row?.pro_name || "Demande RÉSEAU";
+  }
+
+  function requestAmount(row){
+    const planCode = normalizeReseauPlan(row?.plan);
+    const info = RESEAU_PLANS[planCode] || RESEAU_PLANS.reseau_7j;
+    return Number(row?.price_fcfa || info.amount || 15000);
+  }
+
+  function buildRequestNote(row){
+    const planCode = normalizeReseauPlan(row?.plan);
+    const info = RESEAU_PLANS[planCode] || RESEAU_PLANS.reseau_7j;
+
+    return [
+      "RÉSEAU DIGIY · validation ADMIN",
+      "Demande : " + (row?.id || "—"),
+      "Statut reçu : " + (row?.request_status || "pending_admin"),
+      "Pro : " + (row?.business || row?.pro_name || "—"),
+      "Téléphone : " + (row?.phone || row?.whatsapp_phone || "—"),
+      "Métier : " + (row?.metier || "—"),
+      "Zone : " + (row?.zone || "—"),
+      "Annonce : " + (row?.offer_title || "—"),
+      "Formule : " + info.label,
+      "Montant : " + Number(requestAmount(row)).toLocaleString("fr-FR") + " FCFA",
+      "Preuve / note : " + (row?.payment?.reference || row?.payment?.method || row?.note || "à vérifier"),
+      "Action : validation avant apparition publique"
+    ].join("\n");
+  }
+
+  async function adminFetch(path, options = {}){
+    const headers = Object.assign({
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    }, options.headers || {});
+
+    const r = await fetch(BACKEND + path, Object.assign({}, options, {
+      headers,
+      credentials: "include"
+    }));
+
+    const data = await r.json().catch(() => ({ ok:false, error:"bad_json" }));
+
+    if(r.status === 401){
+      localStorage.removeItem(STORE.token);
+      location.replace("login.html");
+      throw new Error("session_expired");
+    }
+
+    if(!r.ok || data.ok === false){
+      throw new Error(data.error || `Erreur ${r.status}`);
+    }
+
+    return data;
+  }
+
+  function setRequestsMsg(text, color){
+    const el = $("reseauRequestsMsg");
+    if(!el) return;
+    el.textContent = text || "";
+    el.style.color = color || "#e5e7eb";
+  }
+
+  function fillActivationFromRequest(row){
+    if(!row) return;
+
+    const planCode = normalizeReseauPlan(row.plan);
+    $("module").value = "RESEAU_DIGIY";
+    $("phone").value = requestPhone(row);
+    $("plan").value = planCode;
+    $("amount").value = String(requestAmount(row));
+    $("note").value = buildRequestNote(row);
+
+    refreshModuleUI();
+    setMsg("📥 Demande RÉSEAU pré-remplie. Tu peux valider ou activer selon le rail.", "#facc15");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function copyText(text){
+    try{
+      await navigator.clipboard.writeText(text || "");
+      setRequestsMsg("📋 Copié.", "limegreen");
+    }catch(_){
+      const ta = document.createElement("textarea");
+      ta.value = text || "";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      setRequestsMsg("📋 Copié.", "limegreen");
+    }
+  }
+
+  function renderReseauRequests(rows){
+    const list = $("reseauRequestsList");
+    if(!list) return;
+
+    if(!rows || !rows.length){
+      list.innerHTML = `
+        <div class="requestCard">
+          <div class="requestTop">
+            <h3>Aucune demande en attente</h3>
+            <span class="requestTag">RÉSEAU propre</span>
+          </div>
+          <p>Quand un pro dépose une fiche, une annonce ou une preuve, elle apparaîtra ici avant publication.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = rows.map((row, idx) => {
+      const planCode = normalizeReseauPlan(row.plan);
+      const info = RESEAU_PLANS[planCode] || RESEAU_PLANS.reseau_7j;
+      const details = row.short_description || row.note || row.admin_message || "Demande à contrôler.";
+      const phone = requestPhone(row) || "—";
+
+      return `
+        <article class="requestCard" data-idx="${idx}">
+          <div class="requestTop">
+            <h3>${escHtml(requestTitle(row))}</h3>
+            <span class="requestTag">${escHtml(row.request_status || "pending_admin")}</span>
+          </div>
+          <p>${escHtml(details).slice(0, 420)}</p>
+          <div class="requestMeta">
+            <span><strong>Pro</strong><br>${escHtml(row.business || row.pro_name || "—")}</span>
+            <span><strong>Téléphone</strong><br>${escHtml(phone)}</span>
+            <span><strong>Métier / zone</strong><br>${escHtml(row.metier || "—")} · ${escHtml(row.zone || "—")}</span>
+            <span><strong>Formule</strong><br>${escHtml(info.label)} · ${Number(requestAmount(row)).toLocaleString("fr-FR")} FCFA</span>
+            <span><strong>Déposé</strong><br>${escHtml(humanDate(row.created_at))}</span>
+            <span><strong>Fin prévue</strong><br>${escHtml(humanDate(row.expires_at))}</span>
+          </div>
+          <div class="requestActions">
+            <button class="btn green js-validate-request" type="button" data-idx="${idx}">✅ Valider</button>
+            <button class="btn secondary js-prefill-request" type="button" data-idx="${idx}">↗ Pré-remplir</button>
+            <button class="btn secondary js-copy-request" type="button" data-idx="${idx}">📋 Copier</button>
+            <button class="btn red js-reject-request" type="button" data-idx="${idx}">⛔ Refuser</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    list._rows = rows;
+
+    list.querySelectorAll(".js-prefill-request").forEach((btn) => {
+      btn.addEventListener("click", () => fillActivationFromRequest(rows[Number(btn.dataset.idx)]));
+    });
+
+    list.querySelectorAll(".js-copy-request").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const row = rows[Number(btn.dataset.idx)];
+        copyText(row.admin_message || buildRequestNote(row));
+      });
+    });
+
+    list.querySelectorAll(".js-validate-request").forEach((btn) => {
+      btn.addEventListener("click", () => validateReseauRequest(rows[Number(btn.dataset.idx)]));
+    });
+
+    list.querySelectorAll(".js-reject-request").forEach((btn) => {
+      btn.addEventListener("click", () => rejectReseauRequest(rows[Number(btn.dataset.idx)]));
+    });
+  }
+
+  async function loadReseauRequests(){
+    setRequestsMsg("⏳ Chargement des demandes RÉSEAU…", "#facc15");
+
+    try{
+      const data = await adminFetch("/api/admin/reseau/requests");
+      const rows = Array.isArray(data.requests) ? data.requests : [];
+      renderReseauRequests(rows);
+      setRequestsMsg(rows.length ? `${rows.length} demande(s) en attente.` : "Aucune demande en attente.", rows.length ? "#facc15" : "limegreen");
+    }catch(e){
+      setRequestsMsg("❌ " + String(e.message || e), "red");
+    }
+  }
+
+  async function validateReseauRequest(row){
+    if(!row?.id) return;
+    const planCode = normalizeReseauPlan(row.plan);
+    const info = RESEAU_PLANS[planCode] || RESEAU_PLANS.reseau_7j;
+    const ok = confirm("Valider et publier cette demande RÉSEAU ?\n\n" + requestTitle(row) + "\n" + info.label);
+    if(!ok) return;
+
+    setRequestsMsg("⏳ Validation ADMIN en cours…", "#facc15");
+
+    try{
+      await adminFetch("/api/admin/reseau/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          id: row.id,
+          plan: planCode,
+          amount_xof: requestAmount(row),
+          duration_days: info.days,
+          note: buildRequestNote(row)
+        })
+      });
+      setRequestsMsg("✅ Demande validée. Elle peut maintenant apparaître dans RÉSEAU.", "limegreen");
+      await loadReseauRequests();
+    }catch(e){
+      setRequestsMsg("❌ " + String(e.message || e), "red");
+    }
+  }
+
+  async function rejectReseauRequest(row){
+    if(!row?.id) return;
+    const reason = prompt("Motif du refus / retour à noter :", "Fiche à corriger avant publication");
+    if(reason === null) return;
+
+    setRequestsMsg("⏳ Refus en cours…", "#facc15");
+
+    try{
+      await adminFetch("/api/admin/reseau/reject", {
+        method: "POST",
+        body: JSON.stringify({
+          id: row.id,
+          reason
+        })
+      });
+      setRequestsMsg("⛔ Demande refusée / renvoyée à correction.", "#fecaca");
+      await loadReseauRequests();
+    }catch(e){
+      setRequestsMsg("❌ " + String(e.message || e), "red");
+    }
+  }
+
   function cleanUrlAfterPrefill(){
     try{
       const u = new URL(location.href);
@@ -674,6 +1083,7 @@ Le terrain garde la main.`;
   $("reseau15").addEventListener("click", () => setReseauPlan("reseau_15j"));
   $("reseau30").addEventListener("click", () => setReseauPlan("reseau_30j"));
   $("reseauFirst").addEventListener("click", () => setReseauPlan("reseau_first"));
+  $("loadReseauRequests")?.addEventListener("click", loadReseauRequests);
 
   $("phone").addEventListener("input", () => {
     $("phone").value = digits($("phone").value);
@@ -685,6 +1095,10 @@ Le terrain garde la main.`;
 
   $("preparePOS").addEventListener("click", preparePOSDossier);
   $("copyPOS").addEventListener("click", copyPOSDossier);
+
+  if(isReseau()){
+    loadReseauRequests();
+  }
 
   btn.addEventListener("click", async () => {
     const phone  = $("phone").value.trim();
@@ -759,4 +1173,6 @@ Le terrain garde la main.`;
 
 </body>
 </html>
+
+
 
