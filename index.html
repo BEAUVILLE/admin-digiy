@@ -804,6 +804,20 @@
               </label>
 
               <label>
+                Plan activation
+                <select id="abosManualPlan">
+                  <option value="pro" selected>pro — abonnement actif</option>
+                  <option value="standard">standard</option>
+                  <option value="commerce-duo">commerce-duo</option>
+                  <option value="pos-simple">pos-simple</option>
+                  <option value="reseau_7j">RÉSEAU · 7 jours</option>
+                  <option value="reseau_15j">RÉSEAU · 15 jours</option>
+                  <option value="reseau_30j">RÉSEAU · 30 jours</option>
+                  <option value="reseau_first">RÉSEAU · FIRST</option>
+                </select>
+              </label>
+
+              <label>
                 Montant reçu
                 <input id="abosManualAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="Ex : 19900" />
               </label>
@@ -1004,6 +1018,7 @@
     const abosManualName = $("abosManualName");
     const abosManualPhone = $("abosManualPhone");
     const abosManualModule = $("abosManualModule");
+    const abosManualPlan = $("abosManualPlan");
     const abosManualAmount = $("abosManualAmount");
     const abosManualProof = $("abosManualProof");
     const abosManualSlug = $("abosManualSlug");
@@ -1805,6 +1820,24 @@
 
 
 
+
+    function syncAbosManualPlan(){
+      const mod = normalizeModule(abosManualModule?.value || "DRIVER");
+      if (!abosManualPlan) return;
+
+      if (mod === "RESEAU_DIGIY"){
+        if (!String(abosManualPlan.value || "").startsWith("reseau_")){
+          abosManualPlan.value = "reseau_7j";
+        }
+        return;
+      }
+
+      const current = String(abosManualPlan.value || "");
+      if (current.startsWith("reseau_")){
+        abosManualPlan.value = "pro";
+      }
+    }
+
     const ABOS_MANUAL_KEY = "digiy_admin_abos_manual_v1";
     let LAST_ABOS_MANUAL_URL = "";
 
@@ -1875,7 +1908,7 @@
               <div>
                 <div class="abos-manual-name">${escapeHtml(p.name || "Abonné")}</div>
                 <div class="abos-manual-meta">
-                  ${escapeHtml(displayPhone(p.phone))} · ${escapeHtml(p.module || "—")} · ${escapeHtml(fmtFcfa(p.amount_xof))}
+                  ${escapeHtml(displayPhone(p.phone))} · ${escapeHtml(p.module || "—")} · plan ${escapeHtml(p.plan || "pro")} · ${escapeHtml(fmtFcfa(p.amount_xof))}
                   <br>${escapeHtml(p.proof || "Note manuelle")} · ${escapeHtml(fmtDate(p.created_at))}
                   ${p.note ? "<br>" + escapeHtml(p.note) : ""}
                 </div>
@@ -1945,10 +1978,12 @@
 
       const module = normalizeModule(payment.module || "DRIVER");
       const phone = String(payment.phone || "").replace(/\D/g,"");
+      const plan = String(payment.plan || "pro").trim().toLowerCase().replace(/-/g, "_");
       const amount = String(Math.round(Number(payment.amount_xof || 0)));
       const noteParts = [
         "ABOS manuel",
         module ? "Module " + module : "",
+        plan ? "Plan " + plan : "",
         payment.name ? "Abonné " + payment.name : "",
         payment.proof ? "Preuve " + payment.proof : "",
         payment.private_url ? "Lien " + payment.private_url : "",
@@ -1958,12 +1993,13 @@
       const params = {
         module,
         phone,
+        plan,
         amount,
         note: noteParts.join(" · ")
       };
 
       const url = buildActivationUrl(params);
-      log("ACTIVATION ABOS PRÉPARÉE", { module, phone, amount, note: params.note, url });
+      log("ACTIVATION ABOS PRÉPARÉE", { module, phone, plan, amount, note: params.note, url });
       return url;
     }
 
@@ -1976,6 +2012,7 @@
       }
 
       if (!payment){
+        syncAbosManualPlan();
         payment = saveAbosManualPayment();
       }
 
@@ -1998,6 +2035,7 @@
       const name = String(abosManualName?.value || "").trim();
       const phone = String(abosManualPhone?.value || "").replace(/\D/g,"");
       const module = normalizeModule(abosManualModule?.value || "DRIVER");
+      let plan = String(abosManualPlan?.value || "pro").trim().toLowerCase().replace(/-/g, "_");
       const amount = Math.round(Number(abosManualAmount?.value || 0));
       const proof = String(abosManualProof?.value || "Note manuelle").trim();
       const note = String(abosManualNote?.value || "").trim();
@@ -2028,6 +2066,7 @@
         name,
         phone: built.phone,
         module: built.module,
+        plan,
         amount_xof: amount,
         proof,
         note,
@@ -2044,9 +2083,9 @@
 
       LAST_ABOS_MANUAL_URL = payment.private_url;
       abosManualOut.innerHTML = `
-        <div><strong>Paiement ABOS tracé :</strong> ${escapeHtml(payment.name)} · ${escapeHtml(payment.module)} · ${escapeHtml(fmtFcfa(payment.amount_xof))}</div>
+        <div><strong>Paiement ABOS tracé :</strong> ${escapeHtml(payment.name)} · ${escapeHtml(payment.module)} · plan ${escapeHtml(payment.plan || "pro")} · ${escapeHtml(fmtFcfa(payment.amount_xof))}</div>
         <div class="mini" style="margin-top:8px">
-          Preuve : ${escapeHtml(payment.proof)} · Téléphone : <span class="mono">${escapeHtml(displayPhone(payment.phone))}</span> · Slug : <span class="mono">${escapeHtml(payment.slug)}</span>
+          Preuve : ${escapeHtml(payment.proof)} · Plan : <span class="mono">${escapeHtml(payment.plan || "pro")}</span> · Téléphone : <span class="mono">${escapeHtml(displayPhone(payment.phone))}</span> · Slug : <span class="mono">${escapeHtml(payment.slug)}</span>
         </div>
         <div style="margin-top:10px"><a href="${escapeHtml(payment.private_url)}" target="_blank" rel="noreferrer">${escapeHtml(payment.private_url)}</a></div>
       `;
@@ -2112,11 +2151,14 @@
     subscriberCopyBtn?.addEventListener("click", copySubscriberLink);
     subscriberWaBtn?.addEventListener("click", openSubscriberWhatsapp);
 
+    abosManualModule?.addEventListener("change", syncAbosManualPlan);
     abosManualSaveBtn?.addEventListener("click", () => {
+      syncAbosManualPlan();
       saveAbosManualPayment();
     });
     abosManualCopyBtn?.addEventListener("click", async () => {
       if (!LAST_ABOS_MANUAL_URL){
+        syncAbosManualPlan();
         const payment = saveAbosManualPayment();
         if (!payment) return;
         await copyAbosManualUrl(payment.private_url);
@@ -2130,7 +2172,10 @@
       if (LAST_ABOS_MANUAL_URL){
         payment = data.payments.find((p) => p.private_url === LAST_ABOS_MANUAL_URL);
       }
-      if (!payment) payment = saveAbosManualPayment();
+      if (!payment) {
+        syncAbosManualPlan();
+        payment = saveAbosManualPayment();
+      }
       if (payment) openAbosManualWhatsapp(payment);
     });
     abosManualActivationBtn?.addEventListener("click", prepareAbosManualActivation);
@@ -2209,6 +2254,28 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
