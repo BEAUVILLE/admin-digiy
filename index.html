@@ -447,6 +447,91 @@
         rgba(250,204,21,.045);
     }
 
+
+    .abos-manual-box{
+      border-color:rgba(34,197,94,.25);
+      background:
+        radial-gradient(circle at top right, rgba(34,197,94,.12), transparent 38%),
+        rgba(34,197,94,.045);
+    }
+
+    .abos-manual-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+
+    @media (max-width:760px){
+      .abos-manual-grid{grid-template-columns:1fr}
+    }
+
+    .abos-manual-output{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:#08110d;
+      color:#d7ffe6;
+      font-size:13px;
+      line-height:1.55;
+      word-break:break-word;
+    }
+
+    .abos-manual-output a{
+      color:#bbf7d0;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+
+    .abos-manual-list{
+      display:grid;
+      gap:10px;
+      max-height:360px;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .abos-manual-item{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .abos-manual-item-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+
+    .abos-manual-name{
+      font-weight:900;
+      letter-spacing:-.02em;
+    }
+
+    .abos-manual-meta{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .abos-manual-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:6px 9px;
+      background:rgba(250,204,21,.10);
+      border:1px solid rgba(250,204,21,.24);
+      color:var(--gold);
+      font-size:12px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
     .footer-note{
       margin-top:16px;
       color:var(--soft);
@@ -679,6 +764,95 @@
           </div>
 
 
+
+
+          <div class="panel stack abos-manual-box">
+            <div>
+              <strong>💰 Paiement ABOS reçu — geste unique</strong>
+              <div class="mini" style="margin-top:6px">
+                Quand un paiement arrive par WhatsApp, SMS, Wave ou note terrain :
+                tu poses le nom, le téléphone, le module et le montant. DIGIY trace dans le répertoire local,
+                génère le lien privé et prépare le WhatsApp sans double manipulation.
+              </div>
+            </div>
+
+            <div class="abos-manual-grid">
+              <label>
+                Nom abonné
+                <input id="abosManualName" type="text" placeholder="Ex : Astou Boutique" />
+              </label>
+
+              <label>
+                Téléphone
+                <input id="abosManualPhone" type="tel" inputmode="numeric" placeholder="Ex : 221771234567" />
+              </label>
+
+              <label>
+                Module
+                <select id="abosManualModule">
+                  <option value="DRIVER">DRIVER — Je conduis</option>
+                  <option value="LOC">LOC — Je loue</option>
+                  <option value="RESA">RESA — Je réserve</option>
+                  <option value="POS">POS — Mon commerce</option>
+                  <option value="MARKET">MARKET — Je vends</option>
+                  <option value="BUILD">BUILD — Mes services</option>
+                  <option value="EXPLORE">EXPLORE — Me faire connaître</option>
+                  <option value="PAY">PAY — Mon argent</option>
+                  <option value="JOBS">JOBS</option>
+                  <option value="RESEAU_DIGIY">RÉSEAU DIGIY</option>
+                </select>
+              </label>
+
+              <label>
+                Montant reçu
+                <input id="abosManualAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="Ex : 19900" />
+              </label>
+
+              <label>
+                Preuve
+                <select id="abosManualProof">
+                  <option value="Wave reçu">Wave reçu</option>
+                  <option value="SMS reçu">SMS reçu</option>
+                  <option value="WhatsApp reçu">WhatsApp reçu</option>
+                  <option value="Note manuelle">Note manuelle</option>
+                  <option value="Cash terrain">Cash terrain</option>
+                </select>
+              </label>
+
+              <label>
+                Slug optionnel
+                <input id="abosManualSlug" type="text" placeholder="Auto si vide : driver-221..." />
+              </label>
+            </div>
+
+            <label>
+              Note terrain
+              <textarea id="abosManualNote" placeholder="Ex : paiement confirmé par capture Wave, accès DRIVER à envoyer."></textarea>
+            </label>
+
+            <div class="row">
+              <button id="abosManualSaveBtn" class="btn btn-primary" type="button">✅ Enregistrer + générer lien</button>
+              <button id="abosManualCopyBtn" class="btn btn-gold" type="button">📋 Copier lien</button>
+              <button id="abosManualWaBtn" class="btn btn-dark" type="button">💬 Préparer WhatsApp</button>
+              <button id="abosManualActivationBtn" class="btn btn-gold" type="button">🔑 Préparer activation</button>
+              <button id="abosManualExportBtn" class="btn btn-soft" type="button">⬇️ Export ABOS</button>
+            </div>
+
+            <div id="abosManualOut" class="abos-manual-output">
+              Le dernier paiement ABOS saisi apparaîtra ici avec le lien privé prêt à envoyer.
+            </div>
+
+            <div class="row" style="align-items:center;justify-content:space-between">
+              <strong>Derniers paiements ABOS saisis</strong>
+              <button id="abosManualClearTestsBtn" class="btn btn-dark" type="button">🧹 Nettoyer tests</button>
+            </div>
+
+            <div id="abosManualList" class="abos-manual-list">
+              <div class="proof-empty">Aucun paiement ABOS manuel saisi dans ce navigateur.</div>
+            </div>
+          </div>
+
+
           <div class="panel stack">
             <div>
               <strong>ABO — File d’attente des preuves</strong>
@@ -826,6 +1000,22 @@
     const proofStatus = $("proofStatus");
     const proofLimit = $("proofLimit");
     const proofList = $("proofList");
+
+    const abosManualName = $("abosManualName");
+    const abosManualPhone = $("abosManualPhone");
+    const abosManualModule = $("abosManualModule");
+    const abosManualAmount = $("abosManualAmount");
+    const abosManualProof = $("abosManualProof");
+    const abosManualSlug = $("abosManualSlug");
+    const abosManualNote = $("abosManualNote");
+    const abosManualSaveBtn = $("abosManualSaveBtn");
+    const abosManualCopyBtn = $("abosManualCopyBtn");
+    const abosManualWaBtn = $("abosManualWaBtn");
+    const abosManualActivationBtn = $("abosManualActivationBtn");
+    const abosManualExportBtn = $("abosManualExportBtn");
+    const abosManualClearTestsBtn = $("abosManualClearTestsBtn");
+    const abosManualOut = $("abosManualOut");
+    const abosManualList = $("abosManualList");
 
     backendOut.textContent = BACKEND_BASE;
 
@@ -1607,6 +1797,279 @@
     }
 
 
+
+
+    const ABOS_MANUAL_KEY = "digiy_admin_abos_manual_v1";
+    let LAST_ABOS_MANUAL_URL = "";
+
+    function abosManualBase(){
+      return { payments: [] };
+    }
+
+    function loadAbosManual(){
+      try{
+        const data = JSON.parse(localStorage.getItem(ABOS_MANUAL_KEY) || "{}");
+        if (!data || typeof data !== "object") return abosManualBase();
+        if (!Array.isArray(data.payments)) data.payments = [];
+        return data;
+      }catch{
+        return abosManualBase();
+      }
+    }
+
+    function saveAbosManual(data){
+      localStorage.setItem(ABOS_MANUAL_KEY, JSON.stringify(data || abosManualBase()));
+    }
+
+    function abosManualUid(){
+      return "abos_" + Math.random().toString(36).slice(2,8) + "_" + Date.now().toString(36);
+    }
+
+    function abosManualToday(){
+      return new Date().toISOString().slice(0,10);
+    }
+
+    function buildAbosManualUrl(module, phone, slug){
+      const mod = normalizeModule(module || "DRIVER");
+      const base = MODULE_HUB_URLS[mod] || "https://pro-espace.digiylyfe.com/";
+      const digits = String(phone || "").replace(/\D/g,"");
+      let cleanSlug = String(slug || "").trim().toLowerCase();
+
+      if (!cleanSlug && digits) {
+        cleanSlug = subscriberSlugPrefix(mod) + "-" + digits;
+      }
+
+      const u = new URL(base, location.href);
+      u.searchParams.set("from", "digiy-admin");
+      u.searchParams.set("module", mod);
+      if (digits) u.searchParams.set("phone", digits);
+      if (cleanSlug) u.searchParams.set("slug", cleanSlug);
+      return {
+        url: u.toString(),
+        module: mod,
+        phone: digits,
+        slug: cleanSlug
+      };
+    }
+
+    function renderAbosManualList(){
+      const data = loadAbosManual();
+      const payments = data.payments.slice().sort((a,b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0,12);
+
+      if (!payments.length){
+        abosManualList.innerHTML = '<div class="proof-empty">Aucun paiement ABOS manuel saisi dans ce navigateur.</div>';
+        return;
+      }
+
+      abosManualList.innerHTML = payments.map((p) => {
+        const url = String(p.private_url || "");
+        return `
+          <article class="abos-manual-item">
+            <div class="abos-manual-item-top">
+              <div>
+                <div class="abos-manual-name">${escapeHtml(p.name || "Abonné")}</div>
+                <div class="abos-manual-meta">
+                  ${escapeHtml(displayPhone(p.phone))} · ${escapeHtml(p.module || "—")} · ${escapeHtml(fmtFcfa(p.amount_xof))}
+                  <br>${escapeHtml(p.proof || "Note manuelle")} · ${escapeHtml(fmtDate(p.created_at))}
+                  ${p.note ? "<br>" + escapeHtml(p.note) : ""}
+                </div>
+              </div>
+              <span class="abos-manual-pill">${escapeHtml(p.status || "tracé")}</span>
+            </div>
+            <div class="proof-actions">
+              ${url ? `<a class="btn btn-dark" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">🚪 Ouvrir accès</a>` : ""}
+              <button class="btn btn-gold" type="button" data-abos-copy="${escapeHtml(p.id || "")}">📋 Copier</button>
+              <button class="btn btn-soft" type="button" data-abos-wa="${escapeHtml(p.id || "")}">💬 WhatsApp</button>
+              <button class="btn btn-primary" type="button" data-abos-activate="${escapeHtml(p.id || "")}">🔑 Activation</button>
+              <button class="btn btn-danger" type="button" data-abos-del="${escapeHtml(p.id || "")}">Supprimer</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function makeAbosManualWhatsappText(payment){
+      return [
+        "Ton accès DIGIY est prêt.",
+        "",
+        "Module : " + (payment.module || "DIGIY"),
+        "Ouvre ton espace ici :",
+        payment.private_url || "",
+        "",
+        "Garde ce lien. Il ouvre ton espace pro."
+      ].join("\n");
+    }
+
+    function getAbosManualPayment(id){
+      const data = loadAbosManual();
+      return data.payments.find((p) => String(p.id || "") === String(id || ""));
+    }
+
+    async function copyAbosManualUrl(url){
+      if (!url){
+        alert("Aucun lien à copier.");
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(url);
+        log("Lien ABOS manuel copié.");
+      }catch{
+        alert("Copie automatique impossible. Le lien est affiché à l’écran.");
+      }
+    }
+
+    function openAbosManualWhatsapp(payment){
+      if (!payment || !payment.private_url){
+        alert("Aucun paiement ABOS avec lien privé.");
+        return;
+      }
+      const phone = String(payment.phone || "").replace(/\D/g,"");
+      const msg = makeAbosManualWhatsappText(payment);
+      const wa = phone
+        ? ("https://wa.me/" + phone + "?text=" + encodeURIComponent(msg))
+        : ("https://wa.me/?text=" + encodeURIComponent(msg));
+      window.open(wa, "_blank", "noopener,noreferrer");
+    }
+
+    function buildAbosManualActivationUrl(payment){
+      if (!payment){
+        alert("Aucun paiement ABOS à préparer.");
+        return "";
+      }
+
+      const module = normalizeModule(payment.module || "DRIVER");
+      const phone = String(payment.phone || "").replace(/\D/g,"");
+      const amount = String(Math.round(Number(payment.amount_xof || 0)));
+      const noteParts = [
+        "ABOS manuel",
+        module ? "Module " + module : "",
+        payment.name ? "Abonné " + payment.name : "",
+        payment.proof ? "Preuve " + payment.proof : "",
+        payment.private_url ? "Lien " + payment.private_url : "",
+        payment.note ? "Note " + payment.note : ""
+      ].filter(Boolean);
+
+      const params = {
+        module,
+        phone,
+        amount,
+        note: noteParts.join(" · ")
+      };
+
+      const url = buildActivationUrl(params);
+      log("ACTIVATION ABOS PRÉPARÉE", { module, phone, amount, note: params.note, url });
+      return url;
+    }
+
+    function prepareAbosManualActivation(){
+      let payment = null;
+      const data = loadAbosManual();
+
+      if (LAST_ABOS_MANUAL_URL){
+        payment = data.payments.find((p) => p.private_url === LAST_ABOS_MANUAL_URL);
+      }
+
+      if (!payment){
+        payment = saveAbosManualPayment();
+      }
+
+      if (!payment) return;
+
+      const url = buildAbosManualActivationUrl(payment);
+      if (url) window.location.href = url;
+    }
+
+
+
+    function saveAbosManualPayment(){
+      const name = String(abosManualName?.value || "").trim();
+      const phone = String(abosManualPhone?.value || "").replace(/\D/g,"");
+      const module = normalizeModule(abosManualModule?.value || "DRIVER");
+      const amount = Math.round(Number(abosManualAmount?.value || 0));
+      const proof = String(abosManualProof?.value || "Note manuelle").trim();
+      const note = String(abosManualNote?.value || "").trim();
+      const manualSlug = String(abosManualSlug?.value || "").trim().toLowerCase();
+
+      if (!name){
+        alert("Mets le nom de l’abonné.");
+        abosManualName?.focus();
+        return null;
+      }
+      if (!phone){
+        alert("Mets le téléphone de l’abonné.");
+        abosManualPhone?.focus();
+        return null;
+      }
+      if (!amount || amount <= 0){
+        alert("Mets le montant reçu.");
+        abosManualAmount?.focus();
+        return null;
+      }
+
+      const built = buildAbosManualUrl(module, phone, manualSlug);
+      if (abosManualSlug && !manualSlug) abosManualSlug.value = built.slug;
+
+      const data = loadAbosManual();
+      const payment = {
+        id: abosManualUid(),
+        name,
+        phone: built.phone,
+        module: built.module,
+        amount_xof: amount,
+        proof,
+        note,
+        slug: built.slug,
+        private_url: built.url,
+        status: "tracé",
+        source: "admin-digiy-manuel",
+        created_at: new Date().toISOString()
+      };
+
+      data.payments.unshift(payment);
+      data.payments = data.payments.slice(0, 500);
+      saveAbosManual(data);
+
+      LAST_ABOS_MANUAL_URL = payment.private_url;
+      abosManualOut.innerHTML = `
+        <div><strong>Paiement ABOS tracé :</strong> ${escapeHtml(payment.name)} · ${escapeHtml(payment.module)} · ${escapeHtml(fmtFcfa(payment.amount_xof))}</div>
+        <div class="mini" style="margin-top:8px">
+          Preuve : ${escapeHtml(payment.proof)} · Téléphone : <span class="mono">${escapeHtml(displayPhone(payment.phone))}</span> · Slug : <span class="mono">${escapeHtml(payment.slug)}</span>
+        </div>
+        <div style="margin-top:10px"><a href="${escapeHtml(payment.private_url)}" target="_blank" rel="noreferrer">${escapeHtml(payment.private_url)}</a></div>
+      `;
+
+      if (subscriberModule) subscriberModule.value = payment.module === "RESEAU_DIGIY" ? "DRIVER" : payment.module;
+      if (subscriberPhone) subscriberPhone.value = payment.phone;
+      if (subscriberSlug) subscriberSlug.value = payment.slug;
+
+      renderAbosManualList();
+      log("PAIEMENT ABOS MANUEL TRACÉ", payment);
+      return payment;
+    }
+
+    function exportAbosManual(){
+      const data = loadAbosManual();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "digiy-admin-abos-manuel-" + abosManualToday() + ".json";
+      a.click();
+      URL.revokeObjectURL(url);
+      log("Export ABOS manuel généré.");
+    }
+
+    function clearAbosManualTests(){
+      const data = loadAbosManual();
+      const before = data.payments.length;
+      data.payments = data.payments.filter((p) => !/^test\b/i.test(String(p.name || "").trim()));
+      const removed = before - data.payments.length;
+      saveAbosManual(data);
+      renderAbosManualList();
+      log("Nettoyage tests ABOS manuel", { removed });
+    }
+
+
     proofList.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-action]");
       if (!btn) return;
@@ -1635,6 +2098,69 @@
     subscriberGenerateBtn?.addEventListener("click", renderSubscriberLink);
     subscriberCopyBtn?.addEventListener("click", copySubscriberLink);
     subscriberWaBtn?.addEventListener("click", openSubscriberWhatsapp);
+
+    abosManualSaveBtn?.addEventListener("click", () => {
+      saveAbosManualPayment();
+    });
+    abosManualCopyBtn?.addEventListener("click", async () => {
+      if (!LAST_ABOS_MANUAL_URL){
+        const payment = saveAbosManualPayment();
+        if (!payment) return;
+        await copyAbosManualUrl(payment.private_url);
+        return;
+      }
+      await copyAbosManualUrl(LAST_ABOS_MANUAL_URL);
+    });
+    abosManualWaBtn?.addEventListener("click", () => {
+      let payment = null;
+      const data = loadAbosManual();
+      if (LAST_ABOS_MANUAL_URL){
+        payment = data.payments.find((p) => p.private_url === LAST_ABOS_MANUAL_URL);
+      }
+      if (!payment) payment = saveAbosManualPayment();
+      if (payment) openAbosManualWhatsapp(payment);
+    });
+    abosManualActivationBtn?.addEventListener("click", prepareAbosManualActivation);
+    abosManualExportBtn?.addEventListener("click", exportAbosManual);
+    abosManualClearTestsBtn?.addEventListener("click", () => {
+      if (confirm("Nettoyer uniquement les paiements dont le nom commence par TEST ?")){
+        clearAbosManualTests();
+      }
+    });
+    abosManualList?.addEventListener("click", async (e) => {
+      const copyBtn = e.target.closest("button[data-abos-copy]");
+      const waBtn = e.target.closest("button[data-abos-wa]");
+      const activateBtn = e.target.closest("button[data-abos-activate]");
+      const delBtn = e.target.closest("button[data-abos-del]");
+
+      if (copyBtn){
+        const payment = getAbosManualPayment(copyBtn.getAttribute("data-abos-copy"));
+        await copyAbosManualUrl(payment?.private_url || "");
+      }
+
+      if (waBtn){
+        const payment = getAbosManualPayment(waBtn.getAttribute("data-abos-wa"));
+        openAbosManualWhatsapp(payment);
+      }
+
+      if (activateBtn){
+        const payment = getAbosManualPayment(activateBtn.getAttribute("data-abos-activate"));
+        const url = buildAbosManualActivationUrl(payment);
+        if (url) window.location.href = url;
+      }
+
+      if (delBtn){
+        const id = delBtn.getAttribute("data-abos-del");
+        if (confirm("Supprimer cette ligne du répertoire ABOS manuel ?")){
+          const data = loadAbosManual();
+          data.payments = data.payments.filter((p) => String(p.id || "") !== String(id || ""));
+          saveAbosManual(data);
+          renderAbosManualList();
+          log("Ligne ABOS manuel supprimée", { id });
+        }
+      }
+    });
+
     activationReseau7Btn?.addEventListener("click", () => openReseauActivation("reseau_7j", 15000));
     activationReseauFirstBtn?.addEventListener("click", () => openReseauActivation("reseau_first", 150000));
 
@@ -1670,6 +2196,28 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
