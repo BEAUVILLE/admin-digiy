@@ -1,122 +1,45 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DIGIY — Activation admin</title>
-<meta name="theme-color" content="#0a0e1a">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIGIY — Activation</title>
 <style>
-:root{--bg:#0a0e1a;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--gold:#facc15;--green:#22c55e;--red:#ef4444;--line:rgba(148,163,184,.24)}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(700px 360px at 12% 0%,rgba(250,204,21,.12),transparent 60%),radial-gradient(700px 360px at 90% 0%,rgba(34,197,94,.10),transparent 60%),linear-gradient(135deg,#0a0e1a,#1a1f2e);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px}.wrap{max-width:820px;margin:auto}.card{background:rgba(17,24,39,.94);padding:20px;border-radius:22px;border:1px solid var(--line);box-shadow:0 22px 60px rgba(0,0,0,.28)}h1{margin:0;font-size:1.65rem;line-height:1.12}.small{color:var(--muted);font-size:13px;font-weight:800;line-height:1.45;margin-top:7px}.notice{margin-top:14px;border:1px solid rgba(250,204,21,.26);background:rgba(250,204,21,.08);color:#fde68a;border-radius:16px;padding:12px;font-size:13px;font-weight:850;line-height:1.45}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;margin-top:13px;font-weight:950;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}input,select,textarea{width:100%;padding:14px;border-radius:15px;border:1px solid rgba(148,163,184,.32);background:#0f172a;color:white;font-weight:900;outline:none}textarea{min-height:120px;resize:vertical;line-height:1.45}.btn{margin-top:16px;width:100%;padding:15px;border-radius:15px;border:0;background:linear-gradient(135deg,#facc15,#eab308);font-weight:1000;color:#0a0e1a;cursor:pointer;font-size:1rem}.btn.secondary{background:rgba(255,255,255,.06);color:var(--text);border:1px solid rgba(148,163,184,.25)}.btn:disabled{opacity:.6;cursor:not-allowed}.row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.row .btn{font-size:12px;padding:11px 8px;margin-top:10px}.msg{margin-top:13px;font-weight:950;line-height:1.4;white-space:pre-wrap}.link{display:inline-flex;margin-top:16px;color:#facc15;text-decoration:none;font-weight:950}.pill{display:inline-flex;border:1px solid rgba(250,204,21,.25);background:rgba(250,204,21,.09);color:#fde68a;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin-top:10px}@media(max-width:720px){body{padding:14px}.grid,.row{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(135deg,#0a0e1a,#1a1f2e);color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:18px}.wrap{max-width:840px;margin:auto}.card{background:#111827ee;border:1px solid #334155;border-radius:22px;padding:20px}h1{margin:0 0 8px}.small{color:#9ca3af;font-weight:800;line-height:1.45}.notice{margin:12px 0;padding:12px;border-radius:16px;background:#facc1514;border:1px solid #facc1544;color:#fde68a;font-weight:850;line-height:1.45}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;margin-top:12px;color:#9ca3af;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}input,select,textarea{width:100%;padding:14px;border-radius:14px;border:1px solid #475569;background:#0f172a;color:white;font-weight:900}textarea{min-height:115px}.btn{margin-top:15px;width:100%;padding:15px;border:0;border-radius:15px;background:linear-gradient(135deg,#facc15,#eab308);color:#0a0e1a;font-weight:1000;font-size:1rem}.btn:disabled{opacity:.55}.btn2{background:#ffffff12;color:#e5e7eb;border:1px solid #475569}.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.quick .btn{font-size:12px;padding:10px}.msg{white-space:pre-wrap;margin-top:12px;font-weight:950;line-height:1.4}.meta{margin-top:10px;color:#cbd5e1;font-size:13px;font-weight:850;line-height:1.45}.hide{display:none}.link{display:inline-block;margin-top:16px;color:#facc15;font-weight:950;text-decoration:none}@media(max-width:720px){.grid,.quick{grid-template-columns:1fr}body{padding:12px}}
 </style>
 </head>
-<body>
-<div class="wrap"><section class="card">
-  <div class="pill">ADMIN DIGIY · Activation protégée</div>
-  <h1>🔑 Activation manuelle</h1>
-  <div class="small">ABOS peut pré-remplir cette page via URL : phone / module / plan / amount / note. Ici, l’admin garde la main.</div>
-  <div class="notice">Rail stable : cette page appelle le backend admin sécurisé. Correction posée : DRIVER utilise les vrais plans Supabase <strong>driver_jakarta</strong>, <strong>driver_bus</strong>, <strong>driver_pro</strong>.</div>
-
-  <div class="grid">
-    <div><label>Téléphone</label><input id="phone" placeholder="22177..." inputmode="numeric"></div>
-    <div><label>Module</label><select id="module">
-      <option value="DRIVER">DRIVER</option><option value="POS">POS / MON COMMERCE</option><option value="RESTO">RESTO</option><option value="RESA">RESA</option><option value="LOC">LOC</option><option value="MARKET">MARKET</option><option value="JOBS">JOBS</option><option value="BUILD">BUILD</option><option value="EXPLORE">EXPLORE</option><option value="PAY">PAY</option><option value="RESEAU_DIGIY">RÉSEAU DIGIY</option>
-    </select></div>
-  </div>
-
-  <div class="grid">
-    <div><label>Plan</label><select id="plan">
-      <option value="driver_jakarta">DRIVER · Jakarta · 5 500</option>
-      <option value="driver_bus">DRIVER · Bus · 12 000</option>
-      <option value="driver_pro">DRIVER · Driver · 19 900</option>
-      <option value="standard">standard</option><option value="pro">pro</option><option value="commerce-duo">commerce-duo</option><option value="pos-simple">pos-simple</option>
-      <option value="reseau_7j">RÉSEAU · 7 jours · 15 000</option><option value="reseau_15j">RÉSEAU · 15 jours · 25 000</option><option value="reseau_30j">RÉSEAU · 30 jours · 45 000</option><option value="reseau_first">RÉSEAU · FIRST · 150 000</option>
-    </select></div>
-    <div><label>Montant (FCFA)</label><input id="amount" placeholder="5500" inputmode="numeric"></div>
-  </div>
-
-  <label>Note / Référence Wave</label><textarea id="note" placeholder="Wave reçu / ABOS manuel / référence"></textarea>
-
-  <div class="row">
-    <button class="btn secondary" type="button" data-driver="driver_jakarta">Jakarta 5 500</button>
-    <button class="btn secondary" type="button" data-driver="driver_bus">Bus 12 000</button>
-    <button class="btn secondary" type="button" data-driver="driver_pro">Driver 19 900</button>
-    <button class="btn secondary" type="button" data-reseau="reseau_7j">RÉSEAU 7j</button>
-  </div>
-
-  <button id="go" class="btn" type="button">✅ Activer via backend</button>
-  <div class="msg" id="msg"></div>
-  <a class="link" href="index.html">← Retour cockpit</a>
-</section></div>
+<body><div class="wrap"><div class="card">
+<h1>🔑 Activation manuelle</h1>
+<div class="small">Catalogue réel Supabase : DRIVER, LOC, EXPLORE BOOST, RÉSEAU. ABOS/PAY restent des rails internes.</div>
+<div class="notice">Ne pas inventer les plans : le bouton envoie exactement <b>module + plan_code + amount_xof</b>.</div>
+<div class="grid"><div><label>Téléphone</label><input id="phone" inputmode="numeric" placeholder="22177..."></div><div><label>Module</label><select id="module"></select></div></div>
+<div class="grid"><div><label>Plan</label><select id="plan"></select></div><div><label>Montant FCFA</label><input id="amount" inputmode="numeric"></div></div>
+<div id="manual" class="grid hide"><div><label>Plan manuel</label><input id="manualPlan" placeholder="plan_code Supabase"></div><div><label>Durée jours</label><input id="days" inputmode="numeric" placeholder="30"></div></div>
+<div id="meta" class="meta"></div>
+<label>Note / Référence</label><textarea id="note"></textarea>
+<div class="quick" id="quick"></div>
+<button id="go" class="btn">✅ Activer via backend</button>
+<div id="msg" class="msg"></div>
+<a class="link" href="index.html">← Retour cockpit</a>
+</div></div>
 <script>
-(function(){
-  "use strict";
-  const BACKEND = location.hostname === "localhost" ? "http://localhost:8000" : "https://admin.digiylyfe.com";
-  const STORE = { token:"digiy_admin_jwt", exp:"digiy_admin_exp" };
-  const $ = (id)=>document.getElementById(id);
-  const btn = $("go"), msg = $("msg");
-  const DRIVER_PLANS = {
-    driver_jakarta:{amount:5500,note:"DRIVER · Jakarta · 5 500 FCFA · accès actif 30 jours"},
-    driver_bus:{amount:12000,note:"DRIVER · Bus · 12 000 FCFA · accès actif 30 jours"},
-    driver_pro:{amount:19900,note:"DRIVER · Driver · 19 900 FCFA · accès actif 30 jours"}
-  };
-  const RESEAU_PLANS = {
-    reseau_7j:{amount:15000,days:7,note:"RÉSEAU DIGIY · 7 jours · 15 000 FCFA · preuve à vérifier"},
-    reseau_15j:{amount:25000,days:15,note:"RÉSEAU DIGIY · 15 jours · 25 000 FCFA · preuve à vérifier"},
-    reseau_30j:{amount:45000,days:30,note:"RÉSEAU DIGIY · 30 jours · 45 000 FCFA · preuve à vérifier"},
-    reseau_first:{amount:150000,days:30,note:"RÉSEAU DIGIY · FIRST · 150 000 FCFA · qualification + fiche + QR"}
-  };
-  function digits(v){return String(v||"").replace(/[^\d]/g,"");}
-  function setMsg(t,c){msg.textContent=t||"";msg.style.color=c||"#e5e7eb";}
-  function norm(v){return String(v||"").trim().toLowerCase().replace(/-/g,"_");}
-  function getToken(){const tok=(localStorage.getItem(STORE.token)||"").trim();const exp=Number(localStorage.getItem(STORE.exp)||"0");if(!tok||(exp&&Date.now()>exp)){localStorage.removeItem(STORE.token);location.replace("login.html");return "";}return tok;}
-  function selectPlan(plan){ if(!plan) return; const el=$("plan"); let p=norm(plan); if(!Array.from(el.options).some(o=>o.value===p)){const opt=document.createElement("option");opt.value=p;opt.textContent=p+" · plan reçu par URL";el.appendChild(opt);} el.value=p; }
-  function driverPlanFromAmount(amount){const n=Number(amount||0); if(n===5500) return "driver_jakarta"; if(n===12000) return "driver_bus"; if(n===19900) return "driver_pro"; return "driver_jakarta";}
-  function syncUI(){
-    const module=$("module").value;
-    let plan=norm($("plan").value);
-    const amount=Number(digits($("amount").value)||0);
-    if(module==="DRIVER"){
-      if(!DRIVER_PLANS[plan]){ plan = driverPlanFromAmount(amount); $("plan").value = plan; }
-      const info=DRIVER_PLANS[plan]; if(info){ $("amount").value=String(info.amount); if(!$("note").value.trim() || $("note").value.includes("Plan pro")){ $("note").value=info.note+" · preuve à vérifier"; } }
-    }
-    if(module==="RESEAU_DIGIY"){
-      if(!RESEAU_PLANS[plan]){ plan="reseau_7j"; $("plan").value=plan; }
-      const info=RESEAU_PLANS[plan]; if(info){ $("amount").value=String(info.amount); if(!$("note").value.trim()) $("note").value=info.note; }
-    }
-  }
-  function prefill(){
-    const qp=new URLSearchParams(location.search);
-    const phone=(qp.get("phone")||qp.get("tel")||"").trim();
-    const module=(qp.get("module")||"").trim().toUpperCase();
-    const plan=(qp.get("plan")||"").trim();
-    const amount=(qp.get("amount")||qp.get("amount_xof")||"").trim();
-    const note=(qp.get("note")||qp.get("payment_ref")||qp.get("ref")||"").trim();
-    if(phone) $("phone").value=digits(phone); if(module && Array.from($("module").options).some(o=>o.value===module)) $("module").value=module; if(amount) $("amount").value=digits(amount); if(plan) selectPlan(plan); if(note) $("note").value=note;
-    syncUI();
-    try{const u=new URL(location.href);["phone","tel","module","plan","amount","amount_xof","note","payment_ref","ref"].forEach(k=>u.searchParams.delete(k));history.replaceState({},document.title,u.pathname+u.search+u.hash);}catch(_){ }
-  }
-  document.querySelectorAll("[data-driver]").forEach(b=>b.addEventListener("click",()=>{ $("module").value="DRIVER"; $("plan").value=b.dataset.driver; syncUI(); }));
-  document.querySelectorAll("[data-reseau]").forEach(b=>b.addEventListener("click",()=>{ $("module").value="RESEAU_DIGIY"; $("plan").value=b.dataset.reseau; syncUI(); }));
-  $("module").addEventListener("change",syncUI); $("plan").addEventListener("change",syncUI); $("phone").addEventListener("input",()=>{$("phone").value=digits($("phone").value);});
-  prefill();
-  const token=getToken(); if(!token) return;
-  btn.addEventListener("click",async()=>{
-    syncUI();
-    const phone=digits($("phone").value); const module=$("module").value; const plan=norm($("plan").value); const amount=Number(digits($("amount").value)||0); const note=$("note").value.trim();
-    if(!phone || phone.length<9) return setMsg("❌ Téléphone invalide.","red"); if(!amount || amount<100) return setMsg("❌ Montant invalide.","red");
-    btn.disabled=true; setMsg("⏳ Activation...\n"+module+" / "+plan+" / "+amount+" FCFA","#facc15");
-    const payload={phone,module,plan,amount_xof:amount,note,payment_ref:note};
-    if(module==="RESEAU_DIGIY"){const info=RESEAU_PLANS[plan]||RESEAU_PLANS.reseau_7j; payload.reseau_digiy=true; payload.duration_days=info.days; payload.activation_scope=plan==="reseau_first"?"first":"validated_pro_visibility";}
-    try{
-      const r=await fetch(BACKEND+"/api/admin/activate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},credentials:"include",body:JSON.stringify(payload)});
-      const data=await r.json().catch(()=>({ok:false,error:"bad_json"}));
-      if(r.status===401){setMsg("🔒 Session expirée. Reconnecte-toi.","red");setTimeout(()=>location.replace("login.html"),350);return;}
-      if(!r.ok || !data.ok){setMsg("❌ "+(data.error||"Erreur "+r.status)+"\nModule : "+module+"\nPlan envoyé : "+plan+"\nMontant : "+amount,"red");btn.disabled=false;return;}
-      setMsg("✅ Activation réussie\nModule : "+module+"\nPlan : "+plan+"\nMontant : "+amount+" FCFA","limegreen");btn.disabled=false;
-    }catch(e){setMsg("⚠️ Erreur réseau (fetch).","red");btn.disabled=false;}
-  });
+(()=>{const BACKEND=location.hostname==='localhost'?'http://localhost:8000':'https://admin.digiylyfe.com';const STORE={token:'digiy_admin_jwt',exp:'digiy_admin_exp'};const $=id=>document.getElementById(id);const msg=$('msg'),go=$('go');
+const C={
+DRIVER:[['driver_jakarta','DRIVER · Jakarta',5500,30,1],['driver_bus','DRIVER · Bus',12000,30,1],['driver_pro','DRIVER · Driver',19900,30,1]],
+LOC:[['loc_essentiel','LOC · Essentiel 1 à 5',26000,30,1],['loc_standard','LOC · Standard 6 à 9',35000,30,1]],
+EXPLORE_BOOST:[['explore_boost_standard','EXPLORE BOOST · Standard',10000,30,1]],
+RESEAU_DIGIY:[['reseau_7j','RÉSEAU DIGIY · Publication 7 jours',15000,7,1],['reseau_15j','RÉSEAU DIGIY · Publication 15 jours',25000,15,1],['reseau_30j','RÉSEAU DIGIY · Publication 30 jours',45000,30,1],['reseau_first','RÉSEAU DIGIY · Mise en classe FIRST',150000,30,1]],
+ABOS:[['abos_orchestrateur','ABOS · Préparation abonnement',null,null,0]],
+PAY:[['pay_caisse_centrale','PAY · Mon argent · Caisse centrale',null,null,0]],
+POS:[],MARKET:[],RESA:[],RESTO:[],BUILD:[],JOBS:[],EXPLORE:[]};
+const L={DRIVER:'DRIVER',LOC:'LOC',EXPLORE_BOOST:'EXPLORE BOOST',RESEAU_DIGIY:'RÉSEAU DIGIY',POS:'POS / MON COMMERCE',MARKET:'MARKET',RESA:'RESA',RESTO:'RESTO',BUILD:'BUILD',JOBS:'JOBS',EXPLORE:'EXPLORE',ABOS:'ABOS · rail interne',PAY:'PAY · rail interne'};
+function d(v){return String(v||'').replace(/[^\d]/g,'')}function np(v){return String(v||'').trim().toLowerCase().replace(/-/g,'_')}function nm(v){return String(v||'').trim().toUpperCase().replace(/-/g,'_')}function money(v){return v==null?'—':Number(v).toLocaleString('fr-FR')+' FCFA'}function sm(t,c){msg.textContent=t||'';msg.style.color=c||'#e5e7eb'}function tok(){let t=(localStorage.getItem(STORE.token)||'').trim(),e=Number(localStorage.getItem(STORE.exp)||'0');if(!t||(e&&Date.now()>e)){localStorage.removeItem(STORE.token);location.replace('login.html');return ''}return t}
+function plans(){return C[$('module').value]||[]}function cur(){let c=np($('plan').value);return plans().find(p=>p[0]===c)||null}function byAmount(m,a){return (C[m]||[]).find(p=>Number(p[2])===Number(a))||null}
+function init(){let order=['DRIVER','LOC','EXPLORE_BOOST','RESEAU_DIGIY','POS','MARKET','RESA','RESTO','BUILD','JOBS','EXPLORE','ABOS','PAY'];$('module').innerHTML=order.map(m=>'<option value="'+m+'">'+(L[m]||m)+'</option>').join('');$('quick').innerHTML=[['DRIVER','driver_jakarta','DRIVER Jakarta'],['DRIVER','driver_bus','DRIVER Bus'],['DRIVER','driver_pro','DRIVER Pro'],['LOC','loc_essentiel','LOC Essentiel'],['LOC','loc_standard','LOC Standard'],['EXPLORE_BOOST','explore_boost_standard','EXPLORE Boost'],['RESEAU_DIGIY','reseau_7j','Réseau 7j'],['RESEAU_DIGIY','reseau_first','FIRST']].map(q=>'<button class="btn btn2" type="button" data-m="'+q[0]+'" data-p="'+q[1]+'">'+q[2]+'</button>').join('');document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ $('module').value=b.dataset.m;refresh();$('plan').value=b.dataset.p;sync();});refresh()}
+function refresh(){let ps=plans();if(ps.length){$('manual').classList.add('hide');$('plan').innerHTML=ps.map(p=>'<option value="'+p[0]+'">'+p[1]+' · '+money(p[2])+(p[3]?' · '+p[3]+'j':'')+'</option>').join('')}else{$('manual').classList.remove('hide');$('plan').innerHTML='<option value="manual">Plan manuel / non catalogué</option>'}sync()}
+function sync(){let p=cur(),m=$('module').value;if(p){if(p[2]!=null)$('amount').value=String(p[2]);if(p[3]!=null)$('days').value=String(p[3]);$('meta').innerHTML='Module : <b>'+m+'</b> · Plan envoyé : <b>'+p[0]+'</b> · Montant : <b>'+money(p[2])+'</b> · Durée : <b>'+(p[3]||'—')+'j</b>'+(p[4]?'':'<br>⚠️ Rail interne non activable ici.');if(!$('note').value.trim()||$('note').value.includes('Plan pro'))$('note').value=m+' · '+p[1]+' · '+money(p[2])+' · preuve à vérifier';go.disabled=!p[4];return}$('meta').innerHTML='⚠️ Aucun plan actif connu pour ce module. Le plan manuel ne passera que si la ligne existe dans Supabase.';go.disabled=false}
+function prefill(){let q=new URLSearchParams(location.search),ph=q.get('phone')||q.get('tel')||'',m=nm(q.get('module')||''),p=np(q.get('plan')||''),a=d(q.get('amount')||q.get('amount_xof')||''),n=q.get('note')||q.get('payment_ref')||q.get('ref')||'';if(ph)$('phone').value=d(ph);if(a)$('amount').value=a;if(n)$('note').value=n;if(C[m])$('module').value=m;refresh();if(p&&Array.from($('plan').options).some(o=>o.value===p))$('plan').value=p;else if(p&&!plans().length)$('manualPlan').value=p;else if(m&&a){let found=byAmount(m,a);if(found)$('plan').value=found[0]}sync();try{let u=new URL(location.href);['phone','tel','module','plan','amount','amount_xof','note','payment_ref','ref'].forEach(k=>u.searchParams.delete(k));history.replaceState({},document.title,u.pathname+u.search+u.hash)}catch(e){}}
+function payloadPlan(){let p=cur();return p?p[0]:(np($('manualPlan').value)||np($('plan').value))}
+init();prefill();$('module').onchange=refresh;$('plan').onchange=sync;$('amount').oninput=()=>{$('amount').value=d($('amount').value);sync()};$('phone').oninput=()=>{$('phone').value=d($('phone').value)};let token=tok();if(!token)return;
+go.onclick=async()=>{let phone=d($('phone').value),module=$('module').value,plan=payloadPlan(),amount=Number(d($('amount').value)||0),note=$('note').value.trim(),p=cur(),days=Number(d($('days').value)||p?.[3]||0);if(!phone||phone.length<9)return sm('❌ Téléphone invalide.','red');if(!plan||plan==='manual')return sm('❌ Plan invalide.','red');if(!amount||amount<100)return sm('❌ Montant invalide ou plan sans prix. ABOS/PAY ne passent pas ici.','red');if(p&&p[4]===0)return sm('❌ Rail interne non activable ici : '+p[1],'red');go.disabled=true;sm('⏳ Activation...\nModule : '+module+'\nPlan envoyé : '+plan+'\nMontant : '+amount,'#facc15');let payload={phone,module,plan,amount_xof:amount,note,payment_ref:note};if(module==='RESEAU_DIGIY'){payload.reseau_digiy=true;payload.duration_days=days||7;payload.activation_scope=plan==='reseau_first'?'first':'validated_pro_visibility'}try{let r=await fetch(BACKEND+'/api/admin/activate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},credentials:'include',body:JSON.stringify(payload)}),data=await r.json().catch(()=>({ok:false,error:'bad_json'}));if(r.status===401){sm('🔒 Session expirée.','red');setTimeout(()=>location.replace('login.html'),350);return}if(!r.ok||!data.ok){sm('❌ '+(data.error||'Erreur '+r.status)+'\nModule : '+module+'\nPlan envoyé : '+plan+'\nMontant : '+amount,'red');go.disabled=false;return}sm('✅ Activation réussie\nModule : '+module+'\nPlan : '+plan+'\nMontant : '+amount+' FCFA','limegreen');go.disabled=false}catch(e){sm('⚠️ Erreur réseau.','red');go.disabled=false}};
 })();
-</script>
-</body>
-</html>
+</script></body></html>
