@@ -834,7 +834,7 @@
               <button id="abosManualSaveBtn" class="btn btn-primary" type="button">✅ Enregistrer + générer lien</button>
               <button id="abosManualCopyBtn" class="btn btn-gold" type="button">📋 Copier lien</button>
               <button id="abosManualWaBtn" class="btn btn-dark" type="button">💬 Préparer WhatsApp</button>
-              <button id="abosManualActivationBtn" class="btn btn-gold" type="button">🔑 Préparer activation</button>
+              <button id="abosManualActivationBtn" class="btn btn-gold" type="button">🔑 Préparer activation ADMIN</button>
               <button id="abosManualExportBtn" class="btn btn-soft" type="button">⬇️ Export ABOS</button>
             </div>
 
@@ -1757,7 +1757,13 @@
     }
 
     function buildActivationUrl(params){
-      const u = new URL("./activations.html", location.href);
+      /*
+        Route forte ADMIN :
+        ce bouton ne doit jamais ouvrir un hub module ni un login DRIVER.
+        Il prépare uniquement la page d’activation centrale.
+      */
+      const adminActivationBase = "https://admin.digiylyfe.com/activations.html";
+      const u = new URL(adminActivationBase);
       Object.entries(params || {}).forEach(([key, value]) => {
         const val = String(value || "").trim();
         if(val) u.searchParams.set(key, val);
@@ -1880,7 +1886,7 @@
               ${url ? `<a class="btn btn-dark" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">🚪 Ouvrir accès</a>` : ""}
               <button class="btn btn-gold" type="button" data-abos-copy="${escapeHtml(p.id || "")}">📋 Copier</button>
               <button class="btn btn-soft" type="button" data-abos-wa="${escapeHtml(p.id || "")}">💬 WhatsApp</button>
-              <button class="btn btn-primary" type="button" data-abos-activate="${escapeHtml(p.id || "")}">🔑 Activation</button>
+              <button class="btn btn-primary" type="button" data-abos-activate="${escapeHtml(p.id || "")}">🔑 Activation admin</button>
               <button class="btn btn-danger" type="button" data-abos-del="${escapeHtml(p.id || "")}">Supprimer</button>
             </div>
           </article>
@@ -1976,7 +1982,14 @@
       if (!payment) return;
 
       const url = buildAbosManualActivationUrl(payment);
-      if (url) window.location.href = url;
+      if (url) {
+        abosManualOut.innerHTML += `
+          <div class="mini" style="margin-top:10px;color:#bbf7d0">
+            Activation admin préparée : <a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>
+          </div>
+        `;
+        window.location.href = url;
+      }
     }
 
 
@@ -2196,6 +2209,28 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
