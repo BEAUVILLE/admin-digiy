@@ -16,7 +16,7 @@ if [[ -z "${BACKUP_PASSPHRASE:-}" ]]; then
   exit 78
 fi
 
-for command in openssl sha256sum tar pg_restore; do
+for command in openssl sha256sum tar gzip; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Commande absente : ${command}" >&2
     exit 69
@@ -29,7 +29,7 @@ if [[ -f "$CHECKSUM_FILE" ]]; then
     sha256sum -c "$(basename "$CHECKSUM_FILE")"
   )
 else
-  echo "Avertissement : fichier SHA256 absent, contrôle externe impossible." >&2
+  echo "Avertissement : fichier SHA256 externe absent." >&2
 fi
 
 TMP_DIR="$(mktemp -d)"
@@ -51,14 +51,33 @@ if [[ -z "$BACKUP_DIR" ]]; then
   exit 65
 fi
 
+for file in roles.sql schema.sql data.sql SHA256SUMS backup-status.txt; do
+  if [[ ! -s "$BACKUP_DIR/$file" ]]; then
+    echo "Fichier obligatoire absent ou vide : ${file}" >&2
+    exit 65
+  fi
+done
+
 (
   cd "$BACKUP_DIR"
   sha256sum -c SHA256SUMS
 )
 
-pg_restore --list "$BACKUP_DIR/database.full.dump" >/dev/null
+ROLE_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/roles.sql" || true)"
+SCHEMA_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/schema.sql" || true)"
+DATA_COPY_LINES="$(grep -Ec '^COPY ' "$BACKUP_DIR/data.sql" || true)"
 
-echo "Sauvegarde vérifiée avec succès."
-echo "Dossier : $(basename "$BACKUP_DIR")"
-echo "État :"
+if [[ "$SCHEMA_LINES" == "0" ]]; then
+  echo "Le schéma SQL ne contient aucune instruction structurante reconnue." >&2
+  exit 65
+fi
+
+cat <<EOF
+Sauvegarde vérifiée avec succès.
+Dossier : $(basename "$BACKUP_DIR")
+Instructions rôles détectées : ${ROLE_LINES}
+Instructions schéma détectées : ${SCHEMA_LINES}
+Blocs COPY détectés : ${DATA_COPY_LINES}
+État :
+EOF
 cat "$BACKUP_DIR/backup-status.txt"
