@@ -1,0 +1,15 @@
+# Sauvegardes DIGIY — jamais dans Git
+.backup-work/
+backup-output/
+*.dump
+*.sql.enc
+*.tar.gz
+*.tar.gz.enc
+*.tar.gz.enc.sha256
+
+# Secrets et environnements locaux
+.env
+.env.*
+!.env.example
+*.pem
+*.key
