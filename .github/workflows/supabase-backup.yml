@@ -1,0 +1,145 @@
+name: DIGIY — Sauvegarde Supabase chiffrée
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: digiy-supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Sauvegarde chiffrée
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+      BACKUP_S3_PREFIX: ${{ secrets.BACKUP_S3_PREFIX }}
+      BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Contrôler la configuration
+        id: preflight
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          configured=true
+          if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
+            echo "::warning::Secret SUPABASE_DB_URL absent : aucune sauvegarde lancée."
+            configured=false
+          fi
+          if [[ -z "${BACKUP_PASSPHRASE:-}" ]]; then
+            echo "::warning::Secret BACKUP_PASSPHRASE absent : aucune sauvegarde lancée."
+            configured=false
+          fi
+
+          storage=false
+          if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+            storage=true
+          else
+            echo "::notice::Storage non configuré : le dump de base inclura les métadonnées, pas les octets des fichiers."
+          fi
+
+          offsite=false
+          if [[ -n "${BACKUP_S3_BUCKET:-}" && -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
+            offsite=true
+          else
+            echo "::notice::Archive hors site S3 non configurée : l'artefact GitHub chiffré restera le premier filet de sécurité."
+          fi
+
+          {
+            echo "configured=${configured}"
+            echo "storage=${storage}"
+            echo "offsite=${offsite}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Installer PostgreSQL client
+        if: steps.preflight.outputs.configured == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Créer la sauvegarde chiffrée
+        if: steps.preflight.outputs.configured == 'true'
+        id: backup
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chmod +x scripts/backup-supabase.sh
+          scripts/backup-supabase.sh
+
+      - name: Conserver l'artefact chiffré
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.backup.outputs.artifact_name }}
+          path: |
+            ${{ steps.backup.outputs.backup_file }}
+            ${{ steps.backup.outputs.checksum_file }}
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Copier l'archive hors site
+        if: steps.preflight.outputs.configured == 'true' && steps.preflight.outputs.offsite == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          if ! command -v aws >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y awscli
+          fi
+
+          prefix="${BACKUP_S3_PREFIX:-digiylyfe/supabase}"
+          destination="s3://${BACKUP_S3_BUCKET}/${prefix}/$(date -u +'%Y/%m')/"
+          endpoint_args=()
+          if [[ -n "${BACKUP_S3_ENDPOINT:-}" ]]; then
+            endpoint_args+=(--endpoint-url "$BACKUP_S3_ENDPOINT")
+          fi
+
+          aws "${endpoint_args[@]}" s3 cp \
+            "${{ steps.backup.outputs.backup_file }}" \
+            "$destination" \
+            --only-show-errors
+
+          aws "${endpoint_args[@]}" s3 cp \
+            "${{ steps.backup.outputs.checksum_file }}" \
+            "$destination" \
+            --only-show-errors
+
+      - name: Résumé du rail de sauvegarde
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## DIGIY — Sauvegarde Supabase"
+            echo
+            if [[ "${{ steps.preflight.outputs.configured }}" == "true" ]]; then
+              echo "- Base PostgreSQL : sauvegarde chiffrée créée"
+              echo "- Storage : ${{ steps.backup.outputs.storage_status || 'non déterminé' }}"
+              echo "- Artefact GitHub : 30 jours"
+              echo "- Copie hors site : ${{ steps.preflight.outputs.offsite }}"
+            else
+              echo "- Rail installé mais secrets requis absents"
+              echo "- Aucune donnée n'a été lue ni exportée"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
