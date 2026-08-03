@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>DIGIY ADMIN — Publication HUB</title>
+  <meta name="theme-color" content="#07140f" />
+  <meta name="description" content="Porte privée DIGIYLYFE pour publier ou mettre à jour un professionnel dans le HUB territorial." />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />
+  <meta name="referrer" content="no-referrer" />
+  <style>
+    :root{
+      --bg:#07140f;--bg2:#0a1c15;--card:#10241b;--line:rgba(255,255,255,.10);
+      --text:#ecfff4;--muted:rgba(236,255,244,.70);--soft:rgba(236,255,244,.52);
+      --green:#22c55e;--green2:#16a34a;--gold:#facc15;--red:#ef4444;--orange:#f59e0b;
+      --shadow:0 24px 70px rgba(0,0,0,.35);--radius:24px;--max:1180px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:linear-gradient(180deg,var(--bg),#06110d);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    button,input,textarea,select{font:inherit}
+    .wrap{width:min(var(--max),calc(100% - 24px));margin:0 auto;padding:20px 0 70px}
+    .hero,.card{border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--bg2));box-shadow:var(--shadow)}
+    .hero{padding:24px;border-radius:30px;background:radial-gradient(circle at top right,rgba(34,197,94,.16),transparent 30%),radial-gradient(circle at top left,rgba(250,204,21,.10),transparent 25%),linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01))}
+    .eyebrow{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid rgba(250,204,21,.24);border-radius:999px;background:rgba(250,204,21,.08);color:var(--gold);font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+    h1{margin:14px 0 8px;font-size:clamp(28px,4vw,46px);line-height:1.03;letter-spacing:-.035em}
+    .lead{margin:0;max-width:850px;color:var(--muted);line-height:1.65}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);gap:18px;margin-top:18px}
+    @media(max-width:930px){.grid{grid-template-columns:1fr}}
+    .card{border-radius:var(--radius);overflow:hidden}
+    .card-head{padding:18px 18px 0}.card-body{padding:18px}.card-title{margin:0;font-size:21px}.card-sub{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.55}
+    .stack{display:grid;gap:14px}.stack-sm{display:grid;gap:10px}.row{display:flex;gap:10px;flex-wrap:wrap}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:700px){.two,.three{grid-template-columns:1fr}}
+    label{display:grid;gap:7px;color:var(--muted);font-size:14px}
+    input,textarea,select{width:100%;border:1px solid var(--line);border-radius:15px;padding:13px 14px;background:rgba(255,255,255,.045);color:var(--text);outline:none}
+    input:focus,textarea:focus,select:focus{border-color:rgba(34,197,94,.55);box-shadow:0 0 0 3px rgba(34,197,94,.10)}
+    textarea{min-height:105px;resize:vertical}select[multiple]{min-height:150px}
+    .check{display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.03)}.check input{width:auto}
+    .btn{appearance:none;border:0;border-radius:15px;padding:13px 16px;font-weight:900;cursor:pointer;transition:.16s ease}.btn:hover{transform:translateY(-1px)}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .primary{background:linear-gradient(180deg,var(--green),var(--green2));color:#04110a}.gold{background:linear-gradient(180deg,#fde68a,var(--gold));color:#171304}.dark{background:#091510;border:1px solid var(--line);color:var(--text)}.danger{background:linear-gradient(180deg,#f87171,var(--red));color:#fff}
+    .panel{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(255,255,255,.03)}
+    .status{display:flex;gap:9px;align-items:flex-start;color:var(--muted);font-size:14px;line-height:1.5}.dot{width:10px;height:10px;margin-top:5px;border-radius:50%;background:#64748b;box-shadow:0 0 0 4px rgba(100,116,139,.15);flex:0 0 auto}.dot.ok{background:var(--green);box-shadow:0 0 0 4px rgba(34,197,94,.14)}.dot.warn{background:var(--orange);box-shadow:0 0 0 4px rgba(245,158,11,.14)}.dot.bad{background:var(--red);box-shadow:0 0 0 4px rgba(239,68,68,.14)}
+    .mini{font-size:13px;color:var(--muted);line-height:1.55}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;word-break:break-word}
+    .contract{white-space:pre-wrap;min-height:105px;background:#07100c;border:1px solid var(--line);border-radius:15px;padding:13px;color:#d7ffe6;font-size:12px;line-height:1.55;overflow:auto}
+    .preview{border:1px solid rgba(34,197,94,.24);border-radius:20px;padding:16px;background:radial-gradient(circle at top right,rgba(34,197,94,.12),transparent 40%),rgba(34,197,94,.045)}
+    .preview h3{margin:0 0 6px;font-size:21px}.preview p{margin:0;color:var(--muted);line-height:1.55}.tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.tag{padding:6px 9px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:12px;color:var(--muted)}
+    .hidden{display:none!important}.footer{margin-top:16px;text-align:center;color:var(--soft);font-size:12px}
+    .warning{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.07)}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">🦅 DIGIYLYFE — ADMIN TERRITORIAL</div>
+      <h1>Publication HUB</h1>
+      <p class="lead">Publier ou mettre à jour un professionnel dans le moteur territorial, sans SQL manuel. La page vérifie la session, charge les métiers et les zones, puis détecte le contrat réel de la RPC avant d’autoriser l’écriture.</p>
+      <div class="top-actions">
+        <a class="btn dark" href="./index.html">← Retour cockpit</a>
+        <button id="sessionBtn" class="btn dark" type="button">🛡️ Vérifier la session</button>
+        <button id="contractBtn" class="btn gold" type="button">🔎 Détecter le contrat RPC</button>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">Fiche publique du professionnel</h2>
+          <p class="card-sub">Uniquement les informations destinées au public. Les données privées restent hors du HUB.</p>
+        </div>
+        <div class="card-body stack">
+          <div class="two">
+            <label>Identifiant public existant — facultatif
+              <input id="cardId" type="text" autocomplete="off" placeholder="UUID uniquement pour une mise à jour ciblée" />
+            </label>
+            <label>Nom affiché *
+              <input id="displayName" type="text" autocomplete="organization" placeholder="Ex : Lamine — Chauffeur privé" />
+            </label>
+          </div>
+
+          <div class="two">
+            <label>Métier *
+              <select id="metierSlug"><option value="">Chargement des métiers…</option></select>
+            </label>
+            <label>Catégorie
+              <input id="category" type="text" autocomplete="off" placeholder="Ex : transport, artisan, commerce" />
+            </label>
+          </div>
+
+          <div class="two">
+            <label>Zone principale *
+              <select id="zoneSlug"><option value="">Chargement des zones…</option></select>
+            </label>
+            <label>Zones d’intervention complémentaires
+              <select id="extraZones" multiple></select>
+            </label>
+          </div>
+
+          <label>Activité courte *
+            <input id="activityLabel" type="text" placeholder="Ex : Transfert AIBD · Courses locales · Circuits Petite Côte" />
+          </label>
+
+          <label>Description publique
+            <textarea id="shortDescription" placeholder="Une phrase claire, vérifiable et utile au client."></textarea>
+          </label>
+
+          <div class="two">
+            <label>URL de la fiche publique *
+              <input id="publicUrl" type="url" inputmode="url" placeholder="https://partenaire-exemple.digiylyfe.com/" />
+            </label>
+            <label>WhatsApp public
+              <input id="whatsappPublic" type="tel" inputmode="tel" placeholder="221771234567" />
+            </label>
+          </div>
+
+          <div class="three">
+            <label>Téléphone public
+              <input id="phonePublic" type="tel" inputmode="tel" placeholder="221771234567" />
+            </label>
+            <label>Poids d’affichage
+              <input id="rankWeight" type="number" min="0" max="9999" step="1" value="50" />
+            </label>
+            <label>Statut
+              <select id="status"><option value="published">Publié</option><option value="draft">Brouillon</option><option value="suspended">Suspendu</option></select>
+            </label>
+          </div>
+
+          <div class="two">
+            <label class="check"><input id="isPublic" type="checkbox" checked /> Visible publiquement</label>
+            <label class="check"><input id="isActive" type="checkbox" checked /> Fiche active</label>
+          </div>
+
+          <details class="panel">
+            <summary><strong>Paramètres complémentaires</strong></summary>
+            <div class="stack-sm" style="margin-top:12px">
+              <p class="mini">Utilisé seulement si la RPC attend un paramètre encore inconnu de cette interface. Le JSON est fusionné après contrôle.</p>
+              <textarea id="extraArgs" class="mono" placeholder='{"p_source_card_id":"…"}'>{}</textarea>
+              <label>Contrat manuel — secours
+                <input id="manualContract" class="mono" type="text" placeholder="p_display_name, p_metier_slug, p_zone_slug…" />
+              </label>
+              <button id="manualContractBtn" class="btn dark" type="button">Appliquer le contrat manuel</button>
+            </div>
+          </details>
+
+          <div class="row">
+            <button id="previewBtn" class="btn dark" type="button">👁️ Prévisualiser</button>
+            <button id="publishBtn" class="btn primary" type="button" disabled>🚀 Publier / Mettre à jour</button>
+            <button id="resetBtn" class="btn danger" type="button">Effacer le formulaire</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="stack">
+        <section class="card">
+          <div class="card-head"><h2 class="card-title">Contrôles</h2></div>
+          <div class="card-body stack-sm">
+            <div class="panel"><div class="status"><span id="sessionDot" class="dot"></span><span id="sessionText">Session non contrôlée</span></div></div>
+            <div class="panel"><div class="status"><span id="catalogDot" class="dot"></span><span id="catalogText">Catalogue non chargé</span></div></div>
+            <div class="panel"><div class="status"><span id="contractDot" class="dot"></span><span id="contractText">Contrat RPC non détecté</span></div></div>
+            <div id="contractOut" class="contract">La publication reste verrouillée tant que le contrat réel de digiy_hub_publish_partner n’est pas reconnu.</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h2 class="card-title">Prévisualisation</h2></div>
+          <div class="card-body">
+            <div id="preview" class="preview">
+              <h3>Nom du professionnel</h3>
+              <p>La fiche publique apparaîtra ici avant publication.</p>
+              <div class="tags"><span class="tag">Métier</span><span class="tag">Zone</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h2 class="card-title">Résultat</h2></div>
+          <div class="card-body stack-sm">
+            <div id="resultOut" class="contract">Aucune opération lancée.</div>
+            <p class="mini">Doctrine : contact direct, paiement direct, 0 % de commission. Une publication doit rester vérifiable, humaine et réversible.</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+    <div class="footer">DIGIY ADMIN · Le local prépare, le cloud renforce, le professionnel garde la main.</div>
+  </main>
+
+  <script>
+    'use strict';
+
+    const BACKEND_BASE = (window.DIGIY_ADMIN_BACKEND || '').trim() || 'https://admin.digiylyfe.com';
+    const SUPABASE_URL = 'https://wesqmwjjtsefyjnluosj.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlc3Ftd2pqdHNlZnlqbmx1b3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxNzg4ODIsImV4cCI6MjA4MDc1NDg4Mn0.dZfYOc2iL2_wRYL3zExZFsFSBK6AbMeOid2LrIjcTdA';
+    const RPC_NAME = 'digiy_hub_publish_partner';
+    const TOKEN_KEY = 'digiy_admin_jwt';
+
+    const $ = id => document.getElementById(id);
+    const state = { session:false, catalog:false, contract:[], rawContract:null };
+
+    const aliasMap = {
+      p_card_id:'cardId', p_public_card_id:'cardId', p_partner_id:'cardId', p_annuaire_id:'cardId',
+      p_display_name:'displayName', p_name:'displayName', p_professional_name:'displayName', p_partner_name:'displayName',
+      p_activity_label:'activityLabel', p_activity:'activityLabel', p_job_label:'activityLabel', p_service_label:'activityLabel',
+      p_short_description:'shortDescription', p_description:'shortDescription', p_summary:'shortDescription',
+      p_metier_slug:'metierSlug', p_job_slug:'metierSlug', p_profession_slug:'metierSlug',
+      p_zone_slug:'zoneSlug', p_main_zone_slug:'zoneSlug', p_primary_zone_slug:'zoneSlug',
+      p_zone_slugs:'extraZones', p_extra_zone_slugs:'extraZones', p_coverage_zone_slugs:'extraZones', p_service_zone_slugs:'extraZones',
+      p_category:'category',
+      p_public_url:'publicUrl', p_profile_url:'publicUrl', p_fiche_url:'publicUrl', p_card_url:'publicUrl',
+      p_whatsapp_public:'whatsappPublic', p_whatsapp:'whatsappPublic', p_whatsapp_phone:'whatsappPublic',
+      p_phone_public:'phonePublic', p_phone:'phonePublic', p_public_phone:'phonePublic',
+      p_rank_weight:'rankWeight', p_weight:'rankWeight',
+      p_status:'status', p_is_public:'isPublic', p_is_active:'isActive',
+      p_entry_type:'__professional', p_token:'__token'
+    };
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+    function setDot(id, tone){ $(id).className = 'dot' + (tone ? ' ' + tone : ''); }
+    function cleanPhone(value){ return String(value || '').replace(/\D/g,''); }
+    function esc(value){ return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function pretty(value){ try{return JSON.stringify(value,null,2)}catch{return String(value)} }
+
+    async function backend(path, options={}){
+      const headers = new Headers(options.headers || {});
+      if(!headers.has('Content-Type')) headers.set('Content-Type','application/json');
+      if(token()) headers.set('Authorization','Bearer ' + token());
+      const res = await fetch(BACKEND_BASE + path, {method:options.method || 'GET',headers,body:options.body,credentials:'include'});
+      let data=null; try{data=await res.json()}catch{}
+      return {res,data};
+    }
+
+    async function checkSession(){
+      if(!token()){
+        state.session=false; setDot('sessionDot','bad'); $('sessionText').textContent='Aucun JWT admin. Ouvre d’abord le cockpit.'; refreshLock(); return false;
+      }
+      try{
+        const {res,data}=await backend('/api/admin/check');
+        state.session=!!(res.ok && data?.ok);
+        setDot('sessionDot',state.session?'ok':'bad');
+        $('sessionText').textContent=state.session ? `Session valide · ${data.role || 'ADMIN'} · ${data.label || '—'}` : 'Session invalide ou expirée';
+      }catch(error){
+        state.session=false; setDot('sessionDot','bad'); $('sessionText').textContent='Backend admin injoignable';
+      }
+      refreshLock(); return state.session;
+    }
+
+    async function publicTable(table, query){
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`,{cache:'no-store',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,Accept:'application/json'}});
+      if(!res.ok) throw new Error(`${table} HTTP ${res.status}`);
+      return res.json();
+    }
+
+    async function loadCatalog(){
+      setDot('catalogDot','warn'); $('catalogText').textContent='Chargement métiers et zones…';
+      try{
+        const [metiers,zones]=await Promise.all([
+          publicTable('digiy_metiers','select=id,slug,label,category,module_code,rank_weight&is_active=eq.true&order=rank_weight.asc,label.asc'),
+          publicTable('digiy_zones','select=id,slug,label,parent_zone_id,rank_weight&is_active=eq.true&order=rank_weight.asc,label.asc')
+        ]);
+        const metierSelect=$('metierSlug');
+        metierSelect.innerHTML='<option value="">Choisir un métier</option>' + metiers.map(m=>`<option value="${esc(m.slug)}" data-category="${esc(m.category || '')}">${esc(m.label || m.slug)}</option>`).join('');
+        const zoneOptions=zones.map(z=>`<option value="${esc(z.slug)}">${esc(z.label || z.slug)}</option>`).join('');
+        $('zoneSlug').innerHTML='<option value="">Choisir une zone principale</option>' + zoneOptions;
+        $('extraZones').innerHTML=zoneOptions;
+        state.catalog=true; setDot('catalogDot','ok'); $('catalogText').textContent=`Catalogue chargé · ${metiers.length} métiers · ${zones.length} zones`;
+      }catch(error){
+        state.catalog=false; setDot('catalogDot','bad'); $('catalogText').textContent='Catalogue indisponible · ' + String(error);
+      }
+      refreshLock();
+    }
+
+    function signaturesFrom(value){
+      const text=typeof value==='string'?value:pretty(value);
+      const found=[];
+      const rx=/digiy_hub_publish_partner\s*\(([^)]*)\)/gi;
+      let match;
+      while((match=rx.exec(text))){
+        const params=match[1].split(',').map(part=>{
+          const clean=part.trim().replace(/^public\./i,'');
+          const named=clean.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:=>|\s|$)/);
+          return named ? named[1] : '';
+        }).filter(Boolean);
+        if(params.length) found.push(params);
+      }
+      found.sort((a,b)=>b.length-a.length);
+      return found;
+    }
+
+    function applyContract(params, raw){
+      state.contract=[...new Set(params.filter(p=>p && p!=='p_token'))];
+      state.rawContract=raw || null;
+      const unknown=state.contract.filter(p=>!aliasMap[p] && !readExtraArgs()[p]);
+      const mapped=state.contract.filter(p=>aliasMap[p]);
+      if(!state.contract.length){
+        setDot('contractDot','bad'); $('contractText').textContent='Signature introuvable';
+        $('contractOut').textContent='La réponse ne contient pas de signature exploitable. Utilise le contrat manuel seulement après lecture du SQL officiel.';
+      }else if(unknown.length){
+        setDot('contractDot','warn'); $('contractText').textContent=`Contrat détecté · ${unknown.length} paramètre(s) à compléter`;
+        $('contractOut').textContent=`RPC : ${RPC_NAME}\n\nParamètres détectés :\n- ${state.contract.join('\n- ')}\n\nMappés automatiquement :\n- ${mapped.join('\n- ') || 'aucun'}\n\nÀ fournir dans le JSON complémentaire :\n- ${unknown.join('\n- ')}`;
+      }else{
+        setDot('contractDot','ok'); $('contractText').textContent=`Contrat prêt · ${state.contract.length} paramètre(s)`;
+        $('contractOut').textContent=`RPC : ${RPC_NAME}\n\nParamètres autorisés :\n- ${state.contract.join('\n- ')}\n\nTous les champs sont mappés. La publication peut être déverrouillée.`;
+      }
+      refreshLock();
+    }
+
+    async function detectContract(){
+      if(!await checkSession()) return;
+      setDot('contractDot','warn'); $('contractText').textContent='Détection du contrat réel…';
+      $('contractOut').textContent='Sonde sans écriture en cours…';
+      try{
+        const {res,data}=await backend('/api/rpc/'+encodeURIComponent(RPC_NAME),{method:'POST',body:JSON.stringify({__digiy_contract_probe:true})});
+        if(res.ok){
+          state.contract=[]; state.rawContract=data;
+          setDot('contractDot','bad'); $('contractText').textContent='Sonde refusée par sécurité';
+          $('contractOut').textContent='La RPC a accepté une sonde inconnue. Aucune publication n’est autorisée depuis cette page tant que le SQL officiel n’est pas vérifié.\n\nRéponse :\n'+pretty(data);
+          refreshLock(); return;
+        }
+        const candidates=signaturesFrom(data);
+        if(candidates.length){ applyContract(candidates[0],data); }
+        else{
+          state.contract=[]; state.rawContract=data;
+          setDot('contractDot','bad'); $('contractText').textContent='Contrat non détecté';
+          $('contractOut').textContent='Réponse brute de la passerelle :\n'+pretty(data);
+          refreshLock();
+        }
+      }catch(error){
+        state.contract=[]; setDot('contractDot','bad'); $('contractText').textContent='Erreur pendant la détection'; $('contractOut').textContent=String(error); refreshLock();
+      }
+    }
+
+    function readExtraArgs(){
+      const raw=$('extraArgs').value.trim() || '{}';
+      try{const value=JSON.parse(raw);return value && typeof value==='object' && !Array.isArray(value)?value:{}}catch{return {__invalid:true}}
+    }
+
+    function selectedExtraZones(){ return Array.from($('extraZones').selectedOptions).map(o=>o.value).filter(Boolean); }
+
+    function fieldValue(key){
+      if(key==='extraZones') return selectedExtraZones();
+      if(key==='isPublic' || key==='isActive') return $(key).checked;
+      if(key==='rankWeight') return Number($(key).value || 50);
+      if(key==='whatsappPublic' || key==='phonePublic') return cleanPhone($(key).value);
+      if(key==='__professional') return 'professional';
+      return $(key)?.value?.trim?.() ?? '';
+    }
+
+    function buildPayload(){
+      const extra=readExtraArgs();
+      if(extra.__invalid) throw new Error('Le JSON complémentaire est invalide.');
+      const payload={};
+      for(const param of state.contract){
+        if(Object.prototype.hasOwnProperty.call(extra,param)){ payload[param]=extra[param]; continue; }
+        const field=aliasMap[param];
+        if(field==='__token') continue;
+        if(field) payload[param]=fieldValue(field);
+      }
+      return {...payload,...extra};
+    }
+
+    function validateForm(){
+      const errors=[];
+      if(!$('displayName').value.trim()) errors.push('nom affiché');
+      if(!$('metierSlug').value) errors.push('métier');
+      if(!$('zoneSlug').value) errors.push('zone principale');
+      if(!$('activityLabel').value.trim()) errors.push('activité courte');
+      if(!$('publicUrl').value.trim()) errors.push('URL de la fiche');
+      const extra=readExtraArgs();
+      if(extra.__invalid) errors.push('JSON complémentaire valide');
+      const unknown=state.contract.filter(p=>!aliasMap[p] && !Object.prototype.hasOwnProperty.call(extra,p));
+      if(unknown.length) errors.push('paramètres RPC : '+unknown.join(', '));
+      return errors;
+    }
+
+    function refreshLock(){
+      const ready=state.session && state.catalog && state.contract.length>0 && validateForm().length===0;
+      $('publishBtn').disabled=!ready;
+    }
+
+    function preview(){
+      const name=$('displayName').value.trim() || 'Nom du professionnel';
+      const desc=$('shortDescription').value.trim() || $('activityLabel').value.trim() || 'Description publique à compléter.';
+      const metier=$('metierSlug').selectedOptions[0]?.textContent || 'Métier';
+      const zone=$('zoneSlug').selectedOptions[0]?.textContent || 'Zone';
+      const extras=selectedExtraZones().map(slug=>$('extraZones').querySelector(`option[value="${CSS.escape(slug)}"]`)?.textContent || slug);
+      $('preview').innerHTML=`<h3>${esc(name)}</h3><p>${esc(desc)}</p><div class="tags"><span class="tag">${esc(metier)}</span><span class="tag">${esc(zone)}</span>${extras.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`;
+      refreshLock();
+    }
+
+    async function publish(){
+      const errors=validateForm();
+      if(errors.length){ alert('À compléter : '+errors.join(' · ')); refreshLock(); return; }
+      if(!state.session || !state.contract.length){ alert('Session ou contrat RPC non validé.'); return; }
+      let payload;
+      try{payload=buildPayload()}catch(error){alert(String(error));return}
+      const confirmation=confirm(`Publier / mettre à jour « ${$('displayName').value.trim()} » dans le HUB territorial ?`);
+      if(!confirmation) return;
+      $('publishBtn').disabled=true; $('publishBtn').textContent='Publication…'; $('resultOut').textContent='Appel sécurisé en cours…';
+      try{
+        const {res,data}=await backend('/api/rpc/'+encodeURIComponent(RPC_NAME),{method:'POST',body:JSON.stringify(payload)});
+        $('resultOut').textContent=pretty({http:res.status,payload,data});
+        if(!res.ok || data?.ok===false){
+          alert(data?.error || data?.message || 'Publication refusée par le backend.');
+        }else{
+          alert('Publication HUB confirmée.');
+        }
+      }catch(error){ $('resultOut').textContent=String(error); alert('Erreur réseau pendant la publication.'); }
+      finally{ $('publishBtn').textContent='🚀 Publier / Mettre à jour'; refreshLock(); }
+    }
+
+    function resetForm(){
+      if(!confirm('Effacer les champs de cette fiche ?')) return;
+      ['cardId','displayName','category','activityLabel','shortDescription','publicUrl','whatsappPublic','phonePublic'].forEach(id=>$(id).value='');
+      $('metierSlug').value=''; $('zoneSlug').value=''; Array.from($('extraZones').options).forEach(o=>o.selected=false);
+      $('rankWeight').value='50'; $('status').value='published'; $('isPublic').checked=true; $('isActive').checked=true; $('extraArgs').value='{}';
+      preview(); refreshLock();
+    }
+
+    $('sessionBtn').addEventListener('click',checkSession);
+    $('contractBtn').addEventListener('click',detectContract);
+    $('previewBtn').addEventListener('click',preview);
+    $('publishBtn').addEventListener('click',publish);
+    $('resetBtn').addEventListener('click',resetForm);
+    $('manualContractBtn').addEventListener('click',()=>{
+      const params=$('manualContract').value.split(',').map(x=>x.trim()).filter(Boolean);
+      applyContract(params,{manual:true});
+    });
+    $('metierSlug').addEventListener('change',()=>{
+      const category=$('metierSlug').selectedOptions[0]?.dataset?.category || '';
+      if(category && !$('category').value.trim()) $('category').value=category;
+      preview();
+    });
+    document.querySelectorAll('input,textarea,select').forEach(el=>el.addEventListener('input',()=>{preview();refreshLock()}));
+
+    Promise.allSettled([checkSession(),loadCatalog()]).then(()=>preview());
+  </script>
+</body>
+</html>
