@@ -16,7 +16,7 @@ jobs:
   backup:
     name: Sauvegarde chiffrée
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -53,14 +53,14 @@ jobs:
           if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
             storage=true
           else
-            echo "::notice::Storage non configuré : le dump de base inclura les métadonnées, pas les octets des fichiers."
+            echo "::notice::Storage non configuré : les métadonnées seront sauvegardées, pas les octets des fichiers."
           fi
 
           offsite=false
           if [[ -n "${BACKUP_S3_BUCKET:-}" && -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
             offsite=true
           else
-            echo "::notice::Archive hors site S3 non configurée : l'artefact GitHub chiffré restera le premier filet de sécurité."
+            echo "::notice::Archive hors site non configurée : l'artefact GitHub chiffré restera le premier filet."
           fi
 
           {
@@ -68,6 +68,12 @@ jobs:
             echo "storage=${storage}"
             echo "offsite=${offsite}"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Installer Supabase CLI
+        if: steps.preflight.outputs.configured == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Installer PostgreSQL client
         if: steps.preflight.outputs.configured == 'true'
@@ -134,8 +140,10 @@ jobs:
             echo "## DIGIY — Sauvegarde Supabase"
             echo
             if [[ "${{ steps.preflight.outputs.configured }}" == "true" ]]; then
-              echo "- Base PostgreSQL : sauvegarde chiffrée créée"
+              echo "- Base : rôles + schéma + données via Supabase CLI"
               echo "- Storage : ${{ steps.backup.outputs.storage_status || 'non déterminé' }}"
+              echo "- Historique migrations : ${{ steps.backup.outputs.migration_status || 'non déterminé' }}"
+              echo "- Chiffrement : AES-256-CBC / PBKDF2"
               echo "- Artefact GitHub : 30 jours"
               echo "- Copie hors site : ${{ steps.preflight.outputs.offsite }}"
             else
