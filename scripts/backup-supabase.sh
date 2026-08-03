@@ -11,7 +11,7 @@ for name in "${required[@]}"; do
   fi
 done
 
-for command in pg_dump pg_restore psql openssl sha256sum tar gzip; do
+for command in supabase psql openssl sha256sum tar gzip python3; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "Commande absente : ${command}" >&2
     exit 69
@@ -35,27 +35,50 @@ trap cleanup EXIT
 
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
-printf '%s\n' "DIGIYLYFE — sauvegarde Supabase" > "$WORK_DIR/README.txt"
-printf 'Créée en UTC : %s\n' "$STAMP" >> "$WORK_DIR/README.txt"
-printf '%s\n' "Format : PostgreSQL custom + schéma SQL + inventaires + stockage optionnel" >> "$WORK_DIR/README.txt"
-printf '%s\n' "Restauration : utiliser scripts/verify-supabase-backup.sh puis scripts/restore-supabase-test.sh" >> "$WORK_DIR/README.txt"
+cat > "$WORK_DIR/README.txt" <<EOF
+DIGIYLYFE — sauvegarde Supabase
+Créée en UTC : ${STAMP}
+Format : rôles SQL + schéma SQL + données SQL COPY + inventaires + Storage optionnel
+Méthode : Supabase CLI officielle
+Restauration : scripts/verify-supabase-backup.sh puis scripts/restore-supabase-test.sh
+EOF
 
-# Le dump custom est la source principale de restauration.
-pg_dump "$SUPABASE_DB_URL" \
-  --format=custom \
-  --compress=9 \
-  --no-owner \
-  --no-privileges \
-  --file="$WORK_DIR/database.full.dump"
+# Procédure logique recommandée par Supabase : rôles, schéma et données séparés.
+supabase db dump \
+  --db-url "$SUPABASE_DB_URL" \
+  --file "$WORK_DIR/roles.sql" \
+  --role-only
 
-# Le schéma lisible facilite l'audit humain et le diagnostic.
-pg_dump "$SUPABASE_DB_URL" \
-  --schema-only \
-  --no-owner \
-  --no-privileges \
-  --file="$WORK_DIR/database.schema.sql"
+supabase db dump \
+  --db-url "$SUPABASE_DB_URL" \
+  --file "$WORK_DIR/schema.sql"
 
-# Inventaire vérifiable sans révéler le contenu des lignes.
+supabase db dump \
+  --db-url "$SUPABASE_DB_URL" \
+  --file "$WORK_DIR/data.sql" \
+  --data-only \
+  --use-copy \
+  --exclude "storage.buckets_vectors" \
+  --exclude "storage.vector_indexes"
+
+# Conserver aussi l'historique des migrations quand il existe.
+MIGRATION_STATUS="absent"
+MIGRATION_SCHEMA_EXISTS="$(psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -Atc "SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='supabase_migrations');")"
+if [[ "$MIGRATION_SCHEMA_EXISTS" == "t" ]]; then
+  MIGRATION_STATUS="saved"
+  supabase db dump \
+    --db-url "$SUPABASE_DB_URL" \
+    --file "$WORK_DIR/history_schema.sql" \
+    --schema supabase_migrations
+  supabase db dump \
+    --db-url "$SUPABASE_DB_URL" \
+    --file "$WORK_DIR/history_data.sql" \
+    --schema supabase_migrations \
+    --data-only \
+    --use-copy
+fi
+
+# Inventaires lisibles : noms des tables et estimations, sans afficher les lignes.
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -At -F $'\t' <<'SQL' > "$WORK_DIR/table-row-estimates.tsv"
 SELECT
   schemaname,
@@ -71,7 +94,7 @@ FROM storage.objects
 ORDER BY bucket_id, name;
 SQL
 
-# Les octets Storage sont exportés seulement quand les deux secrets existent.
+# Les octets de Storage sont exportés seulement quand les deux secrets existent.
 STORAGE_STATUS="metadata_only"
 if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   STORAGE_STATUS="full_objects"
@@ -154,21 +177,27 @@ if failures:
 PY
 fi
 
-printf 'storage_backup=%s\n' "$STORAGE_STATUS" > "$WORK_DIR/backup-status.txt"
-printf 'database_backup=full_custom_dump\n' >> "$WORK_DIR/backup-status.txt"
+for file in roles.sql schema.sql data.sql; do
+  if [[ ! -s "$WORK_DIR/$file" ]]; then
+    echo "Sauvegarde invalide : ${file} est absent ou vide." >&2
+    exit 65
+  fi
+done
+
+{
+  echo "database_backup=supabase_cli_roles_schema_data"
+  echo "storage_backup=${STORAGE_STATUS}"
+  echo "migration_history=${MIGRATION_STATUS}"
+} > "$WORK_DIR/backup-status.txt"
 
 (
   cd "$WORK_DIR"
-  sha256sum database.full.dump database.schema.sql table-row-estimates.tsv storage-object-manifest.tsv > SHA256SUMS
-  if [[ -d storage ]]; then
-    find storage -type f -print0 | sort -z | xargs -0 sha256sum >> SHA256SUMS
-  fi
+  find . -type f ! -name SHA256SUMS -print0 \
+    | sort -z \
+    | xargs -0 sha256sum > SHA256SUMS
 )
 
-# Validation structurelle avant chiffrement.
-pg_restore --list "$WORK_DIR/database.full.dump" >/dev/null
-
-# Archive puis chiffrement fort. Aucun dump en clair n'est conservé en sortie.
+# Archive puis chiffrement fort. Aucun SQL en clair n'est conservé en sortie.
 tar -C "$BACKUP_ROOT" -czf "$PLAIN_ARCHIVE" "$(basename "$WORK_DIR")"
 openssl enc -aes-256-cbc -salt -pbkdf2 -iter 250000 \
   -in "$PLAIN_ARCHIVE" \
@@ -188,9 +217,11 @@ if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     echo "checksum_file=$ENCRYPTED_CHECKSUM"
     echo "artifact_name=$ARCHIVE_BASE"
     echo "storage_status=$STORAGE_STATUS"
+    echo "migration_status=$MIGRATION_STATUS"
   } >> "$GITHUB_OUTPUT"
 fi
 
 printf 'Sauvegarde chiffrée créée : %s\n' "$ENCRYPTED_ARCHIVE"
 printf 'Somme de contrôle : %s\n' "$ENCRYPTED_CHECKSUM"
 printf 'Storage : %s\n' "$STORAGE_STATUS"
+printf 'Historique migrations : %s\n' "$MIGRATION_STATUS"
