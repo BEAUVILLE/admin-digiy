@@ -1,0 +1,41 @@
+name: Add DIGIY CAMPUS button
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-campus-button.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CAMPUS button to admin cockpit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          campus = '<a class="btn btn-gold" href="https://digiylyfe.com/digiy-campus-prive.html">🎓 CAMPUS</a>'
+          if campus in s:
+              print('CAMPUS button already present')
+              raise SystemExit(0)
+          needle = '<a class="btn btn-gold" href="./partenaires-terrain.html">🤝 PARTENAIRES TERRAIN</a>'
+          if needle not in s:
+              raise SystemExit('Target PARTENAIRES TERRAIN button not found')
+          s = s.replace(needle, needle + campus, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit cockpit update
+        run: |
+          if git diff --quiet -- index.html; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Add DIGIY CAMPUS button to admin cockpit'
+          git push
