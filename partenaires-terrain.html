@@ -25,7 +25,12 @@
 <section class="card"><div class="head"><h2>Vue d'ensemble</h2><p class="muted">Ce qui attend une décision humaine.</p></div><div class="body"><div class="kpis"><div class="kpi"><b id="kApps">0</b><span>Candidatures à voir</span></div><div class="kpi"><b id="kActive">0</b><span>Partenaires actifs</span></div><div class="kpi"><b id="kApprove">0</b><span>Relevés à approuver</span></div><div class="kpi"><b id="kPay">0</b><span>Relevés à payer</span></div></div></div></section>
 <section class="card"><div class="head"><h2>📥 Candidatures</h2><p class="muted">Doublons signalés, jamais décidés automatiquement.</p></div><div class="body stack"><div class="toolbar"><label>Filtre<select id="appFilter"><option value="todo">À traiter</option><option value="submitted">Nouvelles</option><option value="review">En examen</option><option value="accepted">Acceptées</option><option value="rejected">Refusées</option><option value="archived">Archivées</option><option value="all">Toutes</option></select></label><button id="refreshApps" class="btn dark">🔄 Recharger</button></div><div id="applications" class="stack"><div class="empty">Aucune candidature chargée.</div></div></div></section>
 <section class="card"><div class="head"><h2>🤝 Partenaires</h2><p class="muted">Identité, code, fiche publique, accès terrain, prospects et relevés.</p></div><div class="body stack"><div class="toolbar"><label>Filtre<select id="partnerFilter"><option value="active">Actifs</option><option value="paused">En pause</option><option value="terminated">Terminés</option><option value="test">Test</option><option value="all">Tous</option></select></label><button id="refreshPartners" class="btn dark">🔄 Recharger</button></div><div id="partners" class="stack"><div class="empty">Aucun partenaire chargé.</div></div></div></section>
-</main></div><div class="foot">DIGIYLYFE · Backoffice privé · Validation humaine obligatoire</div></div>
+</main></div>
+<section id="permanentRegistry" data-dept="partners" class="card" style="margin-top:16px">
+  <div class="head card-head"><div class="registry-head"><div><h2 class="registry-title">📚 Registre permanent A → Z — PARTENAIRES</h2><p class="registry-sub">Tous les dossiers restent visibles ici après validation ou refus.</p></div><div class="registry-tools"><span id="registryCount" class="registry-count">0</span><input id="registrySearch" class="registry-search" type="search" placeholder="Rechercher dans le registre…"><button id="registryRefresh" class="btn dark btn-dark" type="button">🔄 Actualiser</button></div></div></div>
+  <div class="body card-body"><div id="registryStatus" class="sub mini"></div><div id="registryList" class="registry-list"><div class="registry-empty">Connecte-toi pour charger le registre permanent.</div></div></div>
+</section>
+<div class="foot">DIGIYLYFE · Backoffice privé · Validation humaine obligatoire</div></div>
 <script>
 (()=>{'use strict';
 const BACKEND='https://admin.digiylyfe.com';
@@ -58,4 +63,5 @@ $('manualForm').addEventListener('submit',async e=>{e.preventDefault();const for
 $('login').onclick=login;$('check').onclick=check;$('logout').onclick=logout;$('refreshTop').onclick=refresh;$('refreshApps').onclick=refresh;$('refreshPartners').onclick=refresh;$('appFilter').onchange=renderApps;$('partnerFilter').onchange=renderPartners;session();if(tok())check().then(ok=>ok&&refresh());else render();
 })();
 </script>
+<script src="./admin-registers.js?v=20260904-a-z-v1"></script>
 </body></html>
