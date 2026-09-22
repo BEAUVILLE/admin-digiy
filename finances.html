@@ -63,14 +63,14 @@ label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:800}inp
 </section>
 
 <section class="card">
-<div class="head"><h2>Lecture EUR</h2><p class="muted">Séparée du FCFA : aucune conversion automatique.</p></div>
+<div class="head"><h2>Lecture EUR</h2><p class="muted">France : cotisation annuelle de 450 € encaissée en une seule fois. Aucune conversion automatique avec le FCFA.</p></div>
 <div class="body">
 <div class="kpis">
 <div class="kpi"><div id="kActiveEur" class="n">—</div><div class="l">Actifs payants EUR</div></div>
-<div class="kpi main"><div id="kMrrEur" class="n">—</div><div class="l">MRR estimé EUR</div></div>
-<div class="kpi"><div id="kArrEur" class="n">—</div><div class="l">ARR annualisé EUR</div></div>
+<div class="kpi main"><div id="kMrrEur" class="n">—</div><div class="l">MRR équivalent EUR</div></div>
+<div class="kpi"><div id="kArrEur" class="n">—</div><div class="l">Revenu annuel contractuel EUR</div></div>
 <div class="kpi warn"><div id="kPartnerDueEur" class="n">—</div><div class="l">Partenaires à payer EUR</div></div>
-</div>
+</div><div class="section-note" style="margin-top:10px">Le <b>MRR équivalent</b> correspond à 450 € ÷ 12 = 37,50 € par adhérent et par mois pour comparer le rythme récurrent. Le paiement réel, lui, reste <b>450 € en une fois pour l’année</b>.</div>
 </div>
 </section>
 
@@ -114,6 +114,7 @@ const WAVE='https://wesqmwjjtsefyjnluosj.supabase.co/functions/v1/digiy-wave-car
 const PARTNER='https://wesqmwjjtsefyjnluosj.supabase.co/functions/v1/digiy-partner-cockpit';
 const STORE={token:'digiy_admin_jwt',exp:'digiy_admin_exp',role:'digiy_admin_role',label:'digiy_admin_label'};
 const SETTINGS='digiy_finance_settings_v1';
+const FR_ANNUAL_EUR=450;
 const $=id=>document.getElementById(id);
 let DATA={dossiers:[],wave:null,partners:[]};
 const tok=()=>localStorage.getItem(STORE.token)||'';
@@ -132,8 +133,8 @@ function settings(){try{return JSON.parse(localStorage.getItem(SETTINGS)||'{}')}
 function loadSettings(){const s=settings();$('fixedCost').value=s.fixedCost??'';$('founderPay').value=s.founderPay??'';$('variableCost').value=s.variableCost??'';$('acquisitionSpend').value=s.acquisitionSpend??''}
 function compute(){
  const active=(DATA.dossiers||[]).filter(activePaid);
- const xof=active.filter(d=>currency(d)==='XOF'&&price(d)>0),eur=active.filter(d=>currency(d)==='EUR'&&price(d)>0);
- const mrrX=xof.reduce((a,d)=>a+price(d),0),mrrE=eur.reduce((a,d)=>a+price(d),0);
+ const xof=active.filter(d=>currency(d)==='XOF'&&price(d)>0),eur=active.filter(d=>currency(d)==='EUR');
+ const mrrX=xof.reduce((a,d)=>a+price(d),0),annualEur=eur.length*FR_ANNUAL_EUR,mrrE=annualEur/12;
  const newX=xof.filter(d=>thisMonth(d.created_at)).length;
  const waveMonth=num(DATA.wave?.summary?.month_xof);
  const dueX=approvedPartnerDue('XOF'),dueE=approvedPartnerDue('EUR');
@@ -147,7 +148,7 @@ function compute(){
  $('kNetCashView').textContent=money(waveMonth-dueX);
  $('kActiveEur').textContent=eur.length.toLocaleString('fr-FR');
  $('kMrrEur').textContent=money(mrrE,'EUR');
- $('kArrEur').textContent=money(mrrE*12,'EUR');
+ $('kArrEur').textContent=money(annualEur,'EUR');
  $('kPartnerDueEur').textContent=money(dueE,'EUR');
  const s=settings(),fixed=num(s.fixedCost),founder=num(s.founderPay),variable=num(s.variableCost),spend=num(s.acquisitionSpend);
  const arpu=xof.length?mrrX/xof.length:0,margin=arpu-variable;
