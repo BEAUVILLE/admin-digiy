@@ -45,8 +45,11 @@ function locBreakdown(d){
   const p=String(d?.plan_code||'').toLowerCase();
   if(!p.startsWith('loc-'))return '';
   const m=amountCurrency(d),country=String(d?.country_id||'').toUpperCase(),currency=m.currency||(country==='FR'?'EUR':'XOF');
-  const annual=Number(m.amount||0),fiche=currency==='EUR'?250:100000,total=annual+fiche;
-  return `<div class="services"><strong>💶 1re adhésion DIGIY LOC</strong><div class="adh-grid"><div class="cell"><div class="k">Adhésion annuelle LOC</div><div class="v">${esc(formattedAmount(annual,currency))}</div></div><div class="cell"><div class="k">Fiche professionnelle obligatoire</div><div class="v">+ ${esc(formattedAmount(fiche,currency))}</div></div><div class="cell"><div class="k">TOTAL 1re adhésion</div><div class="v"><strong>${esc(formattedAmount(total,currency))}</strong></div></div></div><div class="mini" style="margin-top:8px">Lecture financière : abonnement annuel = récurrent · fiche = extra ponctuel · durée = 12 mois.</div></div>`;
+  const annual=Number(m.amount||0),site=arr(d?.service_requests).find(s=>String(s?.request_type||'').toLowerCase()==='site');
+  const level=String(site?.details||'').match(/Niveau SITE\s*:\s*(PREMIUM|EXTRA)/i)?.[1]?.toUpperCase()||'';
+  const initial=site?Number(site?.starting_price_amount||site?.starting_price_xof||0):(currency==='EUR'?250:100000);
+  const initialLabel=site?'SITE '+(level||'WEB'):'Fiche professionnelle obligatoire',total=annual+initial;
+  return `<div class="services"><strong>💶 1re adhésion DIGIY LOC</strong><div class="adh-grid"><div class="cell"><div class="k">Adhésion annuelle LOC</div><div class="v">${esc(formattedAmount(annual,currency))}</div></div><div class="cell"><div class="k">${esc(initialLabel)}</div><div class="v">+ ${esc(formattedAmount(initial,currency))}</div></div><div class="cell"><div class="k">TOTAL 1re adhésion</div><div class="v"><strong>${esc(formattedAmount(total,currency))}</strong></div></div></div><div class="mini" style="margin-top:8px">Lecture financière : abonnement annuel = récurrent · ${site?'site':'fiche'} = extra ponctuel · fiche OU site, jamais les deux · durée = 12 mois.</div></div>`;
 }
 function statePill(label,value){const s=String(value||'').toLowerCase();let c='neutral';if(['confirme','validee','publiee','valide','actif'].includes(s))c='ok';else if(['refuse','a_corriger','resilie','suspendu'].includes(s))c='bad';else c='warn';return `<span class="pill ${c}">${esc(label)} : ${esc(value||'—')}</span>`}
 function bucket(d){if(String(d.status)==='refuse'||String(d.payment_status)==='refuse')return'refused';if(String(d.status)==='valide')return'valid';if(String(d.payment_status)==='confirme'&&!['validee','publiee'].includes(String(d.card_status)))return'fabrication';return'todo'}
