@@ -36,7 +36,7 @@ label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:800}inp
 <div class="body stack">
 <div id="loginBox" class="stack"><label>PIN admin<input id="pin" type="password" inputmode="numeric"></label><button id="login" class="btn green">🔐 Ouvrir</button></div>
 <div id="sessionBox" class="stack" style="display:none"><div class="panel"><b id="sessionText">Session présente</b><div class="status">Rôle : <span id="role">—</span><br>Label : <span id="label">—</span></div></div><div class="row"><button id="check" class="btn gold">🛡️ Vérifier</button><button id="logout" class="btn red">Déconnexion</button></div></div>
-<div class="panel"><b>Règle finance</b><div class="status" style="margin-top:6px">MRR/ARR = rythme récurrent calculé à partir des dossiers actifs payants connus. Encaissements = Carnet Wave. Les devises ne sont jamais additionnées entre elles.</div></div>
+<div class="panel"><b>Règle finance</b><div class="status" style="margin-top:6px">MRR/ARR = rythme récurrent calculé à partir des dossiers actifs payants connus. Les encaissements récurrents et les extras ponctuels restent séparés. Encaissements = Carnet Wave. Les devises ne sont jamais additionnées entre elles.</div></div>
 <button id="refresh" class="btn dark">🔄 Actualiser les chiffres</button>
 <div><div class="muted" style="font-size:11px">Journal</div><div id="log" class="log">Cockpit FINANCES prêt.</div></div>
 </div>
@@ -59,6 +59,19 @@ label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:800}inp
 <div class="kpi"><div id="kNetCashView" class="n">—</div><div class="l">Wave mois - partenaires à payer</div></div>
 </div>
 <div class="section-note">Le <b>MRR estimé</b> n’est pas le cash : il mesure le rythme mensuel des abonnements actifs identifiables dans les dossiers. <b>Wave encaissé</b> vient du carnet réel saisi dans l’admin.</div>
+</div>
+</section>
+
+<section class="card">
+<div class="head"><h2>Lecture réelle de l’activité — XOF</h2><p class="muted">On sépare ce qui fait vivre le moteur de ce qui complète le mois.</p></div>
+<div class="body stack">
+<div class="kpis">
+<div class="kpi good"><div id="kRecurringCashXof" class="n">—</div><div class="l">Récurrent encaissé ce mois</div></div>
+<div class="kpi main"><div id="kExtrasCashXof" class="n">—</div><div class="l">Extras encaissés ce mois</div></div>
+<div class="kpi"><div id="kTotalCashXof" class="n">—</div><div class="l">Total encaissé ce mois</div></div>
+<div class="kpi warn"><div id="kCampusXof" class="n">—</div><div class="l">CAMPUS récurrent du mois</div></div>
+</div>
+<div class="section-note"><b>Récurrent</b> = cotisations / abonnements. <b>Extras</b> = fiche, site ou autre prestation ponctuelle réellement encaissée et saisie dans le Carnet Wave. <b>Total</b> = récurrent + extras. Une demande non encaissée n’entre pas dans les extras.</div>
 </div>
 </section>
 
@@ -115,6 +128,7 @@ const PARTNER='https://wesqmwjjtsefyjnluosj.supabase.co/functions/v1/digiy-partn
 const STORE={token:'digiy_admin_jwt',exp:'digiy_admin_exp',role:'digiy_admin_role',label:'digiy_admin_label'};
 const SETTINGS='digiy_finance_settings_v1';
 const FR_ANNUAL_EUR=450;
+const CAMPUS_RECURRING_XOF=2500;
 const $=id=>document.getElementById(id);
 let DATA={dossiers:[],wave:null,partners:[]};
 const tok=()=>localStorage.getItem(STORE.token)||'';
@@ -128,6 +142,18 @@ function currency(d){const c=String(d?.currency_code||'').toUpperCase();if(c)ret
 function price(d){const generic=Number(d?.price_amount);if(Number.isFinite(generic)&&generic>0)return generic;const c=currency(d);if(c==='EUR'&&num(d?.price_eur)>0)return num(d.price_eur);if(num(d?.price_xof)>0)return num(d.price_xof);const plan=String(d?.plan_code||'').toLowerCase();if(c==='XOF'&&plan.includes('19900'))return 19900;if(c==='XOF'&&plan.includes('28000'))return 28000;return 0}
 function activePaid(d){const p=String(d?.payment_status||'').toLowerCase(),s=String(d?.status||'').toLowerCase(),sub=String(d?.subscription_status||'').toLowerCase();if(['refuse','refused'].includes(p)||['refuse','refused'].includes(s)||['resilie','résilié','resiliee','suspendu','suspended'].includes(sub))return false;return ['actif','active','paye','payé','paid','confirme','confirmé'].includes(sub)||p==='confirme'||s==='valide'}
 function thisMonth(v){if(!v)return false;const d=new Date(v),n=new Date();return !Number.isNaN(d.getTime())&&d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()}
+function waveMonthSplit(){
+ const rows=Array.isArray(DATA.wave?.entries)?DATA.wave.entries:[];
+ let recurring=0,extras=0;
+ for(const r of rows){
+  if(String(r?.status||'active')!=='active'||!thisMonth(r?.received_at))continue;
+  const purpose=String(r?.purpose||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const amount=num(r?.amount_xof);
+  if(purpose.includes('abonnement')||purpose.includes('cotisation')||purpose.includes('adhesion'))recurring+=amount;
+  else extras+=amount;
+ }
+ return{recurring,extras,total:recurring+extras};
+}
 function approvedPartnerDue(currencyCode){let t=0;for(const p of DATA.partners||[])for(const s of(p.statements||[])){if(String(s.status)==='approved'&&String(s.currency||'XOF').toUpperCase()===currencyCode)t+=num(s.total_amount)}return t}
 function settings(){try{return JSON.parse(localStorage.getItem(SETTINGS)||'{}')}catch{return{}}}
 function loadSettings(){const s=settings();$('fixedCost').value=s.fixedCost??'';$('founderPay').value=s.founderPay??'';$('variableCost').value=s.variableCost??'';$('acquisitionSpend').value=s.acquisitionSpend??''}
@@ -137,6 +163,7 @@ function compute(){
  const mrrX=xof.reduce((a,d)=>a+price(d),0),annualEur=eur.length*FR_ANNUAL_EUR,mrrE=annualEur/12;
  const newX=xof.filter(d=>thisMonth(d.created_at)).length;
  const waveMonth=num(DATA.wave?.summary?.month_xof);
+ const waveSplit=waveMonthSplit(),campusX=xof.length*CAMPUS_RECURRING_XOF;
  const dueX=approvedPartnerDue('XOF'),dueE=approvedPartnerDue('EUR');
  $('kActiveXof').textContent=xof.length.toLocaleString('fr-FR');
  $('kMrrXof').textContent=money(mrrX);
@@ -144,6 +171,10 @@ function compute(){
  $('kArpuXof').textContent=xof.length?money(mrrX/xof.length):'—';
  $('kNewXof').textContent='+'+newX.toLocaleString('fr-FR');
  $('kWaveMonth').textContent=money(waveMonth);
+ $('kRecurringCashXof').textContent=money(waveSplit.recurring);
+ $('kExtrasCashXof').textContent=money(waveSplit.extras);
+ $('kTotalCashXof').textContent=money(waveMonth);
+ $('kCampusXof').textContent=money(campusX);
  $('kPartnerDueXof').textContent=money(dueX);
  $('kNetCashView').textContent=money(waveMonth-dueX);
  $('kActiveEur').textContent=eur.length.toLocaleString('fr-FR');
@@ -151,11 +182,11 @@ function compute(){
  $('kArrEur').textContent=money(annualEur,'EUR');
  $('kPartnerDueEur').textContent=money(dueE,'EUR');
  const s=settings(),fixed=num(s.fixedCost),founder=num(s.founderPay),variable=num(s.variableCost),spend=num(s.acquisitionSpend);
- const arpu=xof.length?mrrX/xof.length:0,margin=arpu-variable;
+ const arpu=xof.length?mrrX/xof.length:0,margin=arpu-CAMPUS_RECURRING_XOF-variable;
  const tech=margin>0&&fixed>0?Math.ceil(fixed/margin):0,life=margin>0&&(fixed+founder)>0?Math.ceil((fixed+founder)/margin):0,cac=newX>0&&spend>0?spend/newX:0;
  $('kTechThreshold').textContent=tech?String(tech):'—';$('kLifeThreshold').textContent=life?String(life):'—';$('kCac').textContent=cac?money(cac):'—';$('kMarginPerSub').textContent=margin>0?money(margin):'—';
  if(!fixed&&!founder){$('thresholdStatus').textContent='Renseigne tes charges réelles pour calculer les seuils.'}
- else{const techOk=tech&&xof.length>=tech,lifeOk=life&&xof.length>=life;$('thresholdStatus').innerHTML='<b>Seuil technique :</b> '+(tech?(techOk?'✅ atteint':'⏳ non atteint'):'—')+' · <b>Seuil de vie :</b> '+(life?(lifeOk?'✅ atteint':'⏳ non atteint'):'—')+'<br><span class="muted">Base : ARPU XOF actuel '+money(arpu)+' · coût variable '+money(variable)+'.</span>'}
+ else{const techOk=tech&&xof.length>=tech,lifeOk=life&&xof.length>=life;$('thresholdStatus').innerHTML='<b>Seuil technique :</b> '+(tech?(techOk?'✅ atteint':'⏳ non atteint'):'—')+' · <b>Seuil de vie :</b> '+(life?(lifeOk?'✅ atteint':'⏳ non atteint'):'—')+'<br><span class="muted">Base : ARPU XOF actuel '+money(arpu)+' · CAMPUS '+money(CAMPUS_RECURRING_XOF)+' / adhérent · autres coûts variables '+money(variable)+'.</span>'}
 }
 async function load(){
  if(!tok()){session();return}
