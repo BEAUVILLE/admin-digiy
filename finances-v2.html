@@ -76,6 +76,17 @@ label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:800}inp
 </section>
 
 <section class="card">
+<div class="head"><h2>Repère DIGIY LOC — lecture financière</h2><p class="muted">Une première adhésion LOC mélange du récurrent et un extra : on les sépare pour lire la vraie solidité du moteur.</p></div>
+<div class="body stack">
+<div class="split">
+<div class="panel"><span class="badge ok">SÉNÉGAL · 1–3</span><div class="status" style="margin-top:8px"><b>385 600 FCFA encaissés à la 1re adhésion</b><br><span class="money">285 600 FCFA</span> = adhésion annuelle LOC récurrente<br><span class="money">100 000 FCFA</span> = fiche professionnelle · extra ponctuel<br><b>MRR équivalent LOC : 23 800 FCFA / mois</b> · 285 600 ÷ 12</div></div>
+<div class="panel"><span class="badge ok">EUROPE · 1–3</span><div class="status" style="margin-top:8px"><b>1 015 € encaissés à la 1re adhésion</b><br><span class="money">765 €</span> = adhésion annuelle LOC récurrente<br><span class="money">250 €</span> = fiche professionnelle · extra ponctuel<br><b>MRR équivalent LOC : 63,75 € / mois</b> · 765 ÷ 12</div></div>
+</div>
+<div class="section-note"><b>Règle LOC :</b> adhésion annuelle = récurrent contractuel · fiche professionnelle = extra ponctuel · 1re adhésion = annuel LOC + fiche. La remise annuelle de <b>15 %</b> est déjà intégrée au tarif LOC. Le total de première adhésion ne doit jamais être injecté tel quel dans le MRR.</div>
+</div>
+</section>
+
+<section class="card">
 <div class="head"><h2>Lecture EUR</h2><p class="muted">France : cotisation annuelle de 450 € encaissée en une seule fois. Aucune conversion automatique avec le FCFA.</p></div>
 <div class="body">
 <div class="kpis">
@@ -93,7 +104,7 @@ label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:800}inp
 <div class="form2">
 <label>Charges fixes techniques / mois (FCFA)<input id="fixedCost" type="number" min="0" step="1000" inputmode="numeric" placeholder="250000"></label>
 <label>Rémunération fondateur / mois (FCFA)<input id="founderPay" type="number" min="0" step="1000" inputmode="numeric" placeholder="500000"></label>
-<label>Coût variable / adhérent (FCFA)<input id="variableCost" type="number" min="0" step="100" inputmode="numeric" placeholder="1000"></label>
+<label>Autres coûts variables / adhérent · hors CAMPUS (FCFA)<input id="variableCost" type="number" min="0" step="100" inputmode="numeric" placeholder="1000"></label>
 <label>Dépenses acquisition ce mois (FCFA)<input id="acquisitionSpend" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"></label>
 </div>
 <div class="row"><button id="saveSettings" class="btn green">💾 Enregistrer les paramètres</button></div>
