@@ -36,6 +36,18 @@ function amountOf(d){const n=Number(d?.price_amount);if(Number.isFinite(n))retur
 function plan(d){const p=String(d?.plan_code||'').toLowerCase();const name=p.includes('19900')?'ADHÉRENT 1':p.includes('28000')?'ADHÉRENT':(d?.plan_code||'ADHÉSION');const a=amountOf(d),c=currencyLabel(d?.currency_code);return a===null?name:`${name} — ${money(a)} ${c}`}
 function cls(v){v=String(v||'').toLowerCase();return['confirme','valide','validee','publiee','actif'].includes(v)?'ok':['refuse','suspendu','resilie'].includes(v)?'bad':'warn'}
 function arr(v){return Array.isArray(v)?v:[]}
+function isLoc(d){return String(d?.product_code||'')==='loc-pro'}
+function batStep(d){
+  const b=String(d?.bat_status||'a_preparer'),pay=String(d?.payment_status||''),proof=!!d?.has_payment_proof;
+  if(pay==='confirme')return['PAIEMENT CONFIRMÉ','ok'];
+  if(b==='a_corriger')return['BAT À CORRIGER','bad'];
+  if(b==='a_preparer')return['BAT À PRÉPARER','warn'];
+  if(b==='envoye')return['BAT ENVOYÉ','warn'];
+  if(b==='accepte'&&!proof)return['BAT ACCEPTÉ','ok'];
+  if(b==='accepte'&&proof)return['PREUVE DE PAIEMENT REÇUE','warn'];
+  return['ÉTAPE À CONTRÔLER','warn'];
+}
+function batTotal(d){const n=Number(d?.bat_snapshot?.total_amount);if(Number.isFinite(n)&&n>0)return{amount:n,currency:String(d?.bat_snapshot?.currency||d?.currency_code||'XOF').toUpperCase()};return{amount:amountOf(d),currency:String(d?.currency_code||'XOF').toUpperCase()}}
 function saveSession(d){if(d?.token)localStorage.setItem(STORE.token,d.token);if(d?.exp)localStorage.setItem(STORE.exp,String(d.exp));if(d?.role)localStorage.setItem(STORE.role,d.role);if(d?.label)localStorage.setItem(STORE.label,d.label)}
 function clearSession(){Object.values(STORE).forEach(k=>localStorage.removeItem(k))}
 async function backend(path,opt={}){const h=new Headers(opt.headers||{});if(!h.has('Content-Type'))h.set('Content-Type','application/json');if(tok())h.set('Authorization','Bearer '+tok());const r=await fetch(BACKEND+path,{method:opt.method||'GET',headers:h,body:opt.body,credentials:'include'});let d=null;try{d=await r.json()}catch{}return{r,d}}
@@ -44,9 +56,61 @@ function showLogin(){$('login').classList.remove('hidden');$('session').classLis
 async function login(){const pin=$('pin').value.trim();if(!pin)return;$('loginBtn').disabled=true;try{const{r,d}=await backend('/api/admin/login',{method:'POST',body:JSON.stringify({pin,ua:navigator.userAgent||''})});if(!r.ok||!d?.ok)throw new Error(d?.error||'Connexion refusée');saveSession(d);$('login').classList.add('hidden');await start()}catch(e){alert(e.message||String(e))}finally{$('loginBtn').disabled=false}}
 function serviceBlock(d){const rows=arr(d.service_requests);if(!rows.length)return'';return `<div class="prest"><strong>PRESTATION DIGIYLYFE DEMANDÉE</strong>${rows.map(s=>{const type=String(s.request_type||'').toLowerCase(),det=String(s.details||'').toUpperCase();const label=type==='fiche'?'📄 FICHE PERSONNALISÉE':det.includes('EXTRA')?'🚀 SITE EXTRA':det.includes('PREMIUM')?'⭐ SITE PREMIUM':'🌐 SITE';const n=Number(s.starting_price_amount),legacy=Number(s.starting_price_xof),amount=Number.isFinite(n)?n:Number.isFinite(legacy)?legacy:null,c=s.currency_code||(Number.isFinite(n)?d.currency_code:'XOF');return `<div class="prest-item"><strong>${esc(label)}</strong><div class="mini">${amount===null?'Tarif à préciser':`À partir de ${money(amount)} ${esc(currencyLabel(c))}`} · ${esc(String(s.status||'nouvelle').toUpperCase())}</div></div>`}).join('')}</div>`}
 function geographyBlock(d){const sz=arr(d.service_zone_ids),st=arr(d.service_territory_ids);return `<div class="geo"><strong>🌍 GÉOGRAPHIE CORE</strong><div class="grid" style="margin-top:8px"><div class="cell"><div class="k">Pays</div><div class="v">${esc(d.country_id||'Ancien dossier')}</div></div><div class="cell"><div class="k">Territoire</div><div class="v">${esc(d.territory_id||'—')}</div></div><div class="cell"><div class="k">Zone de base</div><div class="v">${esc(d.base_zone_id||d.zone_label||'—')}</div></div><div class="cell"><div class="k">Devise / indicatif</div><div class="v">${esc(d.currency_code||'—')} · ${esc(d.calling_code||'—')}</div></div><div class="cell"><div class="k">Fuseau</div><div class="v">${esc(d.timezone||'—')}</div></div><div class="cell"><div class="k">Couverture</div><div class="v">${st.length?`Territoire : ${esc(st.join(', '))}`:sz.length?`Zones : ${esc(sz.join(', '))}`:'Zone de base uniquement'}</div></div></div></div>`}
-function render(d){CURRENT=d;const phone=digits(d.phone),wa=digits(d.whatsapp||d.phone),services=[d.service_1,d.service_2,d.service_3,d.service_4].filter(Boolean),can=String(d.payment_status)==='a_confirmer',paid=String(d.payment_status)==='confirme';$('out').innerHTML=`<div class="stack"><div class="top"><div><h2 class="title">${esc(d.pro_name||'Sans nom')}</h2><div class="mini">${esc(d.job_label||'—')} · ${esc(d.zone_label||'—')}</div></div><span class="pill ${cls(d.payment_status)}">Paiement : ${esc(d.payment_status||'—')}</span></div><div class="grid"><div class="cell"><div class="k">Forfait</div><div class="v">${esc(plan(d))}</div></div><div class="cell"><div class="k">Reçu le</div><div class="v">${esc(date(d.created_at))}</div></div><div class="cell"><div class="k">Téléphone</div><div class="v">${phone?`<a href="tel:+${phone}">+${phone}</a>`:'—'}</div></div><div class="cell"><div class="k">WhatsApp client</div><div class="v">${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noreferrer">💬 +${wa}</a>`:'—'}</div></div><div class="cell"><div class="k">Dossier</div><div class="v">${esc(d.status||'—')}</div></div><div class="cell"><div class="k">Carte</div><div class="v">${esc(d.card_status||'—')}</div></div></div>${geographyBlock(d)}<div class="services"><strong>SERVICES</strong><ol>${services.length?services.map(s=>`<li>${esc(s)}</li>`).join(''):'<li>Non renseigné</li>'}</ol></div>${serviceBlock(d)}<div class="media"><div class="mediaBox"><strong>Photo</strong>${d.photo_preview_url?`<a href="${esc(d.photo_preview_url)}" target="_blank" rel="noreferrer"><img src="${esc(d.photo_preview_url)}" alt="Photo"></a>`:'<div class="mini">Aucune photo.</div>'}</div><div class="mediaBox"><strong>Preuve de paiement</strong>${d.payment_proof_url?`<a class="btn btn-gold" style="display:block;margin-top:9px" href="${esc(d.payment_proof_url)}" target="_blank" rel="noreferrer">👁️ VOIR LA PREUVE</a>`:'<div class="mini">Aucune preuve.</div>'}</div></div><div class="cell"><div class="k">ID dossier</div><div class="v mono">${esc(d.id)}</div></div><div class="actions stack">${can?`<label>Note admin · facultative<textarea id="note" placeholder="Ex : preuve contrôlée."></textarea></label><button class="btn btn-green" data-act="confirm">✅ CONFIRMER LE PAIEMENT · ${esc(plan(d))}</button><button class="btn btn-red" data-act="reject">⛔ REFUSER LE PAIEMENT</button>`:paid?'<div class="status ok">✅ Paiement déjà confirmé. Le dossier peut passer en fabrication.</div>':'<div class="status warn">Aucune décision de paiement disponible dans cet état.</div>'}</div></div>`;$('out').querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>decide(b.dataset.act,b))}
+function render(d){
+  CURRENT=d;
+  const phone=digits(d.phone),wa=digits(d.whatsapp||d.phone),services=[d.service_1,d.service_2,d.service_3,d.service_4].filter(Boolean),loc=isLoc(d),step=batStep(d),total=batTotal(d),proof=!!d.has_payment_proof,canConfirm=!loc&&String(d.bat_status)==='accepte'&&proof&&String(d.payment_status)==='a_confirmer',paid=String(d.payment_status)==='confirme',canSendBat=!loc&&['a_preparer','a_corriger'].includes(String(d.bat_status||'a_preparer'));
+  const batPreview=d.bat_preview_url?`<a class="btn btn-dark" style="display:block;margin-top:9px" href="${esc(d.bat_preview_url)}" target="_blank" rel="noreferrer">👁 VOIR LE BAT EN COURS</a>`:'';
+  let action='';
+  if(loc){
+    action='<div class="status warn">🔒 DIGIY LOC suit déjà la même chaîne BAT → acceptation → preuve → paiement. Il reste géré dans son module LOC dédié.</div>';
+  }else if(canSendBat){
+    action=`<label>URL de la fiche / du site à faire valider<input id="batPreview" type="url" placeholder="https://..."></label><button class="btn btn-gold" data-act="send-bat">📨 ENVOYER LE BAT AU CLIENT</button><div class="mini">Le client recevra le lien BAT sur WhatsApp. Aucun paiement avant son acceptation.</div>`;
+  }else if(String(d.bat_status)==='envoye'){
+    action=`<div class="status warn">📨 BAT envoyé. En attente de la décision du client.</div>${batPreview}`;
+  }else if(String(d.bat_status)==='accepte'&&!proof){
+    action=`<div class="status ok">✅ BAT accepté. Le client peut maintenant régler puis envoyer sa preuve depuis son lien BAT.</div>${batPreview}`;
+  }else if(canConfirm){
+    action=`<label>Note admin · facultative<textarea id="note" placeholder="Ex : preuve contrôlée."></textarea></label><button class="btn btn-green" data-act="confirm">✅ CONFIRMER LE PAIEMENT · ${esc(money(total.amount))} ${esc(currencyLabel(total.currency))}</button><button class="btn btn-red" data-act="reject">⛔ REFUSER LE PAIEMENT</button>`;
+  }else if(paid){
+    action='<div class="status ok">✅ Paiement confirmé. Le dossier peut poursuivre sa fabrication et son activation.</div>';
+  }else{
+    action='<div class="status warn">Chaîne obligatoire : BAT À PRÉPARER → BAT ENVOYÉ → BAT ACCEPTÉ → PREUVE DE PAIEMENT REÇUE → CONFIRMER LE PAIEMENT.</div>';
+  }
+  $('out').innerHTML=`<div class="stack"><div class="top"><div><h2 class="title">${esc(d.pro_name||'Sans nom')}</h2><div class="mini">${esc(d.job_label||'—')} · ${esc(d.zone_label||'—')}</div></div><span class="pill ${step[1]}">${esc(step[0])}</span></div><div class="row"><span class="pill ${cls(d.bat_status)}">BAT : ${esc(d.bat_status||'a_preparer')}</span><span class="pill ${cls(d.payment_status)}">Paiement : ${esc(d.payment_status||'—')}</span></div><div class="grid"><div class="cell"><div class="k">Forfait</div><div class="v">${esc(plan(d))}</div></div><div class="cell"><div class="k">Total BAT</div><div class="v">${total.amount===null?'—':esc(money(total.amount)+' '+currencyLabel(total.currency))}</div></div><div class="cell"><div class="k">E-mail client</div><div class="v">${esc(d.email||'—')}</div></div><div class="cell"><div class="k">Reçu le</div><div class="v">${esc(date(d.created_at))}</div></div><div class="cell"><div class="k">Téléphone</div><div class="v">${phone?`<a href="tel:+${phone}">+${phone}</a>`:'—'}</div></div><div class="cell"><div class="k">WhatsApp client</div><div class="v">${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noreferrer">💬 +${wa}</a>`:'—'}</div></div><div class="cell"><div class="k">Dossier</div><div class="v">${esc(d.status||'—')}</div></div><div class="cell"><div class="k">Carte / fiche</div><div class="v">${esc(d.card_status||'—')}</div></div></div>${geographyBlock(d)}<div class="services"><strong>SERVICES</strong><ol>${services.length?services.map(s=>`<li>${esc(s)}</li>`).join(''):'<li>Non renseigné</li>'}</ol></div>${serviceBlock(d)}<div class="media"><div class="mediaBox"><strong>Photo</strong>${d.photo_preview_url?`<a href="${esc(d.photo_preview_url)}" target="_blank" rel="noreferrer"><img src="${esc(d.photo_preview_url)}" alt="Photo"></a>`:'<div class="mini">Aucune photo.</div>'}</div><div class="mediaBox"><strong>Preuve de paiement</strong>${d.payment_proof_url?`<a class="btn btn-gold" style="display:block;margin-top:9px" href="${esc(d.payment_proof_url)}" target="_blank" rel="noreferrer">👁️ VOIR LA PREUVE</a>`:'<div class="mini">Aucune preuve.</div>'}</div></div><div class="cell"><div class="k">ID dossier</div><div class="v mono">${esc(d.id)}</div></div><div class="actions stack">${action}</div></div>`;
+  $('out').querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>b.dataset.act==='send-bat'?sendBat(b):decide(b.dataset.act,b));
+}
+async function sendBat(btn){
+  if(!CURRENT||isLoc(CURRENT))return;
+  const preview=String($('batPreview')?.value||'').trim();
+  if(!/^https:\/\//i.test(preview)){alert('Ajoute l’URL https:// de la fiche ou du site à faire valider.');$('batPreview')?.focus();return}
+  if(!confirm(`Envoyer ce BAT à ${CURRENT.pro_name} ?\n${preview}`))return;
+  btn.disabled=true;
+  try{
+    const{r,d}=await call('bat_send',{id:ID,preview_url:preview});
+    if(!r.ok||!d?.ok)throw new Error(d?.detail||d?.error||'BAT non envoyé');
+    const wa=digits(CURRENT.whatsapp||CURRENT.phone),msg=`DIGIYLYFE — BON À TIRER\n\nBonjour, votre fiche est prête à être vérifiée.\nMerci de l’accepter ou de demander une correction avant tout règlement.\n\n${d.bat_url}`;
+    if(wa)window.open('https://wa.me/'+wa+'?text='+encodeURIComponent(msg),'_blank','noopener');
+    alert('BAT enregistré comme ENVOYÉ. Le lien client vient d’être préparé sur WhatsApp.');
+    await load();
+  }catch(e){alert(e.message||String(e))}finally{btn.disabled=false}
+}
+
 async function load(){$('loading').classList.remove('hidden');try{const{r,d}=await call('list',{limit:100});if(r.status===401){clearSession();showLogin();return}if(!r.ok||!d?.ok)throw new Error(d?.detail||d?.error||'Chargement impossible');const row=(d.dossiers||[]).find(x=>String(x.id)===ID);if(!row)throw new Error('Dossier introuvable dans les 100 dernières demandes.');render(row)}catch(e){$('out').innerHTML=`<div class="status bad">${esc(e.message||String(e))}</div>`}finally{$('loading').classList.add('hidden')}}
-async function decide(act,btn){if(!CURRENT)return;const yes=act==='confirm';if(!confirm(yes?`Confirmer le paiement de ${CURRENT.pro_name} ?\n${plan(CURRENT)}\n${CURRENT.country_id||''} · ${CURRENT.territory_id||''}`:`REFUSER le paiement de ${CURRENT.pro_name} ?`))return;btn.disabled=true;try{const payload={id:ID,note:String($('note')?.value||'').trim()};if(yes){payload.currency=String(CURRENT.currency_code||'XOF').toUpperCase();payload.amount=amountOf(CURRENT);payload.payment_method='validation WhatsApp cockpit terrain'}const{r,d}=await call(yes?'payment_confirm':'payment_reject',payload);if(!r.ok||!d?.ok)throw new Error(d?.detail||d?.error||'Décision non enregistrée');alert(yes?`Paiement confirmé · ${esc(d?.payment?.amount??amountOf(CURRENT))} ${esc(currencyLabel(d?.payment?.currency||CURRENT.currency_code))}`:'Paiement refusé.');await load()}catch(e){alert(e.message||String(e))}finally{btn.disabled=false}}
+async function decide(act,btn){
+  if(!CURRENT||isLoc(CURRENT))return;
+  const yes=act==='confirm',m=batTotal(CURRENT);
+  if(!confirm(yes?`Confirmer le paiement de ${CURRENT.pro_name} ?\n${money(m.amount)} ${currencyLabel(m.currency)}`:`REFUSER le paiement de ${CURRENT.pro_name} ?`))return;
+  btn.disabled=true;
+  try{
+    const payload={id:ID,note:String($('note')?.value||'').trim()};
+    if(yes){payload.currency=m.currency;payload.amount=m.amount;payload.payment_method='validation WhatsApp cockpit terrain après BAT'}
+    const{r,d}=await call(yes?'payment_confirm':'payment_reject',payload);
+    if(!r.ok||!d?.ok)throw new Error(d?.detail||d?.error||'Décision non enregistrée');
+    alert(yes?`Paiement confirmé · ${money(d?.payment?.amount??m.amount)} ${currencyLabel(d?.payment?.currency||m.currency)}`:'Paiement refusé.');
+    await load();
+  }catch(e){alert(e.message||String(e))}finally{btn.disabled=false}
+}
+
 async function start(){if(!UUID.test(ID)){$('invalid').classList.remove('hidden');return}if(!tok()){showLogin();return}const{r,d}=await backend('/api/admin/check');if(!r.ok||!d?.ok){clearSession();showLogin();return}$('session').classList.remove('hidden');$('session').className='status ok';$('session').textContent=`Session valide · ${d.role||localStorage.getItem(STORE.role)||'ADMIN'} · ${d.label||localStorage.getItem(STORE.label)||''}`;$('login').classList.add('hidden');await load()}
 $('loginBtn').onclick=login;$('pin').onkeydown=e=>{if(e.key==='Enter')login()};$('backBtn').onclick=()=>history.length>1?history.back():location.href='/';start();
 </script></body></html>
