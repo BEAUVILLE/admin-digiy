@@ -137,13 +137,13 @@ function batPreviewButton(d){
 }
 
 function integrationMasterUrl(d){
-  const u=new URL('https://github.com/BEAUVILLE/digiylyfe.com/blob/main/masters/MASTER-INTEGRATION-PRO-V1.md');
-  u.searchParams.set('dossier',String(d?.id||''));
+  const u=new URL('https://digiylyfe.com/masters/GENERATEUR-ATELIER-CARTE-DIGIYLYFE-V2-4-MASTERS.html');
+  u.searchParams.set('id',String(d?.id||''));
   return u.toString();
 }
 function integrationButton(d){
   if(!workshopEligible(d))return '';
-  return `<div class="row" style="margin-top:9px"><a class="btn btn-gold" href="${esc(integrationMasterUrl(d))}" target="_blank" rel="noreferrer">✂️ INTÉGRER LE PRO · DOSSIER ${esc(d.id)}</a></div>`;
+  return `<div class="row" style="margin-top:9px"><a class="btn btn-gold" href="${esc(integrationMasterUrl(d))}" target="_blank" rel="noreferrer">✂️ OUVRIR L’ATELIER · DOSSIER ${esc(d.id)}</a></div>`;
 }
 
 function renderAdhesions(){
