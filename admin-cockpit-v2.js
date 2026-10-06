@@ -125,8 +125,14 @@ function openBatPreview(d){
   if(!w){alert('Le navigateur a bloqué l’aperçu BAT. Autorise les fenêtres pour le cockpit.');return}
   w.document.open();w.document.write(batPreviewHtml(d));w.document.close();
 }
+function workshopEligible(d){
+  if(!d?.id)return false;
+  if(String(d.bat_status||'')==='annule')return false;
+  if(String(d.card_status||'')==='archivee')return false;
+  return bucket(d)!=='refused';
+}
 function batPreviewButton(d){
-  if(!d?.id)return '';
+  if(!workshopEligible(d))return '';
   return `<button class="btn btn-soft" type="button" data-bat-preview="${esc(d.id)}">👁️ VOIR LE BAT</button>`;
 }
 
@@ -136,7 +142,7 @@ function integrationMasterUrl(d){
   return u.toString();
 }
 function integrationButton(d){
-  if(!d?.id)return '';
+  if(!workshopEligible(d))return '';
   return `<div class="row" style="margin-top:9px"><a class="btn btn-gold" href="${esc(integrationMasterUrl(d))}" target="_blank" rel="noreferrer">✂️ INTÉGRER LE PRO · DOSSIER ${esc(d.id)}</a></div>`;
 }
 
