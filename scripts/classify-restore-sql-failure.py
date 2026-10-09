@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Classify private psql errors; never expose SQL or row values.
+"""Classify private psql errors using only the private ephemeral error log.
 
-Only disclose static stage, SQLSTATE, numeric SQL line and a strictly validated
-unquoted function identifier. The private log is deleted by the restore trap.
+Only disclose static stage, SQLSTATE, numeric SQL line and validated SQL
+identifiers in PostgreSQL's error message. Never print SQL or user data.
 """
 import re
 import sys
@@ -21,10 +21,16 @@ FUNCTION = re.compile(
     r"^function\s+([a-z_][a-z_0-9]*(?:\.[a-z_][a-z_0-9]*)?)\s*\(",
     re.IGNORECASE,
 )
+IDENT = r"([a-z_][a-z_0-9]{0,62})"
+COPY_COLUMN_RELATION = re.compile(
+    r'^column "' + IDENT + r'" of relation "' + IDENT + r'" does not exist',
+    re.IGNORECASE
+)
 
 
 def classify(path):
-    stage, code, sql_line, symbol = "unknown", "unknown", "unknown", "unknown"
+    stage, code, sql_line = "unknown", "unknown", "unknown"
+    symbol, column, relation = "unknown", "unknown", "unknown"
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as stream:
             for line in stream:
@@ -33,10 +39,10 @@ def classify(path):
                     stage = MARKERS[marker]
                 location = LOCATION.match(line)
                 if location and code == "unknown":
-                    path, sql_line, remainder = location.groups()
+                    source_path, sql_line, remainder = location.groups()
                     stage = (
-                        "auth-bootstrap" if path == "/digiy-local-auth-jwt.sql"
-                        else path.split("/")[-1].removesuffix(".sql")
+                        "auth-bootstrap" if source_path == "/digiy-local-auth-jwt.sql"
+                        else source_path.split("/")[-1].removesuffix(".sql")
                     )
                     verbose_state = SQLSTATE.match(remainder)
                     if verbose_state:
@@ -52,16 +58,21 @@ def classify(path):
                             symbol = candidate.lower()
                     elif detail.startswith("operator does not exist"):
                         symbol = "operator"
+                    if stage == "data" and code == "42703":
+                        missing = COPY_COLUMN_RELATION.match(detail)
+                        if missing:
+                            column, relation = (part.lower() for part in missing.groups())
     except OSError:
         pass
-    return stage, code, sql_line, symbol
+    return stage, code, sql_line, symbol, column, relation
 
 
 if __name__ == "__main__":
-    stage, code, sql_line, symbol = classify(
+    stage, code, sql_line, symbol, column, relation = classify(
         sys.argv[1] if len(sys.argv) == 2 else "/nonexistent"
     )
     print(
         f"::error::ISOLATED_RESTORE_SQL_STAGE={stage} SQLSTATE={code}"
         f" SQL_LINE={sql_line} MISSING_SYMBOL={symbol}"
+        f" MISSING_COLUMN={column} RELATION={relation}"
     )

@@ -123,7 +123,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         )
         self.assertEqual(output.returncode, 0, output.stderr)
         self.assertEqual(output.stdout.strip(),
-                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07 SQL_LINE=44 MISSING_SYMBOL=unknown")
+                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07 SQL_LINE=44 MISSING_SYMBOL=unknown MISSING_COLUMN=unknown RELATION=unknown")
         self.assertNotIn(secret, output.stdout + output.stderr)
         self.assertNotIn("customer", output.stdout + output.stderr)
 
@@ -163,7 +163,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertEqual(output.returncode, 0, output.stderr)
         self.assertEqual(
             output.stdout.strip(),
-            "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42883 SQL_LINE=61977 MISSING_SYMBOL=extensions.unaccent"
+            "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42883 SQL_LINE=61977 MISSING_SYMBOL=extensions.unaccent MISSING_COLUMN=unknown RELATION=unknown"
         )
         self.assertNotIn("SECRET", output.stdout + output.stderr)
         self.assertNotIn("PRIVATE", output.stdout + output.stderr)
@@ -198,6 +198,30 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
             output.stdout,
         )
         self.assertNotIn("PRIVATE_DATA", output.stdout + output.stderr)
+
+    def test_data_copy_missing_column_metadata_only(self):
+        result = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_DATA\n"
+            'psql:/restore/data.sql:28: ERROR:  42703: column "oauth_client_state_id" of relation "flow_state" does not exist\n'
+            "DETAIL: SECRET_AUTH_VALUE_MUST_NOT_PRINT\n"
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(
+            "STAGE=data SQLSTATE=42703 SQL_LINE=28 MISSING_SYMBOL=unknown "
+            "MISSING_COLUMN=oauth_client_state_id RELATION=flow_state",
+            result.stdout,
+        )
+        self.assertNotIn("SECRET_AUTH_VALUE", result.stdout + result.stderr)
+
+    def test_data_copy_rejects_quoted_untrusted_column_metadata(self):
+        result = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_DATA\n"
+            'psql:/restore/data.sql:28: ERROR:  42703: column "email@private" '
+            'of relation "users" does not exist\n'
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("MISSING_COLUMN=unknown RELATION=unknown", result.stdout)
+        self.assertNotIn("email@private", result.stdout)
 
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()
