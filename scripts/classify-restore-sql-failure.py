@@ -26,6 +26,12 @@ COPY_COLUMN_RELATION = re.compile(
     r'^column "' + IDENT + r'" of relation "' + IDENT + r'" does not exist',
     re.IGNORECASE
 )
+# Expose only a strictly validated, PostgreSQL-quoted missing relation name.
+# No SQL content, values or arbitrary file paths are read or printed.
+MISSING_RELATION = re.compile(
+    r'^relation "((?:(?:auth|storage|public|supabase_migrations)\.)?[a-z_][a-z_0-9]{0,62})" does not exist(?:$|\s)',
+    re.IGNORECASE
+)
 
 
 def classify(path):
@@ -63,6 +69,10 @@ def classify(path):
                         missing = COPY_COLUMN_RELATION.match(detail)
                         if missing:
                             column, relation = (part.lower() for part in missing.groups())
+                    elif stage == "data" and code == "42P01":
+                        missing = MISSING_RELATION.match(detail)
+                        if missing:
+                            relation = missing.group(1).lower()
     except OSError:
         pass
     return stage, code, sql_line, symbol, column, relation

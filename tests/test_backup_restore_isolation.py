@@ -248,6 +248,47 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertIn("MISSING_COLUMN=unknown RELATION=unknown", result.stdout)
         self.assertNotIn("email@private", result.stdout)
 
+    def test_missing_relation_reports_only_strict_sql_identifier(self):
+        result = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_DATA\n"
+            'psql:/restore/data.sql:36: ERROR:  42P01: relation "auth.oauth_clients" does not exist\n'
+            "DETAIL: SECRET_CLIENT_AND_DATA_MUST_NEVER_PRINT\n"
+            "STATEMENT: SELECT SECRET_PRIVATE_ROW\n"
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(
+            "STAGE=data SQLSTATE=42P01 SQL_LINE=36 "
+            "MISSING_SYMBOL=unknown MISSING_COLUMN=unknown RELATION=auth.oauth_clients",
+            result.stdout
+        )
+        self.assertNotIn("SECRET_", result.stdout + result.stderr)
+        self.assertNotIn("STATEMENT", result.stdout + result.stderr)
+
+    def test_missing_relation_rejects_unsafe_or_untrusted_identifiers(self):
+        bad = (
+            'psql:/restore/data.sql:36: ERROR:  42P01: relation "auth.secret@email.example" does not exist\n',
+            'psql:/restore/data.sql:36: ERROR:  42P01: relation "private.identifying_table" does not exist\n',
+            'psql:/restore/data.sql:36: ERROR:  42P01: relation "auth.users; DROP TABLE auth.users" does not exist\n',
+            'psql:/restore/data.sql:36: ERROR:  42P01: relation "auth.échange" does not exist\n',
+        )
+        for line in bad:
+            with self.subTest(line=line.split("ERROR:")[0]):
+                result = self.run_classifier("DIGIY_RESTORE_STAGE_DATA\n" + line)
+                self.assertEqual(result.returncode, 0)
+                self.assertIn("RELATION=unknown", result.stdout)
+                self.assertNotIn("secret@email", result.stdout + result.stderr)
+                self.assertNotIn("private.identifying_table", result.stdout + result.stderr)
+                self.assertNotIn("DROP TABLE", result.stdout + result.stderr)
+
+    def test_undefined_relation_does_not_disclose_non_data_phase(self):
+        result = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            'psql:/restore/schema.sql:3: ERROR:  42P01: relation "auth.oauth_clients" does not exist\n'
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("STAGE=schema SQLSTATE=42P01", result.stdout)
+        self.assertIn("RELATION=unknown", result.stdout)
+
     def test_safe_audit_compat_failure_location(self):
         output = self.run_classifier(
             "psql:/digiy-local-auth-audit-ip.sql:20: ERROR:  42703: column is absent\n"
