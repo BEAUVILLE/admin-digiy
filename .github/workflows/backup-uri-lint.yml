@@ -7,16 +7,31 @@ on:
       - 'tests/test_backup_secret_compat.py'
       - 'tests/test_backup_uri.py'
       - '.github/workflows/backup-uri-lint.yml'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - 'tests/test_backup_restore_isolation.py'
+      - 'tests/make-synthetic-backup.sh'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   backup-uri-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Validate URI diagnostics using synthetic values only
         run: python3 -m unittest discover -s tests -p 'test_backup*.py' -v
+
+      - name: Restore encrypted SYNTHETIC fixture inside Docker with no network
+        timeout-minutes: 15
+        shell: bash
+        env:
+          BACKUP_PASSPHRASE: synthetic-ci-only-not-a-real-secret
+          CONFIRM_ISOLATED_RESTORE: "YES"
+          SOURCE_ARTIFACT_DIR: ${{ runner.temp }}/synthetic-artifact
+        run: |
+          set -Eeuo pipefail
+          bash tests/make-synthetic-backup.sh
+          bash scripts/restore-supabase-github-isolated.sh
