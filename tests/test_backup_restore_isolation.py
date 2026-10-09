@@ -114,9 +114,9 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
 
     def test_location_rejects_untrusted_path_and_hidden_detail(self):
         output = self.run_classifier(
-            "DIGIY_RESTORE_STAGE_SCHEMA\\n"
-            "psql:/tmp/private/customer.sql:25: ERROR: 42883\\n"
-            "DETAIL: SECRET_CUSTOMER_DATA\\n"
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/tmp/private/customer.sql:25: ERROR: 42883\n"
+            "DETAIL: SECRET_CUSTOMER_DATA\n"
         )
         self.assertIn("SQLSTATE=42883 SQL_LINE=unknown", output.stdout)
         self.assertNotIn("SECRET", output.stdout + output.stderr)
