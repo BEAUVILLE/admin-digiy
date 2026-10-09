@@ -30,12 +30,16 @@ class IsolatedRestoreContract(unittest.TestCase):
         self.assertIn("--single-transaction", script)
         self.assertIn("--file /digiy-local-auth-jwt.sql", script)
         self.assertIn("ISOLATED_AUTH_JWT_HELPER_OK", script)
+        # Bootstrap runs separately as the local auth schema owner before
+        # the normal roles -> schema -> data transaction begins.
+        self.assertIn("psql -U supabase_admin", script)
+        self.assertIn("ISOLATED_AUTH_JWT_BOOTSTRAP_OK", script)
         self.assertLess(
-            script.index("--file /restore/roles.sql"),
             script.index("--file /digiy-local-auth-jwt.sql"),
+            script.index("--file /restore/roles.sql"),
         )
         self.assertLess(
-            script.index("--file /digiy-local-auth-jwt.sql"),
+            script.index("--file /restore/roles.sql"),
             script.index("--file /restore/schema.sql"),
         )
         # The helper must NEVER be part of a production migration or backup.
