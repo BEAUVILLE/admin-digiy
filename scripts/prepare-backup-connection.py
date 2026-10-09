@@ -44,6 +44,13 @@ def candidate_from_legacy_password(raw: str) -> str | None:
 def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
     result = diagnostic(raw)
     if result is None:
+        if not github_env_file:
+            output.write("::error::BACKUP_ENV_UNAVAILABLE: runner GitHub attendu.\n")
+            return "error"
+        # Original value is already a masked GitHub Actions secret. Pass it
+        # forward to subsequent steps without revealing or transforming it.
+        with open(github_env_file, "a", encoding="utf-8") as file:
+            file.write(f"SUPABASE_DB_URL={raw}\n")
         output.write("BACKUP_URI_SYNTAX_OK: URI présente; connexion non encore testée.\n")
         return "existing_uri"
     if result != "BACKUP_URI_WRONG_SCHEME":
@@ -69,6 +76,6 @@ def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
 
 
 if __name__ == "__main__":
-    state = prepare(os.environ.get("SUPABASE_DB_URL", ""), os.environ.get("GITHUB_ENV", ""))
+    state = prepare(os.environ.get("BACKUP_SOURCE_SECRET", ""), os.environ.get("GITHUB_ENV", ""))
     if state == "error":
         sys.exit(78)
