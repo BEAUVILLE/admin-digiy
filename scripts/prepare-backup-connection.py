@@ -42,16 +42,30 @@ def candidate_from_legacy_password(raw: str) -> str | None:
 
 
 def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
+    # Copy/paste into GitHub Actions secrets sometimes adds a leading/trailing
+    # newline or space. Normalize *only* when the trimmed value is already a
+    # valid PostgreSQL URI for our project. Do not change password-only values.
+    trimmed_uri = False
+    if raw != raw.strip() and diagnostic(raw.strip()) is None:
+        raw = raw.strip()
+        trimmed_uri = True
     result = diagnostic(raw)
     if result is None:
         if not github_env_file:
             output.write("::error::BACKUP_ENV_UNAVAILABLE: runner GitHub attendu.\n")
             return "error"
-        # Original value is already a masked GitHub Actions secret. Pass it
-        # forward to subsequent steps without revealing or transforming it.
+        # If the URI was trimmed, GitHub's secret masker may only know the
+        # original whitespace-padded value. Mask the normalized URI BEFORE
+        # handing it to subsequent steps. Never print it otherwise.
+        if trimmed_uri:
+            output.write(f"::add-mask::{raw}\n")
+            output.flush()
         with open(github_env_file, "a", encoding="utf-8") as file:
             file.write(f"SUPABASE_DB_URL={raw}\n")
-        output.write("BACKUP_URI_SYNTAX_OK: URI présente; connexion non encore testée.\n")
+        if trimmed_uri:
+            output.write("BACKUP_URI_OUTER_WHITESPACE_FIXED: espaces externes supprimés; connexion non encore testée.\n")
+        else:
+            output.write("BACKUP_URI_SYNTAX_OK: URI présente; connexion non encore testée.\n")
         return "existing_uri"
     if result != "BACKUP_URI_WRONG_SCHEME":
         output.write(f"::error::{result}: configuration GitHub invalide; aucun secret divulgué.\n")
