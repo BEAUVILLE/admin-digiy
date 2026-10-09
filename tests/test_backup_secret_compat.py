@@ -28,6 +28,13 @@ class LegacySecretCompatibility(unittest.TestCase):
             self.assertEqual(logs.getvalue().count("::add-mask::"), 1)
             self.assertNotIn(password, logs.getvalue().splitlines()[-1])
 
+    def test_isolated_restore_script_is_available_for_offline_validation(self):
+        script = SOURCE.parent / "restore-supabase-github-isolated.sh"
+        self.assertTrue(script.is_file())
+        content = script.read_text(encoding="utf-8")
+        self.assertIn("--network none", content)
+        self.assertIn("REMOTE_DB_URL_FORBIDDEN", content)
+
     def test_existing_uri_with_outer_whitespace_is_normalized(self):
         raw_uri = f"postgresql://postgres.{prep.REF}:fake@{prep.HOST}:5432/postgres"
         for padded in (" " + raw_uri, raw_uri + "\n", "\n" + raw_uri + "  "):
