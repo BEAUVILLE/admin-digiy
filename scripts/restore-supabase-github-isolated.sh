@@ -115,9 +115,24 @@ done
 [[ "$ready" == "YES" ]] || fail "ISOLATED_POSTGRES_NOT_READY"
 echo "ISOLATED_POSTGRES_READY: PostgreSQL local sans réseau."
 
-# Supabase CLI filters internal Auth schema/functions from its dump. Supply ONLY
-# Supabase Auth's official auth.jwt() helper in this networkless disposable DB.
-# Restore order: roles -> isolated auth.jwt helper -> schema -> disable triggers -> data.
+# The official auth schema is owned by supabase_admin, not by postgres.
+# Invoke the official auth.jwt() migration ONLY inside the networkless
+# disposable database as the local schema owner; no production credentials.
+if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
+  --single-transaction --variable ON_ERROR_STOP=1 \
+  --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
+  --file /digiy-local-auth-jwt.sql \
+  >"$tmpdir/auth-bootstrap-private.log" 2>&1; then
+  python3 "$script_dir/classify-restore-sql-failure.py" \
+    "$tmpdir/auth-bootstrap-private.log" >&2
+  fail "ISOLATED_AUTH_JWT_BOOTSTRAP_FAILED"
+fi
+echo "ISOLATED_AUTH_JWT_BOOTSTRAP_OK: official Auth helper installed locally."
+
+
+# Supabase CLI filters internal Auth schema/functions from its dump. The only
+# required Auth helper was installed by its schema owner above, inside Docker.
+# Data restore stays atomic: roles -> schema -> disable triggers -> data.
 # Keep ALL original SQL output in a runner-local file deleted by trap.
 # Never connect to a remotely supplied address.
 # Verbose PostgreSQL errors are held ONLY in a private log deleted by trap.
@@ -128,7 +143,6 @@ if ! docker exec "$container" psql -U postgres -d postgres -X -w \
   --command '\echo DIGIY_RESTORE_STAGE_ROLES' \
   --file /restore/roles.sql \
   --command '\echo DIGIY_RESTORE_STAGE_SCHEMA' \
-  --file /digiy-local-auth-jwt.sql \
   --file /restore/schema.sql \
   --command '\echo DIGIY_RESTORE_STAGE_DATA' \
   --command 'SET session_replication_role = replica' \
