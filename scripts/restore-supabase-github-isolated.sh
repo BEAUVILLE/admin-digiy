@@ -57,6 +57,8 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
    ! -L "$script_dir/restore-local-auth-jwt.sql" ]] || fail "ISOLATED_AUTH_JWT_BOOTSTRAP_MISSING"
 [[ -f "$script_dir/restore-local-auth-audit-ip.sql" &&
    ! -L "$script_dir/restore-local-auth-audit-ip.sql" ]] || fail "ISOLATED_AUTH_AUDIT_COMPAT_MISSING"
+[[ -f "$script_dir/restore-local-storage-multipart.sql" &&
+   ! -L "$script_dir/restore-local-storage-multipart.sql" ]] || fail "ISOLATED_STORAGE_MULTIPART_SQL_MISSING"
 python3 "$script_dir/extract-encrypted-backup-zip.py" --verify-only "$archive" "$checksum" \
   >/dev/null 2>&1 || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 250000 \
@@ -102,6 +104,7 @@ docker run --rm -d --network none --name "$container" \
   -v "$backup_dir:/restore:ro" \
   -v "$script_dir/restore-local-auth-jwt.sql:/digiy-local-auth-jwt.sql:ro" \
   -v "$script_dir/restore-local-auth-audit-ip.sql:/digiy-local-auth-audit-ip.sql:ro" \
+  -v "$script_dir/restore-local-storage-multipart.sql:/digiy-local-storage-multipart.sql:ro" \
   supabase/postgres:17.6.1.173 \
   postgres -c config_file=/etc/postgresql/postgresql.conf \
   >"$tmpdir/docker-private.log" 2>&1 || fail "ISOLATED_POSTGRES_CONTAINER_START_FAILED"
@@ -130,7 +133,7 @@ auth_jwt_secret="$(openssl rand -hex 32)"
   printf 'GOTRUE_JWT_SECRET=%s\n' "$auth_jwt_secret"
   printf 'API_EXTERNAL_URL=http://localhost:9999\nGOTRUE_SITE_URL=http://localhost:9999\n'
 } >"$auth_migration_env"
-unset auth_jwt_secret local_password
+unset auth_jwt_secret
 if ! docker run --rm --network "container:$container" \
   --env-file "$auth_migration_env" \
   supabase/gotrue:v2.197.0 auth migrate \
@@ -149,6 +152,49 @@ auth_table_count="$(docker exec "$container" psql -U postgres -d postgres \
   2>"$tmpdir/auth-catalog-private.log")" || fail "ISOLATED_AUTH_CATALOG_QUERY_FAILED"
 [[ "$auth_table_count" == "27" ]] || fail "ISOLATED_AUTH_CATALOG_TABLES_MISMATCH"
 echo "ISOLATED_AUTH_CATALOG_OK: 27 Auth tables in networkless database."
+
+# Bring internal Storage schema up to the same official release, inside the
+# Postgres container's isolated loopback namespace only. No remote credentials.
+storage_migration_env="$tmpdir/storage-migrate-private.env"
+storage_jwt_secret="$(openssl rand -hex 32)"
+{
+  printf 'DATABASE_URL=postgresql://supabase_admin:%s@127.0.0.1:5432/postgres?sslmode=disable\n' "$local_password"
+  printf 'DB_INSTALL_ROLES=false\nDB_SUPER_USER=postgres\n'
+  printf 'AUTH_JWT_SECRET=%s\n' "$storage_jwt_secret"
+} >"$storage_migration_env"
+unset storage_jwt_secret local_password
+if ! docker run --rm --network "container:$container" \
+  --env-file "$storage_migration_env" \
+  supabase/storage-api:v1.80.2 node dist/scripts/migrate-call.js \
+  >"$tmpdir/storage-migrations-private.log" 2>&1; then
+  fail "ISOLATED_STORAGE_MIGRATIONS_FAILED"
+fi
+rm -f -- "$storage_migration_env"
+echo "ISOLATED_STORAGE_MIGRATIONS_OK: official Storage 1.80.2 schema, local only."
+
+# The Storage image's runnable migrations do not install the older S3
+# multipart tables, although the cloud dump requires them. Apply the exact
+# official 0021,0022,0025,0057 migrations bundled read-only and verify types.
+if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
+  --single-transaction --variable ON_ERROR_STOP=1 \
+  --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
+  --file /digiy-local-storage-multipart.sql \
+  >"$tmpdir/storage-compat-private.log" 2>&1; then
+  fail "ISOLATED_STORAGE_MULTIPART_COMPAT_FAILED"
+fi
+echo "ISOLATED_STORAGE_MULTIPART_COMPAT_OK: official S3 multipart tables installed locally."
+
+storage_catalog_count="$(docker exec "$container" psql -U postgres -d postgres \
+  -X -w -Atq -v ON_ERROR_STOP=1 -c "
+SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname='storage' AND c.relkind IN ('r','p')
+  AND c.relname = ANY(ARRAY[
+   'buckets','buckets_analytics','buckets_vectors','migrations','objects',
+   's3_multipart_uploads','s3_multipart_uploads_parts','vector_indexes']);"
+  2>"$tmpdir/storage-catalog-private.log")" || fail "ISOLATED_STORAGE_CATALOG_QUERY_FAILED"
+[[ "$storage_catalog_count" == "8" ]] || fail "ISOLATED_STORAGE_CATALOG_TABLES_MISMATCH"
+echo "ISOLATED_STORAGE_CATALOG_OK: all 8 cloud Storage tables available locally."
+
 
 
 # The official auth schema is owned by supabase_admin, not by postgres.
