@@ -68,5 +68,59 @@ class IsolatedRestoreContract(unittest.TestCase):
         self.assertNotIn("synth-only-sentinel", result.stdout + result.stderr)
 
 
+
+class RestoreFailureDiagnosticContract(unittest.TestCase):
+    """Only synthetic private logs are used; no real SQL or credentials."""
+
+    def run_classifier(self, sample):
+        classifier = ROOT / "scripts" / "classify-restore-sql-failure.py"
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "private.log"
+            path.write_text(sample, encoding="utf-8")
+            return subprocess.run(["python3", str(classifier), str(path)],
+                                  capture_output=True, text=True)
+
+    def test_reports_sql_phase_and_sqlstate_only(self):
+        secret = "CLIENT_PRIVATE_DATA_MUST_NEVER_PRINT"
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_ROLES\n"
+            "CREATE ROLE\n"
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/restore/schema.sql:44: ERROR: 42P07\n"
+            f"DETAIL: {secret}\n"
+            "CONTEXT: customer copy must be private\n"
+        )
+        self.assertEqual(output.returncode, 0, output.stderr)
+        self.assertEqual(output.stdout.strip(),
+                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07")
+        self.assertNotIn(secret, output.stdout + output.stderr)
+        self.assertNotIn("customer", output.stdout + output.stderr)
+
+    def test_data_phase_and_unknown_sqlstate(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_DATA\n"
+            "psql: error: connection refused, private hostname\n"
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertIn("STAGE=data SQLSTATE=unknown", output.stdout)
+        self.assertNotIn("hostname", output.stdout)
+
+    def test_unknown_when_missing_log(self):
+        classifier = ROOT / "scripts" / "classify-restore-sql-failure.py"
+        output = subprocess.run(["python3", str(classifier), "/missing/private.log"],
+                                capture_output=True, text=True)
+        self.assertEqual(output.returncode, 0)
+        self.assertIn("STAGE=unknown SQLSTATE=unknown", output.stdout)
+
+    def test_sql_restore_keeps_no_network_and_private_log(self):
+        script = SCRIPT.read_text()
+        self.assertIn("--network none", script)
+        self.assertIn("--single-transaction", script)
+        self.assertIn("--variable VERBOSITY=sqlstate", script)
+        self.assertIn("sql-private.log", script)
+        self.assertIn("classify-restore-sql-failure.py", script)
+
+
+
 if __name__ == "__main__":
     unittest.main()
