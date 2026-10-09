@@ -258,8 +258,19 @@ jwt_probe="$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq \
 echo "ISOLATED_AUTH_JWT_HELPER_OK: helper present in local container (not an Auth login test)."
 
 
-# Source snapshot (2026-10-09 01:46 UTC): 81 legacy blocked rows and 0
-# reservations. Return only aggregate integers, no customer records.
+# Source snapshot baseline is supplied by the operator from a freshly
+# verified live, read-only aggregate. Default=81 for historical fixtures.
+# Fresh archives require an EXPLICIT expected count; never self-learn from the
+# restored data and never weaken the count check to >=81.
+expected_blocked="${DIGIY_EXPECTED_MASTER_BLOCKED_DAYS:-81}"
+if ! [[ "$expected_blocked" =~ ^[0-9]+$ ]] ||
+   [[ "${#expected_blocked}" -gt 6 ]] ||
+   [[ "$expected_blocked" -lt 81 ]] ||
+   [[ "$expected_blocked" -gt 999999 ]]; then
+  fail "ISOLATED_EXPECTED_BLOCKED_DAYS_INVALID"
+fi
+
+# Return ONLY aggregate integers: never output private client rows or SQL.
 result="$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq \
   -v ON_ERROR_STOP=1 -c "
 SELECT (SELECT count(*) FROM public.digiy_loc_master_unit_calendar),
@@ -269,6 +280,11 @@ SELECT (SELECT count(*) FROM public.digiy_loc_master_unit_calendar),
        (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
          WHERE n.nspname='public' AND p.proname='digiy_loc_master_save_reservation_v1');
 " 2>"$tmpdir/count-private.log")" || fail "ISOLATED_RESTORE_AGGREGATE_QUERY_FAILED"
-[[ "$result" == "81|81|0|1" ]] || fail "ISOLATED_RESTORE_EXPECTED_MASTER_COUNTS_NOT_MET"
-echo "ISOLATED_RESTORE_PROOF_OK: 81/81 jours historiques bloqués, 0 réservation MASTER, RPC principale présente."
+if [[ "$result" != "$expected_blocked|$expected_blocked|0|1" ]]; then
+  if [[ "$result" =~ ^[0-9]+\\|[0-9]+\\|[0-9]+\\|[0-9]+$ ]]; then
+    echo "::error::ISOLATED_RESTORE_AGGREGATE_MISMATCH: calendar|blocked|reservations|rpc=$result expected=$expected_blocked|$expected_blocked|0|1" >&2
+  fi
+  fail "ISOLATED_RESTORE_EXPECTED_MASTER_COUNTS_NOT_MET"
+fi
+echo "ISOLATED_RESTORE_PROOF_OK: $expected_blocked/$expected_blocked jours bloqués, 0 réservation MASTER, RPC principale présente."
 echo "ISOLATED_RESTORE_PRODUCTION_UNTOUCHED: aucune cible distante accessible depuis le conteneur."
