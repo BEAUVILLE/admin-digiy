@@ -11,9 +11,19 @@ fail() { printf '::error::%s\n' "$1" >&2; exit 78; }
 [[ -z "${SUPABASE_DB_URL:-}" && -z "${RESTORE_DB_URL:-}" ]] || fail "REMOTE_DB_URL_FORBIDDEN"
 [[ -n "${BACKUP_PASSPHRASE:-}" ]] || fail "BACKUP_PASSPHRASE_MISSING"
 [[ -d "${SOURCE_ARTIFACT_DIR:-/nonexistent}" ]] || fail "SOURCE_ARTIFACT_MISSING"
-for cmd in docker openssl sha256sum tar gzip python3; do
+for cmd in docker openssl tar gzip python3; do
   command -v "$cmd" >/dev/null 2>&1 || fail "ISOLATED_RESTORE_TOOL_MISSING"
 done
+
+# Linux runners ship sha256sum; macOS normally ships shasum.
+# Both tools verify the same standard GNU SHA256 manifest format.
+if command -v sha256sum >/dev/null 2>&1; then
+  check_sha256_manifest() { sha256sum -c "$1"; }
+elif command -v shasum >/dev/null 2>&1; then
+  check_sha256_manifest() { shasum -a 256 -c "$1"; }
+else
+  fail "ISOLATED_SHA256_TOOL_MISSING"
+fi
 
 source_dir="${SOURCE_ARTIFACT_DIR}"
 mapfile -d '' encrypted_files < <(find "$source_dir" -maxdepth 1 -type f -name 'digiy-supabase-*.tar.gz.enc' -print0)
@@ -22,7 +32,11 @@ archive="${encrypted_files[0]}"
 checksum="${archive}.sha256"
 [[ -s "$archive" && -s "$checksum" ]] || fail "ISOLATED_RESTORE_ARCHIVE_OR_CHECKSUM_MISSING"
 
-tmpdir="$(mktemp -d)"
+# Operators on macOS need decrypted temporary files in a Docker Desktop
+# shared, encrypted home location; GitHub defaults to its private runner temp.
+restore_work_root="${RESTORE_WORK_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}}"
+[[ -d "$restore_work_root" && ! -L "$restore_work_root" ]] || fail "ISOLATED_PRIVATE_WORK_ROOT_INVALID"
+tmpdir="$(mktemp -d "$restore_work_root/digiy-restore.XXXXXXXX")"
 container="digiy-restore-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
@@ -31,7 +45,11 @@ cleanup() {
 trap cleanup EXIT
 
 # Never print the digest, recovered credentials, restored SQL, or object values.
-( cd "$source_dir" && sha256sum -c "$(basename "$checksum")" >/dev/null 2>&1 ) || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
+# GitHub backup SHA256 manifest contains the ORIGINAL runner's absolute
+# path. Never read that path; hash the ciphertext downloaded by the operator.
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$script_dir/extract-encrypted-backup-zip.py" --verify-only "$archive" "$checksum" \
+  >/dev/null 2>&1 || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 250000 \
   -in "$archive" -out "$tmpdir/private.tar.gz" -pass env:BACKUP_PASSPHRASE \
   >"$tmpdir/decrypt-private.log" 2>&1 || fail "ISOLATED_RESTORE_DECRYPT_FAILED"
@@ -58,7 +76,7 @@ backup_dir="${backup_dirs[0]}"
 for f in roles.sql schema.sql data.sql SHA256SUMS backup-status.txt; do
   [[ -s "$backup_dir/$f" ]] || fail "ISOLATED_RESTORE_REQUIRED_FILE_MISSING"
 done
-( cd "$backup_dir" && sha256sum -c SHA256SUMS >/dev/null 2>&1 ) || fail "ISOLATED_RESTORE_INTERNAL_CHECKSUM_FAILED"
+( cd "$backup_dir" && check_sha256_manifest SHA256SUMS >/dev/null 2>&1 ) || fail "ISOLATED_RESTORE_INTERNAL_CHECKSUM_FAILED"
 echo "ISOLATED_ARCHIVE_INTEGRITY_OK: chiffre, checksums et fichiers SQL vérifiés."
 
 # Supabase runs PostgreSQL 17. Disposable container has NO NETWORK, NO

@@ -43,5 +43,7 @@ archive="$source_dir/digiy-supabase-2026-10-09T00-00-00Z.tar.gz.enc"
 tar -C "$workspace" -czf "$workspace/fixture.tar.gz" "$(basename "$fixture")"
 openssl enc -aes-256-cbc -salt -pbkdf2 -iter 250000 \
   -in "$workspace/fixture.tar.gz" -out "$archive" -pass env:BACKUP_PASSPHRASE
-(cd "$source_dir" && sha256sum "$(basename "$archive")" > "$(basename "$archive").sha256")
+# Mirror the real backup workflow, which writes an ABSOLUTE runner path in
+# the external SHA256 sidecar. The restore verifier must never follow it.
+sha256sum "$archive" > "$archive.sha256"
 echo "SYNTHETIC_ARCHIVE_READY: uniquement fausses données."

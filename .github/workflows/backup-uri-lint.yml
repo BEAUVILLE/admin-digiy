@@ -10,6 +10,9 @@ on:
       - 'scripts/restore-supabase-github-isolated.sh'
       - 'tests/test_backup_restore_isolation.py'
       - 'tests/make-synthetic-backup.sh'
+      - 'scripts/restore-from-downloaded-artifact-local.sh'
+      - 'scripts/extract-encrypted-backup-zip.py'
+      - 'tests/test_backup_local_artifact.py'
   workflow_dispatch:
 permissions:
   contents: read
