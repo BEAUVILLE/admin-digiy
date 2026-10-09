@@ -93,6 +93,8 @@ jobs:
             -e DB_NAMESPACE=auth \
             -e GOTRUE_DB_DRIVER=postgres \
             -e GOTRUE_JWT_SECRET=synthetic-ci-only-not-a-real-secret \
+            -e API_EXTERNAL_URL=http://localhost:9999 \
+            -e GOTRUE_SITE_URL=http://localhost:9999 \
             supabase/gotrue:v2.197.0 auth migrate
           echo "OFFLINE_AUTH_MIGRATION_SUCCESS"
           echo "MIGRATED_AUTH_CATALOG_BEGIN"
