@@ -45,7 +45,11 @@ cleanup() {
 trap cleanup EXIT
 
 # Never print the digest, recovered credentials, restored SQL, or object values.
-( cd "$source_dir" && check_sha256_manifest "$(basename "$checksum")" >/dev/null 2>&1 ) || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
+# GitHub backup SHA256 manifest contains the ORIGINAL runner's absolute
+# path. Never read that path; hash the ciphertext downloaded by the operator.
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$script_dir/extract-encrypted-backup-zip.py" --verify-only "$archive" "$checksum" \
+  >/dev/null 2>&1 || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 250000 \
   -in "$archive" -out "$tmpdir/private.tar.gz" -pass env:BACKUP_PASSPHRASE \
   >"$tmpdir/decrypt-private.log" 2>&1 || fail "ISOLATED_RESTORE_DECRYPT_FAILED"
