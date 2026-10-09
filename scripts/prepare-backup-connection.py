@@ -58,7 +58,7 @@ def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
         # original whitespace-padded value. Mask the normalized URI BEFORE
         # handing it to subsequent steps. Never print it otherwise.
         if trimmed_uri:
-            output.write(f"::add-mask::{raw}\\n")
+            output.write(f"::add-mask::{raw}\n")
             output.flush()
         with open(github_env_file, "a", encoding="utf-8") as file:
             file.write(f"SUPABASE_DB_URL={raw}\n")
