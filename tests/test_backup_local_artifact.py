@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline tests for the local-only GitHub artifact restore bridge."""
 import importlib.util
+import hashlib
 import os
 from pathlib import Path
 import stat
@@ -35,8 +36,13 @@ class SafeEncryptedArtifactExtraction(unittest.TestCase):
             for name, data in contents.items():
                 target.writestr(name, data)
 
-    def valid(self):
-        return {ENC: b"Salted__fake-encrypted-bytes", ENC + ".sha256": b"fake-checksum  file\n"}
+    def valid(self, *, origin=None, tamper_digest=False):
+        payload = b"Salted__fake-encrypted-bytes"
+        digest = hashlib.sha256(payload).hexdigest()
+        if tamper_digest:
+            digest = "0" * 64
+        source = origin or ENC
+        return {ENC: payload, ENC + ".sha256": (digest + "  " + source + "\\n").encode()}
 
     def test_valid_exactly_two_encrypted_members(self):
         self.make_zip(self.valid())
@@ -44,6 +50,21 @@ class SafeEncryptedArtifactExtraction(unittest.TestCase):
         self.assertEqual((self.destination / ENC).read_bytes(), self.valid()[ENC])
         self.assertEqual((self.destination / (ENC + ".sha256")).read_bytes(),
                          self.valid()[ENC + ".sha256"])
+
+    def test_realistic_absolute_github_actions_source_path(self):
+        original = "/home/runner/work/admin-digiy/backup-output/" + ENC
+        self.make_zip(self.valid(origin=original))
+        self.assertEqual(artifact_zip.extract(self.zip, self.destination), ENC)
+
+    def test_reject_mismatched_external_sha256(self):
+        self.make_zip(self.valid(tamper_digest=True))
+        with self.assertRaisesRegex(ValueError, "EXTERNAL_CHECKSUM_DIGEST_MISMATCH"):
+            artifact_zip.extract(self.zip, self.destination)
+
+    def test_reject_sidecar_pointing_to_other_backup(self):
+        self.make_zip(self.valid(origin="/old/runner/not-our-archive.enc"))
+        with self.assertRaisesRegex(ValueError, "EXTERNAL_CHECKSUM_FILE_IDENTITY_MISMATCH"):
+            artifact_zip.extract(self.zip, self.destination)
 
     def test_reject_traversal(self):
         self.make_zip({ENC: b"x", "../escape.sha256": b"x"})
