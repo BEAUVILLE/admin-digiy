@@ -19,4 +19,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate URI diagnostics using synthetic values only
-        run: python3 -m unittest discover -s tests -p 'test_backup_uri.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_backup*.py' -v
