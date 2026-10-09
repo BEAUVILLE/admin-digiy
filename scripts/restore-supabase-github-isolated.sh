@@ -22,7 +22,11 @@ archive="${encrypted_files[0]}"
 checksum="${archive}.sha256"
 [[ -s "$archive" && -s "$checksum" ]] || fail "ISOLATED_RESTORE_ARCHIVE_OR_CHECKSUM_MISSING"
 
-tmpdir="$(mktemp -d)"
+# Operators on macOS need decrypted temporary files in a Docker Desktop
+# shared, encrypted home location; GitHub defaults to its private runner temp.
+restore_work_root="${RESTORE_WORK_ROOT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}}"
+[[ -d "$restore_work_root" && ! -L "$restore_work_root" ]] || fail "ISOLATED_PRIVATE_WORK_ROOT_INVALID"
+tmpdir="$(mktemp -d "$restore_work_root/digiy-restore.XXXXXXXX")"
 container="digiy-restore-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
