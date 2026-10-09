@@ -13,7 +13,7 @@ MARKERS = {
     "DIGIY_RESTORE_STAGE_DATA": "data",
 }
 LOCATION = re.compile(
-    r"^psql:/restore/(roles|schema|data)\.sql:([1-9][0-9]{0,8}):\s*ERROR:\s*(.*)$"
+    r"^psql:(/restore/(?:roles|schema|data)\.sql|/digiy-local-auth-jwt\.sql):([1-9][0-9]{0,8}):\s*ERROR:\s*(.*)$"
 )
 SQLSTATE = re.compile(r"^([0-9A-Z]{5}):\s*(.*)$")
 BARE_STATE = re.compile(r"^([0-9A-Z]{5})$")
@@ -33,7 +33,11 @@ def classify(path):
                     stage = MARKERS[marker]
                 location = LOCATION.match(line)
                 if location and code == "unknown":
-                    stage, sql_line, remainder = location.groups()
+                    path, sql_line, remainder = location.groups()
+                    stage = (
+                        "auth-bootstrap" if path == "/digiy-local-auth-jwt.sql"
+                        else path.split("/")[-1].removesuffix(".sql")
+                    )
                     verbose_state = SQLSTATE.match(remainder)
                     if verbose_state:
                         code, detail = verbose_state.groups()

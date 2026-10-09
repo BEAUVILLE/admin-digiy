@@ -15,6 +15,37 @@ class IsolatedRestoreContract(unittest.TestCase):
         result = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_offline_bootstrap_matches_supabase_auth_contract(self):
+        sql = (ROOT / "scripts" / "restore-local-auth-jwt.sql").read_text()
+        script = SCRIPT.read_text()
+        fixture = (ROOT / "tests" / "make-synthetic-backup.sh").read_text()
+        self.assertIn("CREATE FUNCTION auth.jwt()", sql)
+        self.assertIn("RETURNS jsonb", sql)
+        self.assertIn("LANGUAGE sql STABLE", sql)
+        self.assertIn("request.jwt.claims", sql)
+        self.assertIn("request.jwt.claim", sql)
+        self.assertIn("to_regprocedure('auth.jwt()')", sql)
+        self.assertIn("auth.jwt() ->> 'sub'", fixture)
+        self.assertIn('--network none', script)
+        self.assertIn("--single-transaction", script)
+        self.assertIn("--file /digiy-local-auth-jwt.sql", script)
+        self.assertIn("ISOLATED_AUTH_JWT_HELPER_OK", script)
+        # Bootstrap runs separately as the local auth schema owner before
+        # the normal roles -> schema -> data transaction begins.
+        self.assertIn("psql -U supabase_admin", script)
+        self.assertIn("ISOLATED_AUTH_JWT_BOOTSTRAP_OK", script)
+        self.assertLess(
+            script.index("--file /digiy-local-auth-jwt.sql"),
+            script.index("--file /restore/roles.sql"),
+        )
+        self.assertLess(
+            script.index("--file /restore/roles.sql"),
+            script.index("--file /restore/schema.sql"),
+        )
+        # The helper must NEVER be part of a production migration or backup.
+        self.assertNotIn("SUPABASE_DB_URL", sql)
+        self.assertNotIn("SECURITY DEFINER", sql)
+
     def test_no_remote_database_target(self):
         contents = SCRIPT.read_text()
         self.assertIn('REMOTE_DB_URL_FORBIDDEN', contents)
@@ -154,6 +185,19 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertIn("MISSING_SYMBOL=operator", output.stdout)
         self.assertNotIn("unknown > text", output.stdout + output.stderr)
 
+
+    def test_safe_bootstrap_sql_error_location(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/digiy-local-auth-jwt.sql:12: ERROR:  42601: syntax error\n"
+            "DETAIL: PRIVATE_DATA_NEVER_PRINT\n"
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertIn(
+            "STAGE=auth-bootstrap SQLSTATE=42601 SQL_LINE=12 MISSING_SYMBOL=unknown",
+            output.stdout,
+        )
+        self.assertNotIn("PRIVATE_DATA", output.stdout + output.stderr)
 
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()

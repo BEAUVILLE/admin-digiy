@@ -25,6 +25,12 @@ CREATE TABLE public.digiy_loc_master_reservations (
 );
 CREATE FUNCTION public.digiy_loc_master_save_reservation_v1()
 RETURNS integer LANGUAGE SQL AS 'SELECT 1';
+-- This intentionally requires Supabase Auth's standard helper while parsing schema.
+-- Without the isolated auth.jwt() bootstrap, PostgreSQL returns SQLSTATE 42883.
+CREATE TABLE public.digiy_synthetic_auth_jwt_probe (
+  id integer PRIMARY KEY,
+  jwt_subject text DEFAULT (auth.jwt() ->> 'sub')
+);
 SQL
 {
   printf 'COPY public.digiy_loc_master_unit_calendar (status) FROM stdin;\n'
