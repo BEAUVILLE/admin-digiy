@@ -105,11 +105,10 @@ docker run --rm -d --network none --name "$container" \
   supabase/postgres:17.6.1.173 \
   postgres -c config_file=/etc/postgresql/postgresql.conf \
   >"$tmpdir/docker-private.log" 2>&1 || fail "ISOLATED_POSTGRES_CONTAINER_START_FAILED"
-unset local_password
 
 ready=NO
 for attempt in $(seq 1 75); do
-  if docker exec "$container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+  if [[ "$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq -c 'SELECT 1' 2>/dev/null)" == "1" ]]; then
     ready=YES
     break
   fi
@@ -117,6 +116,40 @@ for attempt in $(seq 1 75); do
 done
 [[ "$ready" == "YES" ]] || fail "ISOLATED_POSTGRES_NOT_READY"
 echo "ISOLATED_POSTGRES_READY: PostgreSQL local sans réseau."
+
+# The PostgreSQL image alone includes only five Auth tables, versus 27 in
+# the cloud snapshot. Apply the pinned OFFICIAL GoTrue migrations, never
+# placeholder tables. The migrator shares the network namespace of the
+# "--network none" Postgres container: localhost only; zero external routes.
+# Runtime passwords stay in an owner-only ephemeral env file, never stdout.
+auth_migration_env="$tmpdir/auth-migrate-private.env"
+auth_jwt_secret="$(openssl rand -hex 32)"
+{
+  printf 'DATABASE_URL=postgres://supabase_admin:%s@127.0.0.1:5432/postgres?sslmode=disable\n' "$local_password"
+  printf 'DB_NAMESPACE=auth\nGOTRUE_DB_DRIVER=postgres\n'
+  printf 'GOTRUE_JWT_SECRET=%s\n' "$auth_jwt_secret"
+  printf 'API_EXTERNAL_URL=http://localhost:9999\nGOTRUE_SITE_URL=http://localhost:9999\n'
+} >"$auth_migration_env"
+unset auth_jwt_secret local_password
+if ! docker run --rm --network "container:$container" \
+  --env-file "$auth_migration_env" \
+  supabase/gotrue:v2.197.0 auth migrate \
+  >"$tmpdir/auth-migrations-private.log" 2>&1; then
+  fail "ISOLATED_AUTH_MIGRATIONS_FAILED"
+fi
+rm -f -- "$auth_migration_env"
+echo "ISOLATED_AUTH_MIGRATIONS_OK: official GoTrue 2.197.0 schema, local only."
+
+# No real rows or credentials displayed; compare only aggregate schema counts.
+auth_table_count="$(docker exec "$container" psql -U postgres -d postgres \
+  -X -w -Atq -v ON_ERROR_STOP=1 -c "
+  SELECT count(*) FROM pg_class c JOIN pg_namespace n
+    ON n.oid=c.relnamespace
+  WHERE n.nspname='auth' AND c.relkind IN ('r','p');"
+  2>"$tmpdir/auth-catalog-private.log")" || fail "ISOLATED_AUTH_CATALOG_QUERY_FAILED"
+[[ "$auth_table_count" == "27" ]] || fail "ISOLATED_AUTH_CATALOG_TABLES_MISMATCH"
+echo "ISOLATED_AUTH_CATALOG_OK: 27 Auth tables in networkless database."
+
 
 # The official auth schema is owned by supabase_admin, not by postgres.
 # Invoke the official auth.jwt() migration ONLY inside the networkless
@@ -154,7 +187,9 @@ echo "ISOLATED_AUTH_AUDIT_COMPAT_OK: Auth audit column matched locally; no rows 
 # Never connect to a remotely supplied address.
 # Verbose PostgreSQL errors are held ONLY in a private log deleted by trap.
 # The classifier emits a vetted function identifier, never raw SQL or values.
-if ! docker exec "$container" psql -U postgres -d postgres -X -w \
+# The official Auth migrations own internal tables as supabase_admin.
+# Restore with the disposable DB's local schema owner; NEVER a remote URI.
+if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
   --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
   --command '\echo DIGIY_RESTORE_STAGE_ROLES' \

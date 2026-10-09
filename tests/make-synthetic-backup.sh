@@ -46,6 +46,12 @@ COPY auth.audit_log_entries (id, ip_address) FROM stdin;
 00000000-0000-0000-0000-000000000001	192.0.2.25
 \.
 SQL
+cat >> "$fixture/data.sql" <<'SQL'
+-- Restore synthetic Auth custom OAuth row to detect any missing post-2026 tables.
+COPY auth.custom_oauth_providers (id, provider_type, identifier, name, client_id, client_secret, issuer) FROM stdin;
+00000000-0000-0000-0000-000000000002	oidc	ci-fixture	CI Fixture	ci-id	NOT-A-REAL-SECRET	https://example.invalid
+\.
+SQL
 printf 'storage_backup=metadata_only\nmigration_history=absent\n' > "$fixture/backup-status.txt"
 printf 'Synthetic CI fixture only; NOT from DIGIY CORE.\n' > "$fixture/README.txt"
 (

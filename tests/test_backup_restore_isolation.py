@@ -71,6 +71,26 @@ class IsolatedRestoreContract(unittest.TestCase):
         self.assertIn("COPY auth.audit_log_entries (id, ip_address) FROM stdin;", fixture)
         self.assertNotIn("skip data", script.lower())
 
+    def test_official_auth_migrations_are_networkless_and_precede_data(self):
+        script = SCRIPT.read_text()
+        fixture = (ROOT / "tests" / "make-synthetic-backup.sh").read_text()
+        self.assertIn("supabase/gotrue:v2.197.0 auth migrate", script)
+        self.assertIn('docker run --rm -d --network none', script)
+        self.assertIn('--network "container:$container"', script)
+        self.assertIn('--env-file "$auth_migration_env"', script)
+        self.assertIn("ISOLATED_AUTH_MIGRATIONS_OK", script)
+        self.assertIn("ISOLATED_AUTH_CATALOG_OK", script)
+        self.assertIn('"$auth_table_count" == "27"', script)
+        self.assertLess(
+            script.index("supabase/gotrue:v2.197.0 auth migrate"),
+            script.index("--file /restore/roles.sql"),
+        )
+        self.assertIn("--single-transaction", script)
+        self.assertIn('if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w', script)
+        self.assertIn("COPY auth.custom_oauth_providers", fixture)
+        self.assertIn("COPY auth.audit_log_entries", fixture)
+        self.assertNotIn("SUPABASE_DB_URL=", fixture)
+
     def test_no_remote_database_target(self):
         contents = SCRIPT.read_text()
         self.assertIn('REMOTE_DB_URL_FORBIDDEN', contents)
