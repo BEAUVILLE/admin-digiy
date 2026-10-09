@@ -263,7 +263,7 @@ echo "ISOLATED_AUTH_JWT_HELPER_OK: helper present in local container (not an Aut
 # Fresh archives require an EXPLICIT expected count; never self-learn from the
 # restored data and never weaken the count check to >=81.
 expected_blocked="${DIGIY_EXPECTED_MASTER_BLOCKED_DAYS:-81}"
-if ! [[ "$expected_blocked" =~ ^[0-9]+$ ]] ||
+if ! [[ "$expected_blocked" =~ ^[1-9][0-9]*$ ]] ||
    [[ "${#expected_blocked}" -gt 6 ]] ||
    [[ "$expected_blocked" -lt 81 ]] ||
    [[ "$expected_blocked" -gt 999999 ]]; then
@@ -281,7 +281,7 @@ SELECT (SELECT count(*) FROM public.digiy_loc_master_unit_calendar),
          WHERE n.nspname='public' AND p.proname='digiy_loc_master_save_reservation_v1');
 " 2>"$tmpdir/count-private.log")" || fail "ISOLATED_RESTORE_AGGREGATE_QUERY_FAILED"
 if [[ "$result" != "$expected_blocked|$expected_blocked|0|1" ]]; then
-  if [[ "$result" =~ ^[0-9]+\\|[0-9]+\\|[0-9]+\\|[0-9]+$ ]]; then
+  if [[ "$result" =~ ^[0-9]+[|][0-9]+[|][0-9]+[|][0-9]+$ ]]; then
     echo "::error::ISOLATED_RESTORE_AGGREGATE_MISMATCH: calendar|blocked|reservations|rpc=$result expected=$expected_blocked|$expected_blocked|0|1" >&2
   fi
   fail "ISOLATED_RESTORE_EXPECTED_MASTER_COUNTS_NOT_MET"
