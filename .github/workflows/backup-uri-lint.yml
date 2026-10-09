@@ -8,6 +8,7 @@ on:
       - 'tests/test_backup_uri.py'
       - '.github/workflows/backup-uri-lint.yml'
       - 'scripts/restore-supabase-github-isolated.sh'
+      - 'scripts/restore-local-auth-jwt.sql'
       - 'scripts/classify-restore-sql-failure.py'
       - 'tests/test_backup_restore_isolation.py'
       - 'tests/make-synthetic-backup.sh'
