@@ -74,13 +74,12 @@ def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
     repaired_uri = None
     repair_label = None
     clean_raw = raw.strip()
-    if clean_raw != raw and diagnostic(clean_raw) is None:
+    repaired_uri = candidate_from_unencoded_pooler_uri(clean_raw)
+    if repaired_uri is not None:
+        repair_label = "BACKUP_URI_PASSWORD_URL_ENCODED"
+    elif clean_raw != raw and diagnostic(clean_raw) is None:
         repaired_uri = clean_raw
         repair_label = "BACKUP_URI_OUTER_WHITESPACE_FIXED"
-    elif diagnostic(clean_raw) is not None:
-        repaired_uri = candidate_from_unencoded_pooler_uri(clean_raw)
-        if repaired_uri is not None:
-            repair_label = "BACKUP_URI_PASSWORD_URL_ENCODED"
     if repaired_uri is not None:
         raw = repaired_uri
     result = diagnostic(raw)
