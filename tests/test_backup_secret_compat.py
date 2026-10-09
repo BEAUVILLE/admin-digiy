@@ -30,17 +30,17 @@ class LegacySecretCompatibility(unittest.TestCase):
 
     def test_existing_uri_with_outer_whitespace_is_normalized(self):
         raw_uri = f"postgresql://postgres.{prep.REF}:fake@{prep.HOST}:5432/postgres"
-        for padded in (" " + raw_uri, raw_uri + "\\n", "\\n" + raw_uri + "  "):
+        for padded in (" " + raw_uri, raw_uri + "\n", "\n" + raw_uri + "  "):
             with self.subTest(padded_kind=(padded != padded.strip(), len(padded))):
                 with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
                     logs = io.StringIO()
                     self.assertEqual(prep.prepare(padded, envfile.name, logs), "existing_uri")
-                    self.assertEqual(pathlib.Path(envfile.name).read_text(), "SUPABASE_DB_URL=" + raw_uri + "\\n")
+                    self.assertEqual(pathlib.Path(envfile.name).read_text(), "SUPABASE_DB_URL=" + raw_uri + "\n")
                     self.assertIn("BACKUP_URI_OUTER_WHITESPACE_FIXED", logs.getvalue())
-                    self.assertIn("::add-mask::" + raw_uri + "\\n", logs.getvalue())
+                    self.assertIn("::add-mask::" + raw_uri + "\n", logs.getvalue())
 
     def test_trim_does_not_accept_wrong_password_placeholder(self):
-        raw = f" postgresql://postgres.{prep.REF}:[YOUR-PASSWORD]@{prep.HOST}:5432/postgres\\n"
+        raw = f" postgresql://postgres.{prep.REF}:[YOUR-PASSWORD]@{prep.HOST}:5432/postgres\n"
         with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
             logs = io.StringIO()
             self.assertEqual(prep.prepare(raw, envfile.name, logs), "error")
