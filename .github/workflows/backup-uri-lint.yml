@@ -30,6 +30,41 @@ jobs:
       - name: Validate URI diagnostics using synthetic values only
         run: python3 -m unittest discover -s tests -p 'test_backup*.py' -v
 
+      - name: Inventory pinned Docker Auth schema only (zero user data or secrets)
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          name="digiy-auth-inventory-${GITHUB_RUN_ID}"
+          trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          docker run --rm -d --network none --name "$name" \
+            -e POSTGRES_PASSWORD=synthetic-ci-only-not-a-real-secret \
+            supabase/postgres:17.6.1.173 \
+            postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
+          ready=NO
+          for attempt in $(seq 1 60); do
+            if docker exec "$name" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+              ready=YES
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = YES
+          echo "PINNED_AUTH_CATALOG_BEGIN"
+          docker exec "$name" psql -U postgres -d postgres -X -w -Atq -c "
+            SELECT c.relname || '|' ||
+                   string_agg(a.attname || ':' ||
+                     format_type(a.atttypid, a.atttypmod), ','
+                     ORDER BY a.attnum)
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid=c.relnamespace
+            JOIN pg_attribute a ON a.attrelid=c.oid
+              AND a.attnum>0 AND NOT a.attisdropped
+            WHERE n.nspname='auth' AND c.relkind IN ('r','p')
+            GROUP BY c.relname
+            ORDER BY c.relname;"
+          echo "PINNED_AUTH_CATALOG_END"
+
       - name: Restore encrypted SYNTHETIC fixture inside Docker with no network
         timeout-minutes: 15
         shell: bash
