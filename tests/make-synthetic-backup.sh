@@ -39,6 +39,13 @@ SQL
   done
   printf '\\.\n'
 } > "$fixture/data.sql"
+# All values below are SYNTHETIC. This COPY fails if the local Auth image
+# lacks its newer audit ip_address column; it must never be silently skipped.
+cat >> "$fixture/data.sql" <<'SQL'
+COPY auth.audit_log_entries (id, ip_address) FROM stdin;
+00000000-0000-0000-0000-000000000001	192.0.2.25
+\.
+SQL
 printf 'storage_backup=metadata_only\nmigration_history=absent\n' > "$fixture/backup-status.txt"
 printf 'Synthetic CI fixture only; NOT from DIGIY CORE.\n' > "$fixture/README.txt"
 (
