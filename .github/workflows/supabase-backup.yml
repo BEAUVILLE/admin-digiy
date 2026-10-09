@@ -69,6 +69,11 @@ jobs:
             echo "offsite=${offsite}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Valider le format de connexion sans exposer le secret
+        if: steps.preflight.outputs.configured == 'true'
+        shell: bash
+        run: python3 scripts/validate-backup-uri.py
+
       - name: Installer Supabase CLI
         if: steps.preflight.outputs.configured == 'true'
         uses: supabase/setup-cli@v1
