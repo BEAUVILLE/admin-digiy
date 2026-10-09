@@ -92,7 +92,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         )
         self.assertEqual(output.returncode, 0, output.stderr)
         self.assertEqual(output.stdout.strip(),
-                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07")
+                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07 SQL_LINE=44")
         self.assertNotIn(secret, output.stdout + output.stderr)
         self.assertNotIn("customer", output.stdout + output.stderr)
 
@@ -102,7 +102,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
             "psql: error: connection refused, private hostname\n"
         )
         self.assertEqual(output.returncode, 0)
-        self.assertIn("STAGE=data SQLSTATE=unknown", output.stdout)
+        self.assertIn("STAGE=data SQLSTATE=unknown SQL_LINE=unknown", output.stdout)
         self.assertNotIn("hostname", output.stdout)
 
     def test_unknown_when_missing_log(self):
@@ -110,7 +110,17 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         output = subprocess.run(["python3", str(classifier), "/missing/private.log"],
                                 capture_output=True, text=True)
         self.assertEqual(output.returncode, 0)
-        self.assertIn("STAGE=unknown SQLSTATE=unknown", output.stdout)
+        self.assertIn("STAGE=unknown SQLSTATE=unknown SQL_LINE=unknown", output.stdout)
+
+    def test_location_rejects_untrusted_path_and_hidden_detail(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\\n"
+            "psql:/tmp/private/customer.sql:25: ERROR: 42883\\n"
+            "DETAIL: SECRET_CUSTOMER_DATA\\n"
+        )
+        self.assertIn("SQLSTATE=42883 SQL_LINE=unknown", output.stdout)
+        self.assertNotIn("SECRET", output.stdout + output.stderr)
+        self.assertNotIn("/tmp/private/", output.stdout + output.stderr)
 
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()
