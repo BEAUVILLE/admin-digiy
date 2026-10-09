@@ -133,7 +133,7 @@ jobs:
           test "$ready" = YES
           echo "OFFLINE_STORAGE_MIGRATION_BEGIN"
           docker run --rm --network "container:$name" \
-            -e DATABASE_URL="postgresql://postgres:synthetic-ci-only-not-a-real-secret@127.0.0.1:5432/postgres?sslmode=disable" \
+            -e DATABASE_URL="postgresql://supabase_admin:synthetic-ci-only-not-a-real-secret@127.0.0.1:5432/postgres?sslmode=disable" \
             -e DB_INSTALL_ROLES=false \
             -e DB_SUPER_USER=postgres \
             -e AUTH_JWT_SECRET=synthetic-ci-only-not-a-real-secret \
