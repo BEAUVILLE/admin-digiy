@@ -5,6 +5,8 @@ This extractor intentionally accepts no connection URLs, no secret arguments,
 and writes only ciphertext plus its checksum into an operator-owned directory.
 """
 import argparse
+import hashlib
+import hmac
 import os
 from pathlib import Path
 import re
@@ -19,6 +21,34 @@ ARCHIVE_RE = re.compile(
 MAX_ENCRYPTED_BYTES = 8 * 1024**3
 MAX_CHECKSUM_BYTES = 2048
 
+
+def verify_external_checksum(encrypted: Path, sidecar: Path) -> None:
+    """Verify bytes, never open the absolute filename embedded by GitHub Actions.
+
+    The production backup script writes a GNU sha256sum manifest containing
+    its runner-local ABSOLUTE source path. Such a path does not exist on Mac.
+    Only the basename is authoritative; the digest is checked against the
+    caller-selected ciphertext file, not against the original source path.
+    """
+    raw = sidecar.read_bytes()
+    if not raw or len(raw) > MAX_CHECKSUM_BYTES:
+        raise ValueError("EXTERNAL_CHECKSUM_FORMAT_INVALID")
+    try:
+        line = raw.decode("utf-8").rstrip("\n")
+    except UnicodeError as exc:
+        raise ValueError("EXTERNAL_CHECKSUM_ENCODING_INVALID") from exc
+    match = re.fullmatch(r"([a-fA-F0-9]{64}) [ *]([^\r\n]+)", line)
+    if not match:
+        raise ValueError("EXTERNAL_CHECKSUM_FORMAT_INVALID")
+    original_name = match.group(2)
+    if Path(original_name).name != encrypted.name or "\\" in original_name:
+        raise ValueError("EXTERNAL_CHECKSUM_FILE_IDENTITY_MISMATCH")
+    computed = hashlib.sha256()
+    with encrypted.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            computed.update(block)
+    if not hmac.compare_digest(computed.hexdigest().lower(), match.group(1).lower()):
+        raise ValueError("EXTERNAL_CHECKSUM_DIGEST_MISMATCH")
 
 def extract(archive_path: Path, destination: Path) -> str:
     if not destination.is_dir() or destination.is_symlink():
@@ -55,20 +85,27 @@ def extract(archive_path: Path, destination: Path) -> str:
                 fd = os.open(target, flags, 0o600)
                 with os.fdopen(fd, "wb") as dst:
                     shutil.copyfileobj(src, dst, length=1024 * 1024)
+    verify_external_checksum(destination / ciphertext, destination / (ciphertext + ".sha256"))
     return ciphertext
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract encrypted GitHub backup ZIP into a private directory")
+    parser.add_argument("--verify-only", action="store_true",
+                        help="Verify an extracted ciphertext and its sidecar")
     parser.add_argument("zip_file", type=Path)
     parser.add_argument("private_dir", type=Path)
     options = parser.parse_args()
     try:
-        extract(options.zip_file, options.private_dir)
+        if options.verify_only:
+            verify_external_checksum(options.zip_file, options.private_dir)
+        else:
+            extract(options.zip_file, options.private_dir)
     except (OSError, ValueError, zipfile.BadZipFile, RuntimeError) as exc:
         print("RESTORE_ZIP_REJECTED: " + type(exc).__name__, file=sys.stderr)
         return 78
-    print("RESTORE_ZIP_CIPHERTEXT_EXTRACTED: exactly two encrypted artifact members")
+    print("RESTORE_CIPHERTEXT_SHA256_VERIFIED" if options.verify_only
+          else "RESTORE_ZIP_CIPHERTEXT_VERIFIED: exactly two members; SHA256 valid")
     return 0
 
 
