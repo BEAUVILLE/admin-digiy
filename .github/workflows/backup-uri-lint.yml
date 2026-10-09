@@ -10,6 +10,7 @@ on:
       - 'scripts/restore-supabase-github-isolated.sh'
       - 'scripts/restore-local-auth-jwt.sql'
       - 'scripts/restore-local-auth-audit-ip.sql'
+      - 'scripts/restore-local-storage-multipart.sql'
       - 'scripts/classify-restore-sql-failure.py'
       - 'tests/test_backup_restore_isolation.py'
       - 'tests/make-synthetic-backup.sh'
