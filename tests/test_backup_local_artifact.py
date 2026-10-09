@@ -112,6 +112,19 @@ class SafeEncryptedArtifactExtraction(unittest.TestCase):
 
 
 class PrivateLocalRestoreGuard(unittest.TestCase):
+    def test_native_macos_bash32_and_bsd_tar_compatibility(self):
+        source = RESTORE.read_text()
+        # This script runs under macOS's built-in Bash 3.2, not Bash 4+.
+        self.assertNotIn("mapfile", source.split("source_dir=")[1])
+        self.assertNotIn("-maxdepth", source.split("source_dir=")[1])
+        self.assertNotIn("tar --no-same-owner", source)
+        self.assertIn('shopt -s nullglob', source)
+        self.assertIn('encrypted_files=( "$source_dir"/digiy-supabase-*.tar.gz.enc )', source)
+        self.assertIn('backup_dirs=( "$tmpdir/extracted"/digiy-supabase-* )', source)
+        self.assertIn('tar -xzf "$tmpdir/private.tar.gz"', source)
+        self.assertIn('! -L "$archive"', source)
+        self.assertIn('! -L "$checksum"', source)
+
     def test_shell_syntax(self):
         for script in (WRAPPER, RESTORE):
             result = subprocess.run(["bash", "-n", str(script)],
