@@ -86,6 +86,7 @@ class IsolatedRestoreContract(unittest.TestCase):
             script.index("--file /restore/roles.sql"),
         )
         self.assertIn("--single-transaction", script)
+        self.assertIn('if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w', script)
         self.assertIn("COPY auth.custom_oauth_providers", fixture)
         self.assertIn("COPY auth.audit_log_entries", fixture)
         self.assertNotIn("SUPABASE_DB_URL=", fixture)
