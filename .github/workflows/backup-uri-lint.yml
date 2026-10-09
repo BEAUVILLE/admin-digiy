@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/validate-backup-uri.py'
+      - 'scripts/prepare-backup-connection.py'
+      - 'tests/test_backup_secret_compat.py'
       - 'tests/test_backup_uri.py'
       - '.github/workflows/backup-uri-lint.yml'
   workflow_dispatch:
