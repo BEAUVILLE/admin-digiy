@@ -12,9 +12,12 @@ fail() { printf 'RESTORE_LOCAL_REFUSED: %s\n' "$1" >&2; exit 78; }
 [[ -z "${BACKUP_PASSPHRASE:-}" ]] || fail "PASSPHRASE_ENV_FORBIDDEN_USE_PRIVATE_PROMPT"
 [[ "$#" == 1 && -f "$1" ]] || fail "ARGUMENT_REQUIRED_DOWNLOADED_ZIP"
 [[ -r /dev/tty && -t 0 ]] || fail "INTERACTIVE_PRIVATE_TERMINAL_REQUIRED"
-for command in bash python3 docker openssl sha256sum gzip tar; do
+for command in bash python3 docker openssl gzip tar; do
   command -v "$command" >/dev/null 2>&1 || fail "REQUIRED_TOOL_NOT_FOUND"
 done
+if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+  fail "SHA256_CHECK_TOOL_MISSING"
+fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [[ -f "$script_dir/extract-encrypted-backup-zip.py" &&
    -f "$script_dir/restore-supabase-github-isolated.sh" ]] || fail "REQUIRED_RESTORE_SCRIPT_MISSING"
@@ -23,6 +26,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # Docker Desktop normally shares the user's home folder on macOS. Keep
 # ciphertext and temporary decrypted SQL under the encrypted HOME volume.
 root="$HOME/DIGIY_PRIVATE_RESTORE"
+[[ ! -L "$root" ]] || fail "PRIVATE_WORK_ROOT_SYMLINK_FORBIDDEN"
 mkdir -p -m 700 "$root"
 chmod 700 "$root"
 workdir="$(mktemp -d "$root/session.XXXXXXXX")"
