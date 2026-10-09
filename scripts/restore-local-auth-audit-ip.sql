@@ -23,8 +23,22 @@ BEGIN
        AND a.atttypmod = 68
        AND a.attnotnull
        AND pg_get_expr(d.adbin, d.adrelid) IN (
-         ''''::character varying',
-         ''''::character varying(64)'
+         $expr
+       )
+  ) THEN
+    RAISE EXCEPTION 'DIGIY_LOCAL_AUTH_AUDIT_COLUMN_CONTRACT_MISMATCH';
+  END IF;
+END
+$digiy_auth_audit_contract$;
+'::character varying$expr$,
+         $expr
+       )
+  ) THEN
+    RAISE EXCEPTION 'DIGIY_LOCAL_AUTH_AUDIT_COLUMN_CONTRACT_MISMATCH';
+  END IF;
+END
+$digiy_auth_audit_contract$;
+'::character varying(64)$expr$
        )
   ) THEN
     RAISE EXCEPTION 'DIGIY_LOCAL_AUTH_AUDIT_COLUMN_CONTRACT_MISMATCH';
