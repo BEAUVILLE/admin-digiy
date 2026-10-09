@@ -108,7 +108,7 @@ docker run --rm -d --network none --name "$container" \
 
 ready=NO
 for attempt in $(seq 1 75); do
-  if docker exec "$container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+  if [[ "$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq -c 'SELECT 1' 2>/dev/null)" == "1" ]]; then
     ready=YES
     break
   fi
