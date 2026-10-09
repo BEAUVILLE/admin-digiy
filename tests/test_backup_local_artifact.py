@@ -42,7 +42,7 @@ class SafeEncryptedArtifactExtraction(unittest.TestCase):
         if tamper_digest:
             digest = "0" * 64
         source = origin or ENC
-        return {ENC: payload, ENC + ".sha256": (digest + "  " + source + "\\n").encode()}
+        return {ENC: payload, ENC + ".sha256": (digest + "  " + source + "\n").encode()}
 
     def test_valid_exactly_two_encrypted_members(self):
         self.make_zip(self.valid())
