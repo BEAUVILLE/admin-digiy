@@ -163,7 +163,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertEqual(output.returncode, 0, output.stderr)
         self.assertEqual(
             output.stdout.strip(),
-            "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42883 SQL_LINE=61977 MISSING_SYMBOL=extensions.unaccent"
+            "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42883 SQL_LINE=61977 MISSING_SYMBOL=extensions.unaccent MISSING_COLUMN=unknown RELATION=unknown"
         )
         self.assertNotIn("SECRET", output.stdout + output.stderr)
         self.assertNotIn("PRIVATE", output.stdout + output.stderr)
