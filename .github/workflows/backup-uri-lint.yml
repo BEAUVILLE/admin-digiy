@@ -111,6 +111,45 @@ jobs:
             GROUP BY c.relname ORDER BY c.relname;"
           echo "MIGRATED_AUTH_CATALOG_END"
 
+      - name: Probe official Supabase Storage migrations without network
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          name="digiy-storage-migrate-${GITHUB_RUN_ID}"
+          trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          docker run --rm -d --network none --name "$name" \
+            -e POSTGRES_PASSWORD=synthetic-ci-only-not-a-real-secret \
+            supabase/postgres:17.6.1.173 \
+            postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
+          ready=NO
+          for attempt in $(seq 1 60); do
+            if [ "$(docker exec "$name" psql -U postgres -d postgres -X -w -Atq -c 'SELECT 1' 2>/dev/null)" = 1 ]; then
+              ready=YES
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = YES
+          echo "OFFLINE_STORAGE_MIGRATION_BEGIN"
+          docker run --rm --network "container:$name" \
+            -e DATABASE_URL="postgresql://postgres:synthetic-ci-only-not-a-real-secret@127.0.0.1:5432/postgres?sslmode=disable" \
+            -e DB_INSTALL_ROLES=false \
+            -e DB_SUPER_USER=postgres \
+            -e AUTH_JWT_SECRET=synthetic-ci-only-not-a-real-secret \
+            supabase/storage-api:v1.80.2 node dist/scripts/migrate-call.js
+          echo "OFFLINE_STORAGE_MIGRATION_SUCCESS"
+          echo "MIGRATED_STORAGE_CATALOG_BEGIN"
+          docker exec "$name" psql -U postgres -d postgres -X -w -Atq -c "
+            SELECT c.relname || '|' ||
+                   string_agg(a.attname || ':' || format_type(a.atttypid,a.atttypmod),
+                              ',' ORDER BY a.attnum)
+            FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+            JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
+            WHERE n.nspname='storage' AND c.relkind IN ('r','p')
+            GROUP BY c.relname ORDER BY c.relname;"
+          echo "MIGRATED_STORAGE_CATALOG_END"
+
       - name: Restore encrypted SYNTHETIC fixture inside Docker with no network
         timeout-minutes: 15
         shell: bash
