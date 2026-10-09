@@ -91,6 +91,39 @@ class IsolatedRestoreContract(unittest.TestCase):
         self.assertIn("COPY auth.audit_log_entries", fixture)
         self.assertNotIn("SUPABASE_DB_URL=", fixture)
 
+    def test_official_storage_schema_networkless_and_copy_metadata(self):
+        script = SCRIPT.read_text()
+        sql = (ROOT / "scripts" / "restore-local-storage-multipart.sql").read_text()
+        fixture = (ROOT / "tests" / "make-synthetic-backup.sh").read_text()
+        self.assertIn("supabase/storage-api:v1.80.2 node dist/scripts/migrate-call.js", script)
+        self.assertIn("ISOLATED_STORAGE_MIGRATIONS_OK", script)
+        self.assertIn("ISOLATED_STORAGE_MULTIPART_COMPAT_OK", script)
+        self.assertIn("ISOLATED_STORAGE_CATALOG_OK", script)
+        self.assertIn('"$storage_catalog_count" == "8"', script)
+        self.assertIn('--network "container:$container"', script)
+        self.assertIn('--rm -d --network none', script)
+        self.assertIn('--env-file "$storage_migration_env"', script)
+        self.assertIn("--single-transaction", script)
+        self.assertIn("psql -U supabase_admin", script)
+        self.assertIn('/digiy-local-storage-multipart.sql:ro', script)
+        self.assertLess(
+            script.index("supabase/storage-api:v1.80.2 node dist/scripts/migrate-call.js"),
+            script.index("--file /restore/roles.sql"),
+        )
+        self.assertLess(
+            script.index("--file /digiy-local-storage-multipart.sql"),
+            script.index("--file /restore/data.sql"),
+        )
+        for name in ("s3_multipart_uploads", "s3_multipart_uploads_parts"):
+            self.assertIn("CREATE TABLE IF NOT EXISTS storage." + name, sql)
+            self.assertIn("COPY storage." + name, fixture)
+        self.assertIn("DIGIY_LOCAL_STORAGE_MULTIPART_CONTRACT_MISMATCH", sql)
+        self.assertIn("COPY storage.buckets", fixture)
+        self.assertIn("COPY storage.objects", fixture)
+        self.assertNotIn("DELETE FROM", sql)
+        self.assertNotIn("TRUNCATE", sql)
+        self.assertNotIn("SECURITY DEFINER", sql)
+
     def test_no_remote_database_target(self):
         contents = SCRIPT.read_text()
         self.assertIn('REMOTE_DB_URL_FORBIDDEN', contents)
