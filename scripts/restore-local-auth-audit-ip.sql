@@ -28,7 +28,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'DIGIY_LOCAL_AUTH_AUDIT_COLUMN_CONTRACT_MISMATCH';
   END IF;
-END
+END;
 $digiy_auth_audit_contract$;
 '::character varying$expr$,
          $expr
