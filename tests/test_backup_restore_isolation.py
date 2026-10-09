@@ -182,6 +182,19 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertNotIn("unknown > text", output.stdout + output.stderr)
 
 
+    def test_safe_bootstrap_sql_error_location(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/digiy-local-auth-jwt.sql:12: ERROR:  42601: syntax error\n"
+            "DETAIL: PRIVATE_DATA_NEVER_PRINT\n"
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertIn(
+            "STAGE=auth-bootstrap SQLSTATE=42601 SQL_LINE=12 MISSING_SYMBOL=unknown",
+            output.stdout,
+        )
+        self.assertNotIn("PRIVATE_DATA", output.stdout + output.stderr)
+
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()
         self.assertIn("--network none", script)
