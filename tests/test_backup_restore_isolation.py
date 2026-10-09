@@ -46,6 +46,31 @@ class IsolatedRestoreContract(unittest.TestCase):
         self.assertNotIn("SUPABASE_DB_URL", sql)
         self.assertNotIn("SECURITY DEFINER", sql)
 
+    def test_local_auth_audit_column_contract_and_copy_preservation(self):
+        sql = (ROOT / "scripts" / "restore-local-auth-audit-ip.sql").read_text()
+        script = SCRIPT.read_text()
+        fixture = (ROOT / "tests" / "make-synthetic-backup.sh").read_text()
+        self.assertIn("ALTER TABLE auth.audit_log_entries", sql)
+        self.assertIn("ADD COLUMN IF NOT EXISTS ip_address varchar(64) NOT NULL DEFAULT ''", sql)
+        self.assertIn("a.atttypmod = 68", sql)
+        self.assertIn("a.attnotnull", sql)
+        self.assertIn("DIGIY_LOCAL_AUTH_AUDIT_COLUMN_CONTRACT_MISMATCH", sql)
+        self.assertNotIn("DROP ", sql)
+        self.assertNotIn("DELETE ", sql)
+        self.assertNotIn("SUPABASE_DB_URL", sql)
+        self.assertNotIn("SECURITY DEFINER", sql)
+        self.assertIn("psql -U supabase_admin", script)
+        self.assertIn("ISOLATED_AUTH_AUDIT_COMPAT_OK", script)
+        self.assertIn("--network none", script)
+        self.assertIn("--single-transaction", script)
+        self.assertIn("/digiy-local-auth-audit-ip.sql:ro", script)
+        self.assertLess(
+            script.index("--file /digiy-local-auth-audit-ip.sql"),
+            script.index("--file /restore/roles.sql"),
+        )
+        self.assertIn("COPY auth.audit_log_entries (id, ip_address) FROM stdin;", fixture)
+        self.assertNotIn("skip data", script.lower())
+
     def test_no_remote_database_target(self):
         contents = SCRIPT.read_text()
         self.assertIn('REMOTE_DB_URL_FORBIDDEN', contents)
@@ -222,6 +247,18 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn("MISSING_COLUMN=unknown RELATION=unknown", result.stdout)
         self.assertNotIn("email@private", result.stdout)
+
+    def test_safe_audit_compat_failure_location(self):
+        output = self.run_classifier(
+            "psql:/digiy-local-auth-audit-ip.sql:20: ERROR:  42703: column is absent\n"
+            "DETAIL: SECRET_CUSTOMER_DATA\n"
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertIn(
+            "STAGE=auth-audit-compat SQLSTATE=42703 SQL_LINE=20",
+            output.stdout
+        )
+        self.assertNotIn("SECRET_CUSTOMER_DATA", output.stdout + output.stderr)
 
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()
