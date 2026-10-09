@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Redacted classification of local isolated PostgreSQL restore failures.
+"""Classify private psql errors using only the private ephemeral error log.
 
-This helper reads only ephemeral private files and emits predefined metadata:
-phase, SQLSTATE, line number, validated SQL identifier and (only for data COPY
-errors) validated column and table identifiers. No SQL source or data values.
+Only disclose static stage, SQLSTATE, numeric SQL line and validated SQL
+identifiers in PostgreSQL's error message. Never print SQL or user data.
 """
-import itertools
 import re
 import sys
 
@@ -24,38 +22,15 @@ FUNCTION = re.compile(
     re.IGNORECASE,
 )
 IDENT = r"([a-z_][a-z_0-9]{0,62})"
-MISSING_COLUMN_RELATION = re.compile(
+COPY_COLUMN_RELATION = re.compile(
     r'^column "' + IDENT + r'" of relation "' + IDENT + r'" does not exist',
-    re.IGNORECASE,
-)
-MISSING_COLUMN = re.compile(
-    r'^column "' + IDENT + r'" does not exist', re.IGNORECASE
-)
-COPY_TARGET = re.compile(
-    r"^COPY\s+(auth|storage|public|supabase_migrations)\."
-    + IDENT + r"\s+\(", re.IGNORECASE
+    re.IGNORECASE
 )
 
 
-def copy_target(data_file, line_number):
-    """Read the failing SQL line, return only a validated schema.table identifier."""
-    try:
-        number = int(line_number)
-        if number < 1 or number > 1_000_000 or not data_file:
-            return "unknown"
-        with open(data_file, "r", encoding="utf-8", errors="replace") as handle:
-            line = next(itertools.islice(handle, number - 1, number), "")
-        match = COPY_TARGET.match(line)
-        if match:
-            return match.group(1).lower() + "." + match.group(2).lower()
-    except (OSError, ValueError):
-        pass
-    return "unknown"
-
-
-def classify(path, data_file=None):
+def classify(path):
     stage, code, sql_line = "unknown", "unknown", "unknown"
-    symbol, column, target = "unknown", "unknown", "unknown"
+    symbol, column, relation = "unknown", "unknown", "unknown"
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as stream:
             for line in stream:
@@ -84,26 +59,20 @@ def classify(path, data_file=None):
                     elif detail.startswith("operator does not exist"):
                         symbol = "operator"
                     if stage == "data" and code == "42703":
-                        match = MISSING_COLUMN_RELATION.match(detail)
-                        if match:
-                            column = match.group(1).lower()
-                        else:
-                            match = MISSING_COLUMN.match(detail)
-                            if match:
-                                column = match.group(1).lower()
-                        target = copy_target(data_file, sql_line)
+                        missing = COPY_COLUMN_RELATION.match(detail)
+                        if missing:
+                            column, relation = (part.lower() for part in missing.groups())
     except OSError:
         pass
-    return stage, code, sql_line, symbol, column, target
+    return stage, code, sql_line, symbol, column, relation
 
 
 if __name__ == "__main__":
-    stage, code, sql_line, symbol, column, target = classify(
-        sys.argv[1] if len(sys.argv) >= 2 else "/nonexistent",
-        sys.argv[2] if len(sys.argv) >= 3 else None,
+    stage, code, sql_line, symbol, column, relation = classify(
+        sys.argv[1] if len(sys.argv) == 2 else "/nonexistent"
     )
     print(
         f"::error::ISOLATED_RESTORE_SQL_STAGE={stage} SQLSTATE={code}"
         f" SQL_LINE={sql_line} MISSING_SYMBOL={symbol}"
-        f" MISSING_COLUMN={column} COPY_TARGET={target}"
+        f" MISSING_COLUMN={column} RELATION={relation}"
     )
