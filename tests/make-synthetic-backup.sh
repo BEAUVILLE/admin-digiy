@@ -52,6 +52,22 @@ COPY auth.custom_oauth_providers (id, provider_type, identifier, name, client_id
 00000000-0000-0000-0000-000000000002	oidc	ci-fixture	CI Fixture	ci-id	NOT-A-REAL-SECRET	https://example.invalid
 \.
 SQL
+# Storage test is METADATA ONLY. All bucket names and records are fictitious.
+# S3 multipart tables must exist and accept rows without skipping SQL COPY.
+cat >> "$fixture/data.sql" <<'SQL'
+COPY storage.buckets (id, name) FROM stdin;
+synthetic-ci-bucket	synthetic-ci-bucket
+\.
+COPY storage.objects (id, bucket_id, name) FROM stdin;
+00000000-0000-0000-0000-000000000003	synthetic-ci-bucket	synthetic/demo.txt
+\.
+COPY storage.s3_multipart_uploads (id, upload_signature, bucket_id, key, version) FROM stdin;
+synthetic-ci-upload	nonproduction-signature	synthetic-ci-bucket	synthetic/demo.txt	v1
+\.
+COPY storage.s3_multipart_uploads_parts (id, upload_id, size, part_number, bucket_id, key, etag, version) FROM stdin;
+00000000-0000-0000-0000-000000000004	synthetic-ci-upload	4	1	synthetic-ci-bucket	synthetic/demo.txt	synthetic-etag	v1
+\.
+SQL
 printf 'storage_backup=metadata_only\nmigration_history=absent\n' > "$fixture/backup-status.txt"
 printf 'Synthetic CI fixture only; NOT from DIGIY CORE.\n' > "$fixture/README.txt"
 (
