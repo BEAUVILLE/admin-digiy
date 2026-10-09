@@ -115,11 +115,11 @@ echo "ISOLATED_POSTGRES_READY: PostgreSQL local sans réseau."
 # Follow existing restore order: roles -> schema -> disable triggers -> data.
 # Keep ALL original SQL output in a runner-local file deleted by trap.
 # Never connect to a remotely supplied address.
-# SQLSTATE-only verbosity suppresses sensitive SQL error detail in the private log.
-# Fixed markers identify which restore phase failed without printing raw SQL.
+# Verbose PostgreSQL errors are held ONLY in a private log deleted by trap.
+# The classifier emits a vetted function identifier, never raw SQL or values.
 if ! docker exec "$container" psql -U postgres -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
-  --variable VERBOSITY=sqlstate --variable SHOW_CONTEXT=never \
+  --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
   --command '\echo DIGIY_RESTORE_STAGE_ROLES' \
   --file /restore/roles.sql \
   --command '\echo DIGIY_RESTORE_STAGE_SCHEMA' \

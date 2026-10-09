@@ -92,7 +92,7 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
         )
         self.assertEqual(output.returncode, 0, output.stderr)
         self.assertEqual(output.stdout.strip(),
-                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07 SQL_LINE=44")
+                         "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42P07 SQL_LINE=44 MISSING_SYMBOL=unknown")
         self.assertNotIn(secret, output.stdout + output.stderr)
         self.assertNotIn("customer", output.stdout + output.stderr)
 
@@ -118,15 +118,48 @@ class RestoreFailureDiagnosticContract(unittest.TestCase):
             "psql:/tmp/private/customer.sql:25: ERROR: 42883\n"
             "DETAIL: SECRET_CUSTOMER_DATA\n"
         )
-        self.assertIn("SQLSTATE=42883 SQL_LINE=unknown", output.stdout)
+        self.assertIn("SQLSTATE=unknown SQL_LINE=unknown", output.stdout)
         self.assertNotIn("SECRET", output.stdout + output.stderr)
         self.assertNotIn("/tmp/private/", output.stdout + output.stderr)
+
+    def test_identifies_safe_function_without_leaking_arguments(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/restore/schema.sql:61977: ERROR:  42883: function extensions.unaccent(text, unknown) does not exist\n"
+            "LINE 1: SELECT SECRET_DO_NOT_EXPOSE\n"
+            "DETAIL: PRIVATE_CUSTOMER_DATA\n"
+        )
+        self.assertEqual(output.returncode, 0, output.stderr)
+        self.assertEqual(
+            output.stdout.strip(),
+            "::error::ISOLATED_RESTORE_SQL_STAGE=schema SQLSTATE=42883 SQL_LINE=61977 MISSING_SYMBOL=extensions.unaccent"
+        )
+        self.assertNotIn("SECRET", output.stdout + output.stderr)
+        self.assertNotIn("PRIVATE", output.stdout + output.stderr)
+        self.assertNotIn("unknown)", output.stdout + output.stderr)
+
+    def test_rejects_quoted_arbitrary_function_name(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/restore/schema.sql:61977: ERROR:  42883: function \"user_secret@example.com\"(text) does not exist\n"
+        )
+        self.assertIn("MISSING_SYMBOL=unknown", output.stdout)
+        self.assertNotIn("user_secret", output.stdout + output.stderr)
+
+    def test_recognizes_operator_as_safe_category(self):
+        output = self.run_classifier(
+            "DIGIY_RESTORE_STAGE_SCHEMA\n"
+            "psql:/restore/schema.sql:61977: ERROR:  42883: operator does not exist: unknown > text\n"
+        )
+        self.assertIn("MISSING_SYMBOL=operator", output.stdout)
+        self.assertNotIn("unknown > text", output.stdout + output.stderr)
+
 
     def test_sql_restore_keeps_no_network_and_private_log(self):
         script = SCRIPT.read_text()
         self.assertIn("--network none", script)
         self.assertIn("--single-transaction", script)
-        self.assertIn("--variable VERBOSITY=sqlstate", script)
+        self.assertIn("--variable VERBOSITY=verbose", script)
         self.assertIn("sql-private.log", script)
         self.assertIn("classify-restore-sql-failure.py", script)
 
