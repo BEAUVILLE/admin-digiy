@@ -40,7 +40,7 @@ class LegacySecretCompatibility(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
             logs = io.StringIO()
             self.assertEqual(prep.prepare(raw, envfile.name, logs), "existing_uri")
-            self.assertEqual(pathlib.Path(envfile.name).read_text(), "")
+            self.assertEqual(pathlib.Path(envfile.name).read_text(), "SUPABASE_DB_URL=" + raw + "\\n")
             self.assertNotIn(raw, logs.getvalue())
 
     def test_wrong_project_uri_is_not_treated_as_password(self):
