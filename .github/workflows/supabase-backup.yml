@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_SOURCE_SECRET: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
@@ -40,7 +40,7 @@ jobs:
           set -Eeuo pipefail
 
           configured=true
-          if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
+          if [[ -z "${BACKUP_SOURCE_SECRET:-}" ]]; then
             echo "::warning::Secret SUPABASE_DB_URL absent : aucune sauvegarde lancée."
             configured=false
           fi
