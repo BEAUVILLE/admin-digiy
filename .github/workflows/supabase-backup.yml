@@ -69,6 +69,11 @@ jobs:
             echo "offsite=${offsite}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Restaurer un éventuel ancien format mot de passe sans le révéler
+        if: steps.preflight.outputs.configured == 'true'
+        shell: bash
+        run: python3 scripts/prepare-backup-connection.py
+
       - name: Valider le format de connexion sans exposer le secret
         if: steps.preflight.outputs.configured == 'true'
         shell: bash
@@ -87,6 +92,19 @@ jobs:
           set -Eeuo pipefail
           sudo apt-get update
           sudo apt-get install -y postgresql-client
+
+      - name: Vérifier l'accès en lecture seule avant la sauvegarde
+        if: steps.preflight.outputs.configured == 'true'
+        shell: bash
+        env:
+          PGCONNECT_TIMEOUT: "15"
+        run: |
+          set -Eeuo pipefail
+          if ! psql "$SUPABASE_DB_URL" -X -w -v ON_ERROR_STOP=1 -Atqc 'SELECT 1' >/dev/null 2>&1; then
+            echo "::error::BACKUP_DB_CONNECTION_FAILED : adresse reconstruite mais connexion refusée ou réseau inaccessible. Aucun export effectué ; vérifier le secret par voie administrative privée."
+            exit 78
+          fi
+          echo "BACKUP_DB_READONLY_CONNECTION_OK: connexion vérifiée; aucune table modifiée."
 
       - name: Créer la sauvegarde chiffrée
         if: steps.preflight.outputs.configured == 'true'
