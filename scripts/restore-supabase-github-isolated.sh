@@ -115,12 +115,22 @@ echo "ISOLATED_POSTGRES_READY: PostgreSQL local sans réseau."
 # Follow existing restore order: roles -> schema -> disable triggers -> data.
 # Keep ALL original SQL output in a runner-local file deleted by trap.
 # Never connect to a remotely supplied address.
-docker exec "$container" psql -U postgres -d postgres -X -w \
+# SQLSTATE-only verbosity suppresses sensitive SQL error detail in the private log.
+# Fixed markers identify which restore phase failed without printing raw SQL.
+if ! docker exec "$container" psql -U postgres -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
-  --file /restore/roles.sql --file /restore/schema.sql \
+  --variable VERBOSITY=sqlstate --variable SHOW_CONTEXT=never \
+  --command '\echo DIGIY_RESTORE_STAGE_ROLES' \
+  --file /restore/roles.sql \
+  --command '\echo DIGIY_RESTORE_STAGE_SCHEMA' \
+  --file /restore/schema.sql \
+  --command '\echo DIGIY_RESTORE_STAGE_DATA' \
   --command 'SET session_replication_role = replica' \
   --file /restore/data.sql \
-  >"$tmpdir/sql-private.log" 2>&1 || fail "ISOLATED_RESTORE_SQL_FAILED"
+  >"$tmpdir/sql-private.log" 2>&1; then
+  python3 "$script_dir/classify-restore-sql-failure.py" "$tmpdir/sql-private.log" >&2
+  fail "ISOLATED_RESTORE_SQL_FAILED"
+fi
 echo "ISOLATED_RESTORE_SQL_OK: rôles, schéma et données exécutés dans le conteneur."
 
 # Source snapshot (2026-10-09 01:46 UTC): 81 legacy blocked rows and 0
