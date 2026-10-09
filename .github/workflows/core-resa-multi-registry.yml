@@ -1,0 +1,30 @@
+name: CORE RÉSA MULTI registry checks
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'suivi-resa-multi.html'
+      - 'tests/core-resa-multi-registry.test.cjs'
+      - '.github/workflows/core-resa-multi-registry.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'suivi-resa-multi.html'
+      - 'tests/core-resa-multi-registry.test.cjs'
+      - '.github/workflows/core-resa-multi-registry.yml'
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: node --check tests/core-resa-multi-registry.test.cjs
+      - name: Verify read-only source-grounded content
+        run: node --test tests/core-resa-multi-registry.test.cjs
