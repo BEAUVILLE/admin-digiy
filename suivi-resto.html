@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#07140f">
+<title>DIGIY CORE — Registre RESTO · 09/10/2026</title>
+<meta name="description" content="Registre de développement DIGIY RESTO, instantané vérifiable GitHub en lecture seule.">
+<style>
+:root{color-scheme:dark;--bg:#07140f;--bg2:#10241b;--line:#29483a;--text:#effff4;--muted:#bed3c7;--gold:#facc15;--green:#5ee99a;--blue:#a8d7fd;--warn:#ffe2a6;--radius:21px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(160deg,#07140f,#0d241b 48%,#07140f);color:var(--text);font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:#ddf4fa;text-underline-offset:3px}a:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.wrap{max-width:1090px;margin:0 auto;padding:18px 15px 56px}
+.header{border:1px solid var(--line);border-radius:25px;padding:24px;background:radial-gradient(circle at 92% 3%,#23563b 0,transparent 35%),#10241b}
+.brand{font-weight:900;letter-spacing:.13em;font-size:12px;color:var(--gold)}
+h1{font-size:clamp(25px,4.7vw,42px);line-height:1.13;margin:10px 0 14px;letter-spacing:-.03em}
+h2{font-size:21px;margin:0 0 10px}h3{font-size:17px;margin:0 0 6px}
+p{margin:6px 0 12px}
+.lead{font-size:16px;color:var(--muted);max-width:850px}
+.toplinks,.tags,.sources,.actions{display:flex;flex-wrap:wrap;gap:9px}
+.toplinks{margin-top:17px}
+.link{display:inline-block;padding:9px 14px;border:1px solid #45745b;border-radius:999px;text-decoration:none;font-weight:800;font-size:13px;color:#f3fff7}
+.link.gold{color:#18341e;background:var(--gold);border-color:var(--gold)}
+.warning{border:1px solid #876826;background:#3d310f;color:#ffefc6;border-radius:15px;padding:13px 16px;font-size:13px;margin-top:15px}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.metric{padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--bg2)}
+.metric strong{display:block;font-size:27px;line-height:1.1;color:var(--gold)}
+.metric span{display:block;color:var(--muted);font-size:12px;margin-top:7px}
+section.area{margin-top:18px;padding:19px 20px;border:1px solid var(--line);border-radius:22px;background:#0e2118}
+.section-text{color:var(--muted);margin-bottom:16px;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;margin:0 0 14px;color:var(--muted)}
+.key{border-radius:99px;border:1px solid var(--line);padding:3px 10px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.item{padding:16px;border:1px solid var(--line);border-radius:17px;background:#12291e;min-width:0}
+.item .status{display:inline-flex;border-radius:99px;padding:3px 9px;border:1px solid;margin-bottom:9px;font-size:11px;font-weight:900;letter-spacing:.035em}
+.status.merged{color:var(--green);border-color:#367955;background:#133624}
+.status.draft{color:var(--warn);border-color:#84642b;background:#382c15}
+.status.future{color:var(--blue);border-color:#315d79;background:#142d3e}
+.item p{color:var(--muted);font-size:13px}
+.item a{font-size:13px}
+.sources a{white-space:nowrap}
+.list{padding-left:21px;margin:8px 0 0}.list li{margin:8px 0;color:var(--muted)}.list strong{color:var(--text)}
+.footer{color:var(--muted);text-align:center;font-size:12px;padding:26px 8px 0}
+@media(max-width:720px){.metrics{grid-template-columns:1fr 1fr}.cards{grid-template-columns:1fr}section.area{padding:17px 14px}.header{padding:19px 16px}}
+@media(max-width:400px){.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main class="wrap">
+<header class="header">
+<div class="brand">🦅 DIGIY CORE · MÉMOIRE DES CHANTIERS</div>
+<h1>🍽️ RESTO — Rien sous le tapis</h1>
+<p class="lead">La visibilité du travail terrain, des décisions et du code : ce qui est intégré, ce qui reste au banc d'essai et ce qu'il faut encore livrer. Le professionnel conserve sa liberté.</p>
+<div class="toplinks">
+<a class="link gold" href="./index.html">← Retour cockpit ADMIN</a>
+<a class="link" href="https://resto.digiylyfe.com/resa-resto/gestion.html?site=test-resa-resto-saly">🍽️ TEST SALY · Gestion</a>
+<a class="link" href="https://resto.digiylyfe.com/resa-resto/ma-carte.html?site=test-resa-resto-saly&amp;vue=carte">🥗 Voir Plats &amp; Salades (propriétaire)</a>
+</div>
+<div class="warning"><strong>État constaté le 9 octobre 2026.</strong> Registre statique des preuves GitHub, non connecté aux données Supabase. Une PR fusionnée prouve la présence du code sur <code>main</code>, pas son déploiement sur le site. Aucun menu ni commande client n'est créé depuis cette page.</div>
+</header>
+<div class="metrics" aria-label="Synthèse documentée">
+<div class="metric"><strong>6</strong><span>PR RESTO fusionnées aujourd'hui et référencées ci-dessous (#26, #29, #30, #31, #32, #33)</span></div>
+<div class="metric"><strong>3</strong><span>PR de préparation ouvertes en brouillon (#19, #21, #24) — non appliquées</span></div>
+<div class="metric"><strong>2</strong><span>Éditeurs visuels préparés : semaine et carte habituelle, sans sauvegarde</span></div>
+</div>
+<section class="area" id="acquis">
+<h2>✅ Acquis documentés</h2>
+<p class="section-text">Le code est fusionné dans le dépôt RESTO. L'affichage réellement déployé reste à contrôler séparément.</p>
+<div class="legend"><span class="key">Vert = code fusionné, pas « publié chez le client »</span></div>
+<div class="cards">
+<article class="item">
+<span class="status merged">FUSIONNÉ · PR #31</span>
+<h3>📅 Plats du jour · 7 jours</h3>
+<p>Préparation jour par jour, midi/soir, photos locales, description, prix facultatif. Brouillon temporaire ; publication bloquée.</p>
+<div class="sources"><a href="https://github.com/BEAUVILLE/digiy-resto/pull/31">Preuve PR #31 ↗</a></div>
+</article>
+<article class="item">
+<span class="status merged">FUSIONNÉ · PR #32 + #33</span>
+<h3>🥗 Plats et Salades à la carte</h3>
+<p>La maquette manipulée et validée par le fondateur : deux familles seulement, plats individuels et salades ; pas de menus ni de formules. Deux accès directs depuis la gestion TEST SALY.</p>
+<div class="sources"><a href="https://github.com/BEAUVILLE/digiy-resto/pull/32">PR #32 ↗</a><a href="https://github.com/BEAUVILLE/digiy-resto/pull/33">PR #33 ↗</a></div>
+</article>
+<article class="item">
+<span class="status merged">FUSIONNÉ · PR #29 + #30</span>
+<h3>🔐 Accès propriétaire par restaurant</h3>
+<p>Boutons propriétaire sur les fiches L'Entre 2 et Le Malraux ; redirection vers le bon restaurant, sans repli automatique vers TEST SALY.</p>
+<div class="sources"><a href="https://github.com/BEAUVILLE/digiy-resto/pull/29">PR #29 ↗</a><a href="https://github.com/BEAUVILLE/digiy-resto/pull/30">PR #30 ↗</a></div>
+</article>
+<article class="item">
+<span class="status merged">FUSIONNÉ · PR #26</span>
+<h3>🥡 Porte d'entrée « À emporter »</h3>
+<p>CTA et aperçu préparatoire des fiches RESTO. Le parcours de commande réelle reste volontairement désactivé.</p>
+<div class="sources"><a href="https://github.com/BEAUVILLE/digiy-resto/pull/26">PR #26 ↗</a></div>
+</article>
+</div>
+</section>
+<section class="area" id="travaux">
+<h2>🧪 Préparations non activées</h2>
+<p class="section-text">Les brouillons techniques ne sont ni des fonctions exploitées en production ni des garanties de sécurité déjà appliquées.</p>
+<div class="cards">
+<article class="item"><span class="status draft">PR BROUILLON · #19</span><h3>V31 — Audit des permissions RPC</h3><p>Analyse et tests isolés des droits propriétaires. Aucun changement de permission production annoncé par ce registre.</p><a href="https://github.com/BEAUVILLE/digiy-resto/pull/19">Voir PR #19 ↗</a></article>
+<article class="item"><span class="status draft">PR BROUILLON · #21</span><h3>V32 — Créneaux passés et fuseaux</h3><p>Correctif candidat et tests isolés ; pas encore fusionné, donc ne pas présenter cette règle comme livrée.</p><a href="https://github.com/BEAUVILLE/digiy-resto/pull/21">Voir PR #21 ↗</a></article>
+<article class="item"><span class="status draft">PR BROUILLON · #24</span><h3>V34 — Parcours client à emporter</h3><p>Commande directe sans logiciel de caisse : parcours préparatoire codé, activation réelle verrouillée.</p><a href="https://github.com/BEAUVILLE/digiy-resto/pull/24">Voir PR #24 ↗</a></article>
+<article class="item"><span class="status future">ARCHIVE · #28</span><h3>Ancienne préparation V35</h3><p>Le contrat de semaine initial a été fermé sans fusion. La suite opérationnelle figure dans la PR #31 fusionnée : aucune perte d'historique.</p><a href="https://github.com/BEAUVILLE/digiy-resto/pull/28">Historique PR #28 ↗</a></article>
+</div>
+</section>
+<section class="area" id="suite">
+<h2>🧭 Ce qu'il reste à transformer en service réel</h2>
+<ol class="list">
+<li><strong>Vérifier le déploiement effectif</strong> des boutons sur TEST SALY sur ordinateur et téléphone ; distinguer les fichiers GitHub de ceux servis publiquement.</li>
+<li><strong>Rendre les brouillons persistants côté propriétaire</strong> avec les bonnes permissions Supabase/RLS, sans exposer un restaurant à un autre.</li>
+<li><strong>Sécuriser le stockage des photos</strong>, leur consentement de publication et l'accès selon le propriétaire.</li>
+<li><strong>Publier seulement après validation du restaurateur</strong>, avec une vraie carte publique et un contrôle de visibilité côté client.</li>
+<li><strong>Décider séparément d'activer l'emporter</strong> : contact direct, restaurant libre, aucun terminal de caisse ni encaissement DIGIYLYFE.</li>
+</ol>
+</section>
+<section class="area" id="doctrine">
+<h2>💚 Doctrine métier conservée</h2>
+<p class="lead">La semaine sert aux plats du jour. La carte habituelle sert aux plats individuels et aux salades. Le restaurateur choisit ce qu'il utilise. <strong>0 % commission, aucun logiciel de caisse imposé, aucun menu/formule imposé, validation humaine avant publication.</strong></p>
+<p class="section-text">Sources de vérité : <a href="https://github.com/BEAUVILLE/digiy-resto">dépôt RESTO</a> pour le code et les PR ; Supabase pour les véritables données et autorisations ; l'essai humain pour l'expérience réellement vécue. Les états de cette page sont un relevé daté, pas une supervision temps réel.</p>
+</section>
+<div class="footer">DIGIY CORE · Registre RESTO · snapshot du 09/10/2026 · lecture seule · aucune clé, aucune donnée privée de restaurant</div>
+</main></body></html>
