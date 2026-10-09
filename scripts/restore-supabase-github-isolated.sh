@@ -55,6 +55,8 @@ trap cleanup EXIT
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [[ -f "$script_dir/restore-local-auth-jwt.sql" &&
    ! -L "$script_dir/restore-local-auth-jwt.sql" ]] || fail "ISOLATED_AUTH_JWT_BOOTSTRAP_MISSING"
+[[ -f "$script_dir/restore-local-auth-audit-ip.sql" &&
+   ! -L "$script_dir/restore-local-auth-audit-ip.sql" ]] || fail "ISOLATED_AUTH_AUDIT_COMPAT_MISSING"
 python3 "$script_dir/extract-encrypted-backup-zip.py" --verify-only "$archive" "$checksum" \
   >/dev/null 2>&1 || fail "ISOLATED_RESTORE_ENCRYPTED_CHECKSUM_FAILED"
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 250000 \
@@ -99,6 +101,7 @@ docker run --rm -d --network none --name "$container" \
   -e POSTGRES_PASSWORD="$local_password" \
   -v "$backup_dir:/restore:ro" \
   -v "$script_dir/restore-local-auth-jwt.sql:/digiy-local-auth-jwt.sql:ro" \
+  -v "$script_dir/restore-local-auth-audit-ip.sql:/digiy-local-auth-audit-ip.sql:ro" \
   supabase/postgres:17.6.1.173 \
   postgres -c config_file=/etc/postgresql/postgresql.conf \
   >"$tmpdir/docker-private.log" 2>&1 || fail "ISOLATED_POSTGRES_CONTAINER_START_FAILED"
@@ -129,9 +132,23 @@ if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
 fi
 echo "ISOLATED_AUTH_JWT_BOOTSTRAP_OK: official Auth helper installed locally."
 
+# Align the local Docker Auth audit table with the live source's checked column
+# contract (varchar(64) NOT NULL DEFAULT ''). Do not modify or skip backup rows.
+# The pinned Supabase image lacks this column, but DIGIY CORE has it.
+if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
+  --single-transaction --variable ON_ERROR_STOP=1 \
+  --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
+  --file /digiy-local-auth-audit-ip.sql \
+  >"$tmpdir/audit-compat-private.log" 2>&1; then
+  python3 "$script_dir/classify-restore-sql-failure.py" \
+    "$tmpdir/audit-compat-private.log" >&2
+  fail "ISOLATED_AUTH_AUDIT_COMPAT_FAILED"
+fi
+echo "ISOLATED_AUTH_AUDIT_COMPAT_OK: Auth audit column matched locally; no rows skipped."
 
-# Supabase CLI filters internal Auth schema/functions from its dump. The only
-# required Auth helper was installed by its schema owner above, inside Docker.
+
+# Supabase CLI filters internal Auth schema/functions from its dump. The needed
+# Auth helper and audit-column compatibility were installed above, in Docker.
 # Data restore stays atomic: roles -> schema -> disable triggers -> data.
 # Keep ALL original SQL output in a runner-local file deleted by trap.
 # Never connect to a remotely supplied address.
