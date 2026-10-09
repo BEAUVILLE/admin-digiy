@@ -43,7 +43,7 @@ jobs:
             postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
           ready=NO
           for attempt in $(seq 1 60); do
-            if docker exec "$name" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+            if [ "$(docker exec "$name" psql -U postgres -d postgres -X -w -Atq -c 'SELECT 1' 2>/dev/null)" = 1 ]; then
               ready=YES
               break
             fi
@@ -78,7 +78,7 @@ jobs:
             postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
           ready=NO
           for attempt in $(seq 1 60); do
-            if docker exec "$name" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+            if [ "$(docker exec "$name" psql -U postgres -d postgres -X -w -Atq -c 'SELECT 1' 2>/dev/null)" = 1 ]; then
               ready=YES
               break
             fi
