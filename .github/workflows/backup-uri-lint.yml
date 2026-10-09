@@ -163,6 +163,29 @@ jobs:
           bash tests/make-synthetic-backup.sh
           bash scripts/restore-supabase-github-isolated.sh
 
+      - name: Require explicit current baseline, prove new synthetic 82-day restore
+        timeout-minutes: 15
+        shell: bash
+        env:
+          BACKUP_PASSPHRASE: synthetic-ci-only-not-a-real-secret
+          CONFIRM_ISOLATED_RESTORE: "YES"
+          SOURCE_ARTIFACT_DIR: ${{ runner.temp }}/synthetic-artifact
+        run: |
+          set -Eeuo pipefail
+          SYNTHETIC_MASTER_BLOCKED_DAYS=82 bash tests/make-synthetic-backup.sh
+          rejected="$RUNNER_TEMP/synthetic-incorrect-count.txt"
+          if DIGIY_EXPECTED_MASTER_BLOCKED_DAYS=81 \
+             bash scripts/restore-supabase-github-isolated.sh >"$rejected" 2>&1; then
+            echo "::error::82 rows incorrectly passed the 81-day gate"
+            exit 1
+          fi
+          grep -q "ISOLATED_RESTORE_EXPECTED_MASTER_COUNTS_NOT_MET" "$rejected"
+          grep -q "ISOLATED_RESTORE_AGGREGATE_MISMATCH:" "$rejected"
+          echo "SYNTHETIC_COUNT_DRIFT_REJECTED: OK"
+          rm -f "$rejected"
+          DIGIY_EXPECTED_MASTER_BLOCKED_DAYS=82 bash scripts/restore-supabase-github-isolated.sh
+          echo "SYNTHETIC_FRESH_82_DAY_RESTORE_PROOF_OK"
+
       - name: Reject wrong synthetic key and corrupted synthetic backup
         timeout-minutes: 3
         shell: bash

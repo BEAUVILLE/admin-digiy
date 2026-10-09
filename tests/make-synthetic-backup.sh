@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Test fixture only: synthetic 81 calendar rows; zero DIGIY CORE data/secrets.
+# Test fixture only: synthetic 81/82 calendar rows; zero DIGIY CORE data/secrets.
 set -Eeuo pipefail
 umask 077
 [[ -n "${RUNNER_TEMP:-}" ]] || { echo "SYNTHETIC_RUNNER_TEMP_MISSING" >&2; exit 78; }
 [[ "${BACKUP_PASSPHRASE:-}" == "synthetic-ci-only-not-a-real-secret" ]] || {
   echo "SYNTHETIC_PASSPHRASE_MISMATCH" >&2; exit 78;
 }
+synthetic_blocked="${SYNTHETIC_MASTER_BLOCKED_DAYS:-81}"
+case "$synthetic_blocked" in 81|82) ;; *) echo "SYNTHETIC_COUNT_INVALID" >&2; exit 78;; esac
 source_dir="$RUNNER_TEMP/synthetic-artifact"
 workspace="$(mktemp -d "$RUNNER_TEMP/fixture.XXXXXXXX")"
 trap 'rm -rf -- "$workspace"' EXIT
@@ -34,7 +36,7 @@ CREATE TABLE public.digiy_synthetic_auth_jwt_probe (
 SQL
 {
   printf 'COPY public.digiy_loc_master_unit_calendar (status) FROM stdin;\n'
-  for i in $(seq 1 81); do
+  for i in $(seq 1 "$synthetic_blocked"); do
     if (( i % 2 == 0 )); then printf 'closed\n'; else printf 'occupied\n'; fi
   done
   printf '\\.\n'
