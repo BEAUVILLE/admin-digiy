@@ -9,6 +9,7 @@ Never print any secrets or add workflow outputs. A one-time add-mask workflow
 command protects the newly derived URI from GitHub Actions logging.
 """
 import os
+import re
 import sys
 from urllib.parse import quote
 from importlib.machinery import SourceFileLoader
@@ -41,29 +42,59 @@ def candidate_from_legacy_password(raw: str) -> str | None:
     return f"postgresql://postgres.{REF}:{encoded}@{HOST}:5432/postgres"
 
 
+def candidate_from_unencoded_pooler_uri(raw: str) -> str | None:
+    """Repair only the exact DIGIY CORE pooler URI with unsafe password chars.
+
+    Strict prefix and suffix matching keep other projects, hosts, and query
+    parameters out of this repair path. Existing valid %-escapes are retained,
+    while unescaped reserved characters and bare % signs are encoded.
+    """
+    prefix = f"postgresql://postgres.{REF}:"
+    suffix = f"@{HOST}:5432/postgres"
+    if not (raw.startswith(prefix) and raw.endswith(suffix)):
+        return None
+    password = raw[len(prefix):-len(suffix)]
+    if not (8 <= len(password) <= 256):
+        return None
+    if any(ch.isspace() or ord(ch) < 33 or ord(ch) > 126 for ch in password):
+        return None
+    if "YOUR-PASSWORD" in password.upper() or "[200~" in password or "://" in password:
+        return None
+    # Keep already URL-encoded %HH escapes; encode a bare percent sign.
+    percent_safe = re.sub(r"%(?![0-9a-fA-F]{2})", "%25", password)
+    normalized = prefix + quote(percent_safe, safe="%") + suffix
+    if normalized == raw or diagnostic(normalized) is not None:
+        return None
+    return normalized
+
+
 def prepare(raw: str, github_env_file: str, output=sys.stdout) -> str:
-    # Copy/paste into GitHub Actions secrets sometimes adds a leading/trailing
-    # newline or space. Normalize *only* when the trimmed value is already a
-    # valid PostgreSQL URI for our project. Do not change password-only values.
-    trimmed_uri = False
-    if raw != raw.strip() and diagnostic(raw.strip()) is None:
-        raw = raw.strip()
-        trimmed_uri = True
+    # Repair only known-good DIGIY CORE pooler syntax (outer whitespace or
+    # URL-reserved characters pasted inside the password). Never print raw.
+    repaired_uri = None
+    repair_label = None
+    clean_raw = raw.strip()
+    repaired_uri = candidate_from_unencoded_pooler_uri(clean_raw)
+    if repaired_uri is not None:
+        repair_label = "BACKUP_URI_PASSWORD_URL_ENCODED"
+    elif clean_raw != raw and diagnostic(clean_raw) is None:
+        repaired_uri = clean_raw
+        repair_label = "BACKUP_URI_OUTER_WHITESPACE_FIXED"
+    if repaired_uri is not None:
+        raw = repaired_uri
     result = diagnostic(raw)
     if result is None:
         if not github_env_file:
             output.write("::error::BACKUP_ENV_UNAVAILABLE: runner GitHub attendu.\n")
             return "error"
-        # If the URI was trimmed, GitHub's secret masker may only know the
-        # original whitespace-padded value. Mask the normalized URI BEFORE
-        # handing it to subsequent steps. Never print it otherwise.
-        if trimmed_uri:
+        # Newly derived full URI must be masked before leaving this step.
+        if repaired_uri is not None:
             output.write(f"::add-mask::{raw}\n")
             output.flush()
         with open(github_env_file, "a", encoding="utf-8") as file:
             file.write(f"SUPABASE_DB_URL={raw}\n")
-        if trimmed_uri:
-            output.write("BACKUP_URI_OUTER_WHITESPACE_FIXED: espaces externes supprimés; connexion non encore testée.\n")
+        if repair_label is not None:
+            output.write(f"{repair_label}: adresse normalisée en mémoire; connexion non encore testée.\n")
         else:
             output.write("BACKUP_URI_SYNTAX_OK: URI présente; connexion non encore testée.\n")
         return "existing_uri"

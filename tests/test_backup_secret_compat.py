@@ -54,6 +54,50 @@ class LegacySecretCompatibility(unittest.TestCase):
         self.assertEqual(unquote(urlsplit(url).password), secret)
         self.assertIsNone(prep.diagnostic(url))
 
+    def test_unencoded_password_reserved_chars_are_repaired_only_for_core_pooler(self):
+        passwords = (
+            "MySecret#2033",
+            "MySecret?2033",
+            "MySecret#?@:/[]&2033",
+            "MySecret%invalid",
+            "MySecret%23and#raw",
+        )
+        for password in passwords:
+            raw_uri = f"postgresql://postgres.{prep.REF}:{password}@{prep.HOST}:5432/postgres"
+            with self.subTest(password_kind=len(password)):
+                with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+                    logs = io.StringIO()
+                    self.assertEqual(prep.prepare(raw_uri, envfile.name, logs), "existing_uri")
+                    stored = pathlib.Path(envfile.name).read_text().split("=", 1)[1].strip()
+                    self.assertIsNone(prep.diagnostic(stored))
+                    # Existing valid %23 is an encoded # and is preserved.
+                    expected = password.replace("%23", "#")
+                    self.assertEqual(unquote(urlsplit(stored).password), expected)
+                    self.assertIn("BACKUP_URI_PASSWORD_URL_ENCODED", logs.getvalue())
+                    self.assertEqual(logs.getvalue().count("::add-mask::"), 1)
+                    self.assertNotIn(password, logs.getvalue().splitlines()[-1])
+
+    def test_no_repair_of_query_params_other_hosts_or_template(self):
+        valid = f"postgresql://postgres.{prep.REF}:MySecret2033@{prep.HOST}:5432/postgres"
+        wrong_host = "postgresql://postgres.otherref:MySecret#2033@other.pooler.supabase.com:5432/postgres"
+        for raw in (valid + "?sslmode=require", wrong_host,
+                    valid.replace("MySecret2033", "[YOUR-PASSWORD]"),
+                    "postgresql://postgres.otherref:MySecret#2033@"
+                    + prep.HOST + ":5432/postgres"):
+            with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+                logs = io.StringIO()
+                self.assertEqual(prep.prepare(raw, envfile.name, logs), "error")
+                self.assertEqual(pathlib.Path(envfile.name).read_text(), "")
+
+    def test_repair_outer_whitespace_and_reserved_password(self):
+        raw_uri = f"postgresql://postgres.{prep.REF}:MySecret#2033@{prep.HOST}:5432/postgres"
+        with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+            logs = io.StringIO()
+            self.assertEqual(prep.prepare("  " + raw_uri + "\n", envfile.name, logs), "existing_uri")
+            stored = pathlib.Path(envfile.name).read_text().split("=", 1)[1].strip()
+            self.assertIsNone(prep.diagnostic(stored))
+            self.assertEqual(unquote(urlsplit(stored).password), "MySecret#2033")
+
     def test_an_existing_valid_uri_does_not_get_rewritten(self):
         raw = f"postgresql://postgres.{prep.REF}:fake@{prep.HOST}:5432/postgres"
         with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
