@@ -15,6 +15,33 @@ class IsolatedRestoreContract(unittest.TestCase):
         result = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_offline_bootstrap_matches_supabase_auth_contract(self):
+        sql = (ROOT / "scripts" / "restore-local-auth-jwt.sql").read_text()
+        script = SCRIPT.read_text()
+        fixture = (ROOT / "tests" / "make-synthetic-backup.sh").read_text()
+        self.assertIn("CREATE FUNCTION auth.jwt()", sql)
+        self.assertIn("RETURNS jsonb", sql)
+        self.assertIn("LANGUAGE sql STABLE", sql)
+        self.assertIn("request.jwt.claims", sql)
+        self.assertIn("request.jwt.claim", sql)
+        self.assertIn("to_regprocedure('auth.jwt()')", sql)
+        self.assertIn("auth.jwt() ->> 'sub'", fixture)
+        self.assertIn('--network none', script)
+        self.assertIn("--single-transaction", script)
+        self.assertIn("--file /digiy-local-auth-jwt.sql", script)
+        self.assertIn("ISOLATED_AUTH_JWT_HELPER_OK", script)
+        self.assertLess(
+            script.index("--file /restore/roles.sql"),
+            script.index("--file /digiy-local-auth-jwt.sql"),
+        )
+        self.assertLess(
+            script.index("--file /digiy-local-auth-jwt.sql"),
+            script.index("--file /restore/schema.sql"),
+        )
+        # The helper must NEVER be part of a production migration or backup.
+        self.assertNotIn("SUPABASE_DB_URL", sql)
+        self.assertNotIn("SECURITY DEFINER", sql)
+
     def test_no_remote_database_target(self):
         contents = SCRIPT.read_text()
         self.assertIn('REMOTE_DB_URL_FORBIDDEN', contents)
