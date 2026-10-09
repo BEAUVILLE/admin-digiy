@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/validate-backup-uri.py'
+      - 'scripts/prepare-backup-connection.py'
+      - 'tests/test_backup_secret_compat.py'
       - 'tests/test_backup_uri.py'
       - '.github/workflows/backup-uri-lint.yml'
   workflow_dispatch:
@@ -17,4 +19,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate URI diagnostics using synthetic values only
-        run: python3 -m unittest discover -s tests -p 'test_backup_uri.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_backup*.py' -v

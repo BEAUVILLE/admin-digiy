@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Only synthetic secrets and offline tests. Never reads GitHub secrets."""
+import importlib.machinery
+import io
+import pathlib
+import tempfile
+import unittest
+from urllib.parse import unquote, urlsplit
+
+SOURCE = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "prepare-backup-connection.py"
+prep = importlib.machinery.SourceFileLoader("prepare_backup_connection", str(SOURCE)).load_module()
+
+
+class LegacySecretCompatibility(unittest.TestCase):
+    def test_legacy_secret_rebuilds_official_pooler_uri(self):
+        password = "fake_password-1234"
+        with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+            logs = io.StringIO()
+            self.assertEqual(prep.prepare(password, envfile.name, logs), "legacy_password_candidate")
+            saved = pathlib.Path(envfile.name).read_text()
+            self.assertTrue(saved.startswith("SUPABASE_DB_URL=postgresql://"))
+            parsed = urlsplit(saved.strip().split("=", 1)[1])
+            self.assertEqual(parsed.hostname, prep.HOST)
+            self.assertEqual(parsed.username, "postgres." + prep.REF)
+            self.assertEqual(parsed.port, 5432)
+            self.assertEqual(parsed.password, password)
+            self.assertEqual(parsed.path, "/postgres")
+            self.assertEqual(logs.getvalue().count("::add-mask::"), 1)
+            self.assertNotIn(password, logs.getvalue().splitlines()[-1])
+
+    def test_reserved_password_characters_are_percent_encoded(self):
+        secret = "fake#?:/@password&"
+        url = prep.candidate_from_legacy_password(secret)
+        self.assertIsNotNone(url)
+        self.assertEqual(unquote(urlsplit(url).password), secret)
+        self.assertIsNone(prep.diagnostic(url))
+
+    def test_an_existing_valid_uri_does_not_get_rewritten(self):
+        raw = f"postgresql://postgres.{prep.REF}:fake@{prep.HOST}:5432/postgres"
+        with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+            logs = io.StringIO()
+            self.assertEqual(prep.prepare(raw, envfile.name, logs), "existing_uri")
+            self.assertEqual(pathlib.Path(envfile.name).read_text(), "SUPABASE_DB_URL=" + raw + "\n")
+            self.assertNotIn(raw, logs.getvalue())
+
+    def test_wrong_project_uri_is_not_treated_as_password(self):
+        raw = "postgresql://postgres:fake@db.other.supabase.co:5432/postgres"
+        with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+            logs = io.StringIO()
+            self.assertEqual(prep.prepare(raw, envfile.name, logs), "error")
+            self.assertEqual(pathlib.Path(envfile.name).read_text(), "")
+            self.assertNotIn(raw, logs.getvalue())
+
+    def test_reject_possible_api_endpoint(self):
+        self.assertIsNone(prep.candidate_from_legacy_password("https://project.supabase.co"))
+
+    def test_reject_possible_psql_command(self):
+        self.assertIsNone(prep.candidate_from_legacy_password("psql postgresql://postgres:pwd@host/postgres"))
+
+    def test_reject_placeholders_and_shell_bracketed_paste(self):
+        self.assertIsNone(prep.candidate_from_legacy_password("[YOUR-PASSWORD]"))
+        self.assertIsNone(prep.candidate_from_legacy_password("[200~abcdefgh"))
+
+    def test_reject_jwt_like_values(self):
+        self.assertIsNone(prep.candidate_from_legacy_password("eyJabc.def.ghijk"))
+
+    def test_reject_whitespace_and_multiline(self):
+        self.assertIsNone(prep.candidate_from_legacy_password(" fake-password"))
+        self.assertIsNone(prep.candidate_from_legacy_password("fake-password\nanother"))
+
+    def test_reject_unknown_values_without_writing(self):
+        with tempfile.NamedTemporaryFile(mode="r+", encoding="utf-8") as envfile:
+            logs = io.StringIO()
+            self.assertEqual(prep.prepare("https://project.supabase.co", envfile.name, logs), "error")
+            self.assertEqual(pathlib.Path(envfile.name).read_text(), "")
+            self.assertNotIn("https://project.supabase.co", logs.getvalue())
+
+    def test_missing_github_env_refuses_fallback(self):
+        logs = io.StringIO()
+        self.assertEqual(prep.prepare("fake-password-1234", "", logs), "error")
+        self.assertNotIn("fake-password-1234", logs.getvalue())
+
+
+if __name__ == "__main__":
+    unittest.main()
