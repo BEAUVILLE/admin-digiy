@@ -1,0 +1,30 @@
+name: CORE RESTO registry checks
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'suivi-resto.html'
+      - 'tests/core-resto-registry.test.cjs'
+      - '.github/workflows/core-resto-registry.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'suivi-resto.html'
+      - 'tests/core-resto-registry.test.cjs'
+      - '.github/workflows/core-resto-registry.yml'
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check script syntax
+        run: node --check tests/core-resto-registry.test.cjs
+      - name: Verify read-only status and source links
+        run: node --test tests/core-resto-registry.test.cjs
