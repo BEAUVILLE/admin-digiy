@@ -187,7 +187,9 @@ echo "ISOLATED_AUTH_AUDIT_COMPAT_OK: Auth audit column matched locally; no rows 
 # Never connect to a remotely supplied address.
 # Verbose PostgreSQL errors are held ONLY in a private log deleted by trap.
 # The classifier emits a vetted function identifier, never raw SQL or values.
-if ! docker exec "$container" psql -U postgres -d postgres -X -w \
+# The official Auth migrations own internal tables as supabase_admin.
+# Restore with the disposable DB's local schema owner; NEVER a remote URI.
+if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
   --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
   --command '\echo DIGIY_RESTORE_STAGE_ROLES' \
