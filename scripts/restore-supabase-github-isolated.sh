@@ -26,11 +26,16 @@ else
 fi
 
 source_dir="${SOURCE_ARTIFACT_DIR}"
-mapfile -d '' encrypted_files < <(find "$source_dir" -maxdepth 1 -type f -name 'digiy-supabase-*.tar.gz.enc' -print0)
+# macOS ships Bash 3.2 and BSD find; neither mapfile nor GNU -maxdepth is portable.
+# Bash 3.2-safe nullglob matches only direct children of the private directory.
+shopt -s nullglob
+encrypted_files=( "$source_dir"/digiy-supabase-*.tar.gz.enc )
+shopt -u nullglob
 [[ "${#encrypted_files[@]}" -eq 1 ]] || fail "ISOLATED_RESTORE_ARCHIVE_COUNT"
 archive="${encrypted_files[0]}"
 checksum="${archive}.sha256"
-[[ -s "$archive" && -s "$checksum" ]] || fail "ISOLATED_RESTORE_ARCHIVE_OR_CHECKSUM_MISSING"
+[[ -f "$archive" && ! -L "$archive" && -s "$archive" &&
+    -f "$checksum" && ! -L "$checksum" && -s "$checksum" ]] || fail "ISOLATED_RESTORE_ARCHIVE_OR_CHECKSUM_MISSING"
 
 # Operators on macOS need decrypted temporary files in a Docker Desktop
 # shared, encrypted home location; GitHub defaults to its private runner temp.
@@ -68,10 +73,15 @@ with tarfile.open(sys.argv[1], "r:gz") as archive:
 PY
 
 mkdir -p "$tmpdir/extracted"
-tar --no-same-owner --no-same-permissions -xzf "$tmpdir/private.tar.gz" \
+# Only portable BSD/GNU tar flags. Extraction is non-root in a 0700 temp
+# folder; the archive was already checked for traversal, links and devices.
+tar -xzf "$tmpdir/private.tar.gz" \
   -C "$tmpdir/extracted" >"$tmpdir/tar-private.log" 2>&1 || fail "ISOLATED_RESTORE_UNPACK_FAILED"
-mapfile -d '' backup_dirs < <(find "$tmpdir/extracted" -mindepth 1 -maxdepth 1 -type d -name 'digiy-supabase-*' -print0)
-[[ "${#backup_dirs[@]}" -eq 1 ]] || fail "ISOLATED_RESTORE_LAYOUT_INVALID"
+shopt -s nullglob
+backup_dirs=( "$tmpdir/extracted"/digiy-supabase-* )
+shopt -u nullglob
+[[ "${#backup_dirs[@]}" -eq 1 && -d "${backup_dirs[0]:-}" &&
+    ! -L "${backup_dirs[0]:-}" ]] || fail "ISOLATED_RESTORE_LAYOUT_INVALID"
 backup_dir="${backup_dirs[0]}"
 for f in roles.sql schema.sql data.sql SHA256SUMS backup-status.txt; do
   [[ -s "$backup_dir/$f" ]] || fail "ISOLATED_RESTORE_REQUIRED_FILE_MISSING"
