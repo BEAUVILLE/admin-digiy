@@ -120,11 +120,11 @@ echo "ISOLATED_POSTGRES_READY: PostgreSQL local sans réseau."
 if ! docker exec "$container" psql -U postgres -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
   --variable VERBOSITY=sqlstate --variable SHOW_CONTEXT=never \
-  --command '\\echo DIGIY_RESTORE_STAGE_ROLES' \
+  --command '\echo DIGIY_RESTORE_STAGE_ROLES' \
   --file /restore/roles.sql \
-  --command '\\echo DIGIY_RESTORE_STAGE_SCHEMA' \
+  --command '\echo DIGIY_RESTORE_STAGE_SCHEMA' \
   --file /restore/schema.sql \
-  --command '\\echo DIGIY_RESTORE_STAGE_DATA' \
+  --command '\echo DIGIY_RESTORE_STAGE_DATA' \
   --command 'SET session_replication_role = replica' \
   --file /restore/data.sql \
   >"$tmpdir/sql-private.log" 2>&1; then
