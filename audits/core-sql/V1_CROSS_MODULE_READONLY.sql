@@ -32,7 +32,10 @@ FROM public.digiy_resa_slots s LEFT JOIN public.digiy_resa_profiles p ON p.slug=
 WHERE p.slug IS NULL
 UNION ALL SELECT 'active_services_on_unpublished_profile', count(*)
 FROM public.digiy_resa_services s JOIN public.digiy_resa_profiles p ON p.slug=s.slug
-WHERE s.is_active IS TRUE AND p.is_published IS NOT TRUE;
+WHERE s.is_active IS TRUE AND p.is_published IS NOT TRUE
+UNION ALL SELECT 'active_historical_services_without_modern_profile', count(*)
+FROM public.digiy_resa_services s LEFT JOIN public.digiy_resa_profiles p ON p.slug=s.slug
+WHERE s.is_active IS TRUE AND p.slug IS NULL;
 
 -- 3. Safe RÉSA V9 classification: legacy request IDs are NULL by design.
 SELECT count(*)::bigint AS total_bookings,
