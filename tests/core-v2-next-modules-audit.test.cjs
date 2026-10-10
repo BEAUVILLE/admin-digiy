@@ -19,7 +19,7 @@ test('every next module is inventoried without PII',()=>{
  for(const s of ['digiy_commerce_sites','digiy_commerce_products','digiy_commerce_orders','digiy_build_artisans','digiy_build_pros','digiy_jobs_offers_pro','digiy_jobs_owner_workspaces','pg_policies']){
   assert.ok(audit.includes(s),'missing '+s);
  }
- assert.doesNotMatch(audit.replace(/--[^\\n]*/g,''),/\b(customer_phone|customer_name|email|description|cv|client_token|client_name)\b/i);
+ assert.doesNotMatch(audit.replace(/--[^\n]*/g,''),/\b(customer_phone|customer_name|email|description|cv|client_token|client_name)\b/i);
  assert.match(audit,/job_offers_without_current_workspace/);
  assert.match(audit,/legacy_build_artisans_owner_id_uuid_like/);
 });
