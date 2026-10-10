@@ -108,6 +108,22 @@ elif [[ -e "$backup_dir/resto-owner-rpc-acl.sql" ]]; then
   fail "ISOLATED_RESTO_OWNER_RPC_ACL_STATUS_MISMATCH"
 fi
 
+# Capture V9 function + pilot-control ACL in new archives. Historical archives
+# can still restore data, but can never pass a V9 security certification.
+resa_v9_acl_snapshot=NO
+if grep -q '^resa_v9_acl=verified_v1$' "$backup_dir/backup-status.txt"; then
+  [[ -s "$backup_dir/resa-v9-acl.sql" &&
+     ! -L "$backup_dir/resa-v9-acl.sql" ]] || fail "ISOLATED_RESA_V9_ACL_MISSING"
+  [[ "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_universal_' "$backup_dir/resa-v9-acl.sql")" == 5 &&
+     "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_universal_' "$backup_dir/resa-v9-acl.sql")" == 5 &&
+     "$(grep -c '^REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$backup_dir/resa-v9-acl.sql")" == 1 &&
+     "$(grep -c '^GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$backup_dir/resa-v9-acl.sql")" == 1 ]] ||
+      fail "ISOLATED_RESA_V9_ACL_INVALID"
+  resa_v9_acl_snapshot=YES
+elif [[ -e "$backup_dir/resa-v9-acl.sql" ]]; then
+  fail "ISOLATED_RESA_V9_ACL_STATUS_MISMATCH"
+fi
+
 echo "ISOLATED_ARCHIVE_INTEGRITY_OK: chiffre, checksums et fichiers SQL vérifiés."
 
 # Supabase runs PostgreSQL 17. Disposable container has NO NETWORK, NO
@@ -254,6 +270,10 @@ resto_acl_restore_args=()
 if [[ "$resto_acl_snapshot" == YES ]]; then
   resto_acl_restore_args=(--file /restore/resto-owner-rpc-acl.sql)
 fi
+resa_v9_acl_restore_args=()
+if [[ "$resa_v9_acl_snapshot" == YES ]]; then
+  resa_v9_acl_restore_args=(--file /restore/resa-v9-acl.sql)
+fi
 if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
   --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
@@ -265,6 +285,7 @@ if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --command 'SET session_replication_role = replica' \
   --file /restore/data.sql \
   "${resto_acl_restore_args[@]}" \
+  "${resa_v9_acl_restore_args[@]}" \
   >"$tmpdir/sql-private.log" 2>&1; then
   python3 "$script_dir/classify-restore-sql-failure.py" "$tmpdir/sql-private.log" >&2
   fail "ISOLATED_RESTORE_SQL_FAILED"
@@ -342,6 +363,7 @@ fi
 # aggregate values. Never assume V9 exists in old snapshots or claim it
 # survived secure restoration just because SQL succeeded.
 if [[ -n "${DIGIY_EXPECTED_RESA_V9_COUNTS:-}" ]]; then
+  [[ "$resa_v9_acl_snapshot" == YES ]] || fail "ISOLATED_RESA_V9_ACL_SNAPSHOT_REQUIRED_NEW_BACKUP"
   [[ -f "$script_dir/verify-resa-v9-restored-snapshot.sh" ]] ||
     fail "RESA_V9_ISOLATED_PROOF_SCRIPT_MISSING"
   bash "$script_dir/verify-resa-v9-restored-snapshot.sh" \
