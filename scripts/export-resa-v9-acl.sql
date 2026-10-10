@@ -30,7 +30,7 @@ BEGIN
     OR has_any_column_privilege('authenticated','public.digiy_resa_universal_launch_controls','UPDATE')
     OR has_table_privilege('anon','public.digiy_resa_universal_launch_controls','SELECT')
     OR has_table_privilege('authenticated','public.digiy_resa_universal_launch_controls','SELECT')
-    OR NOT has_table_privilege('service_role','public.digiy_resa_universal_launch_controls','SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+    OR EXISTS (SELECT 1 FROM (VALUES ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER')) AS ops(priv) WHERE NOT has_table_privilege('service_role','public.digiy_resa_universal_launch_controls',ops.priv))
  THEN RAISE EXCEPTION 'RESA_V9_LAUNCH_ACL_DRIFT'; END IF;
 END $guard$;
 SELECT '-- RÉSA V9: live-validated roles and launch table ACL snapshot'
@@ -51,8 +51,7 @@ WHERE n.nspname='public' AND p.proname IN (
  'digiy_resa_universal_pilot_gate_v1',
  'digiy_resa_universal_public_options_v1')
 UNION ALL
-SELECT 'REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls FROM PUBLIC, anon, authenticated, service_role;'
-UNION ALL
-SELECT 'GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls TO service_role;'
+SELECT 'REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls FROM PUBLIC, anon, authenticated, service_role;' || E'\\n' ||
+       'GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls TO service_role;'
 ORDER BY 1;
 COMMIT;
