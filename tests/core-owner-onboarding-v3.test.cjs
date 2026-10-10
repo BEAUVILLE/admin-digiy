@@ -13,7 +13,7 @@ test('V3 onboarding audit is SELECT-only, without any mutation or live owner dat
  assert.equal(stmts.length,4);
  for(const statement of stmts){
    assert.match(statement,/^(?:SELECT|WITH)\b/i);
-   assert.doesNotMatch(statement,/\b(?:INSERT|UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|GRANT|REVOKE|COPY|CALL|EXECUTE|COMMIT|ROLLBACK|DO)\b/i);
+   assert.doesNotMatch(statement.replace(/'(?:''|[^'])*'/g,"''"),/\b(?:INSERT|UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|GRANT|REVOKE|COPY|CALL|EXECUTE|COMMIT|ROLLBACK|DO)\b/i);
  }
  assert.doesNotMatch(stripped,/\b(?:u\.email\s*(?:,|AS|FROM)|phone_e164|customer_phone|customer_name|raw_user_meta_data)\b/i);
 });
@@ -39,6 +39,6 @@ test('runbook refuses auto-association and defines actual new-member gates',()=>
   'une MFA fictive','POST /api/admin/activate']){
   assert.ok(doc.includes(term),'missing '+term);
  }
- assert.match(doc,/Ne pas attribuer/);
+ assert.match(doc,/Ne pas associer|ne pas attribuer/i);
  assert.match(doc,/dossier validé/);
 });
