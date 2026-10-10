@@ -1,0 +1,31 @@
+name: RÉSA V9 — preuve ZIP en restauration isolée
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-resa-v9-restored-snapshot.sh'
+      - 'scripts/verify-resa-v9-restored-snapshot.test.cjs'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - '.github/workflows/resa-v9-offline-restore-proof.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/verify-resa-v9-restored-snapshot.sh'
+      - 'scripts/verify-resa-v9-restored-snapshot.test.cjs'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - '.github/workflows/resa-v9-offline-restore-proof.yml'
+permissions:
+  contents: read
+jobs:
+  offline-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validation syntaxique et refus fail-closed
+        run: |
+          bash -n scripts/verify-resa-v9-restored-snapshot.sh
+          bash -n scripts/restore-supabase-github-isolated.sh
+          node --test scripts/verify-resa-v9-restored-snapshot.test.cjs
