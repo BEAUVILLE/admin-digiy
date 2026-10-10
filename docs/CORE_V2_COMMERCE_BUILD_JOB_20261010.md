@@ -3,6 +3,14 @@
 **Date : 10 octobre 2026 · Projet Supabase : digiy-core**  
 **Décision :** garder PostgreSQL comme source de vérité. Les interfaces ne créent pas une identité parallèle. Cette V2 n'active ni réservation, ni avis TRUST, ni caisse, ni paiement intermédiaire.
 
+## Application SQL en production — réalisée et contrôlée
+
+Migration Supabase enregistrée : `20261010065702 digiy_core_v2_private_professional_registry_20261010`. Tests PostgreSQL 17 et CI <https://github.com/BEAUVILLE/admin-digiy/pull/34> verts ; première archive chiffrée de sécurité réalisée avant DDL via <https://github.com/BEAUVILLE/admin-digiy/actions/runs/38025910667> (tentative 2, nouvelle archive 06:49 UTC).
+
+**Preuves post-application en lecture seule :** schéma `digiy_core_private` réellement créé ; tables `professionals` et `module_links`, **RLS et FORCE RLS activées**, zéro policy, zéro ligne, aucune permission d'usage ou SELECT/INSERT pour `anon`, `authenticated`, `authenticator`, `service_role`. Index UNIQUE `(module,source_key)` et FK `module_links.professional_id` vérifiés. Pilote Baptiste `enabled=false`, aucune réservation créée. L'advisor Supabase signale `rls_enabled_no_policy` sur les nouvelles tables : **c'est le verrou volontaire du registre privé** (<https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy>), pas une demande d'ouvrir des policies.
+
+**Important :** la création des deux tables est terminée, pas leur remplissage. Le rail de rapprochement des propriétaires et son workflow de validation indépendante doivent encore être réalisés avant tout `module_links.verification_status='verified'`.
+
 ## Registre CORE : contrat SQL
 
 Candidat : `audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql`.
@@ -13,7 +21,7 @@ Deux nouvelles tables **vides**, dans un schéma `digiy_core_private` hors `publ
 
 Modules autorisés : EXPLORE, RESA, LOC, RESTO, DRIVER, COMMERCE, BUILD, JOB. **Aucun rapprochement implicite** par slug, numéro de téléphone, adresse, nom ou `owner_id` de type texte.
 
-**Sécurité :** schéma privé, RLS + FORCE RLS, zéro policy, aucun droit API pour `anon`, `authenticated`, `authenticator` ou `service_role`, aucune RPC, aucun seed. Le niveau `verified` exige identité propriétaire observée, validateur et date de vérification ; une future vérification serveur devra être ajoutée avant de remplir le registre. Le SQL est actuellement un **candidat versionné**, non un mécanisme de publication.
+**Sécurité :** schéma privé, RLS + FORCE RLS, zéro policy, aucun droit API pour `anon`, `authenticated`, `authenticator` ou `service_role`, aucune RPC, aucun seed. Le niveau `verified` exige identité propriétaire observée, validateur et date de vérification ; une future vérification serveur devra être ajoutée avant de remplir le registre. Le SQL est **versionné et appliqué en production** ; les deux tables restent vides, privées et sans droit d'API. Ce n'est pas un mécanisme de publication.
 
 **Lot A n'autorise pas TRUST :** la table privée existante `digiy_trust_private.voluntary_feedback` demeure LOC-spécifique et le rôle serveur TRUST n'existe pas. Aucun transfert vers RÉSA ou ces trois modules sans attestation indépendante.
 
@@ -51,4 +59,4 @@ Ces chiffres ne suffisent pas à conclure qu'une ligne est fausse ou qu'elle doi
 - CI : `.github/workflows/core-v2-private-registry.yml`
 - **Aucun lien individuel ajouté lors de cette préparation**. Tout rapprochement devra être basé sur la propriété authentifiée et auditable, pas sur le nom du module.
 
-**Livrable immédiat :** socle structurel CORE sécurisé candidat, documentation métier et tests isolés. Les corrections COMMERCE/BUILD/JOB restent des chantiers distincts après validation du rail CORE.
+**Livrable immédiat :** socle structurel CORE sécurisé **installé**, documentation métier et tests isolés. Les corrections COMMERCE/BUILD/JOB restent des chantiers distincts après validation du rail CORE.

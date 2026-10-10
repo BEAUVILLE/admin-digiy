@@ -5,6 +5,8 @@ on:
       - 'audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql'
       - 'tests/core-v2-private-registry-*.sql'
       - 'docs/CORE_V2_COMMERCE_BUILD_JOB_20261010.md'
+      - 'audits/core-sql/V2_COMMERCE_BUILD_JOB_READONLY.sql'
+      - 'tests/core-v2-next-modules-audit.test.cjs'
       - '.github/workflows/core-v2-private-registry.yml'
   push:
     branches: [main]
@@ -12,6 +14,8 @@ on:
       - 'audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql'
       - 'tests/core-v2-private-registry-*.sql'
       - 'docs/CORE_V2_COMMERCE_BUILD_JOB_20261010.md'
+      - 'audits/core-sql/V2_COMMERCE_BUILD_JOB_READONLY.sql'
+      - 'tests/core-v2-next-modules-audit.test.cjs'
       - '.github/workflows/core-v2-private-registry.yml'
 permissions:
   contents: read
@@ -41,6 +45,11 @@ jobs:
       PGPASSWORD: pg17_fixture_not_production
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vérifier l'audit SQL sans écriture et le rapport de production
+        run: node --test tests/core-v2-next-modules-audit.test.cjs
       - name: Installer le client PostgreSQL
         run: |
           sudo apt-get update -qq
