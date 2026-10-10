@@ -25,6 +25,8 @@ La réservation, son statut `done`, le paiement direct ou la déclaration du pro
 | `digiy_resa_universal_launch_controls` | 1 |
 | `digiy_trust_private.voluntary_feedback` | 0 |
 
+Huit services historiques actifs ne sont pas rattachés aux profils RÉSA modernes. Leur lecture publique est actuellement autorisée et a été observée ; aucun service Baptiste n'est visible de cette manière. Toute modification de cette règle exige une revue de compatibilité des anciens clients et ne doit pas être appliquée directement.
+
 **Classification legacy indispensable :** les 7 réservations ont `client_request_id IS NULL` (toutes historiques). 7/7 n'ont pas de profil moderne lié au même slug. 8/9 prestations n'ont pas de profil RÉSA moderne. Six réservations portant un `service_id` ne retrouvent pas un service correspondant au même slug dans la table actuelle. **Ce sont des écarts de rattachement au modèle moderne, pas une preuve de corruption ou une autorisation de suppression.** Ne pas ajouter de FK universelle ni réécrire ces anciennes lignes sans analyse de leurs usages réels.
 
 Contrôles positifs : 0 créneau RÉSA sans profil ; 0 paire EXPLORE/RÉSA de même slug avec deux `auth_user_id` différents ; 0 prestation active sur un profil non publié **au moment de l'audit**. Ces comptes doivent rester contrôlés automatiquement avant toute migration.
