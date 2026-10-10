@@ -44,13 +44,13 @@ SELECT g,((g-1)%7)+1 FROM generate_series(1,10) g;
 INSERT INTO public.digiy_resa_resto_service_windows(id,site_id)
 SELECT g,((g-1)%4)+1 FROM generate_series(1,8) g;
 INSERT INTO public.resa_resto_reservations VALUES (1),(2);
-CREATE FUNCTION public.digiy_resa_resto_claim_site_by_email_v1(text)
-RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-CREATE FUNCTION public.digiy_resa_resto_owner_refresh_no_shows_v1(uuid)
-RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-CREATE FUNCTION public.digiy_resa_resto_owner_set_booking_status_v1(uuid,text)
-RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
+CREATE FUNCTION public.digiy_resa_resto_claim_site_by_email_v1(p_slug text)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
+CREATE FUNCTION public.digiy_resa_resto_owner_refresh_no_shows_v1(p_site_id uuid)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
+CREATE FUNCTION public.digiy_resa_resto_owner_set_booking_status_v1(p_booking_id uuid, p_status text)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
 CREATE FUNCTION public.digiy_resa_resto_public_book_v1(text,date,time,integer,text,text,text)
-RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
 CREATE FUNCTION public.digiy_resa_resto_public_availability_v1(text,date,integer,text)
-RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;

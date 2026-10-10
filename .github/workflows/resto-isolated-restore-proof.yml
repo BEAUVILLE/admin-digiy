@@ -4,6 +4,8 @@ on:
     paths:
       - 'scripts/verify-resto-restored-snapshot.sh'
       - 'scripts/restore-supabase-github-isolated.sh'
+      - 'scripts/backup-supabase.sh'
+      - 'scripts/export-resto-owner-rpc-acl.sql'
       - 'tests/fixtures/resto-archive-synthetic-pg17.sql'
       - 'docs/RESTO_RESTORE_PRIVATE_GATE_20261010.md'
       - '.github/workflows/resto-isolated-restore-proof.yml'
@@ -26,6 +28,9 @@ jobs:
       - name: Bash syntax (Mac Bash 3.2 compatible)
         run: |
           bash -n scripts/restore-supabase-github-isolated.sh
+          bash -n scripts/backup-supabase.sh
+          bash -n scripts/restore-supabase-test.sh
+          bash -n scripts/verify-supabase-backup.sh
           bash -n scripts/verify-resto-restored-snapshot.sh
       - name: Create throwaway PostgreSQL 17 without network
         run: |
@@ -49,6 +54,50 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/verify-resto-restored-snapshot.sh digiy-restore-ci-resto '4|2|2|7|10|8|0|0|2' "$RUNNER_TEMP"
+      - name: Verify RESTO EXECUTE ACL archive roundtrip
+        run: |
+          set -euo pipefail
+          # Synthetic catalog starts with PUBLIC EXECUTE, as a default
+          # recreated by a schema-only dump. Explicitly revoke source grants.
+          for f in \
+            'digiy_resa_resto_claim_site_by_email_v1(text)' \
+            'digiy_resa_resto_owner_refresh_no_shows_v1(uuid)' \
+            'digiy_resa_resto_owner_set_booking_status_v1(uuid,text)'; do
+            docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+              "REVOKE EXECUTE ON FUNCTION public.$f FROM PUBLIC,anon; GRANT EXECUTE ON FUNCTION public.$f TO authenticated,service_role;"
+          done
+          docker exec -i digiy-restore-ci-resto psql -U postgres -d postgres -X -qAt \
+            -v ON_ERROR_STOP=1 < scripts/export-resto-owner-rpc-acl.sql \
+            > "$RUNNER_TEMP/resto-owner-rpc-acl.sql"
+          test "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_resto_' "$RUNNER_TEMP/resto-owner-rpc-acl.sql")" = 3
+          test "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_resto_' "$RUNNER_TEMP/resto-owner-rpc-acl.sql")" = 3
+          # Emulate CLI schema restore dropping a REVOKE: anon regains EXECUTE.
+          for f in \
+            'digiy_resa_resto_claim_site_by_email_v1(text)' \
+            'digiy_resa_resto_owner_refresh_no_shows_v1(uuid)' \
+            'digiy_resa_resto_owner_set_booking_status_v1(uuid,text)'; do
+            docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+              "GRANT EXECUTE ON FUNCTION public.$f TO PUBLIC,anon;"
+          done
+          docker exec -i digiy-restore-ci-resto psql -U postgres -d postgres -X \
+            -v ON_ERROR_STOP=1 < "$RUNNER_TEMP/resto-owner-rpc-acl.sql"
+          result="$(docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -Atq \
+            -c "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('digiy_resa_resto_claim_site_by_email_v1','digiy_resa_resto_owner_refresh_no_shows_v1','digiy_resa_resto_owner_set_booking_status_v1') AND has_function_privilege('anon',p.oid,'EXECUTE')")"
+          test "$result" = 0
+          echo 'RESTO_SYNTHETIC_OWNER_ACL_ROUNDTRIP_OK: anon 0/3'
+      - name: Reject source ACL drift (no backup allowed)
+        run: |
+          set -euo pipefail
+          docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            'GRANT EXECUTE ON FUNCTION public.digiy_resa_resto_claim_site_by_email_v1(text) TO PUBLIC'
+          if docker exec -i digiy-restore-ci-resto psql -U postgres -d postgres -X -qAt \
+            -v ON_ERROR_STOP=1 < scripts/export-resto-owner-rpc-acl.sql > /dev/null 2>&1; then
+            echo 'FAIL: unsafe source RPC grant did not block backup'
+            exit 1
+          fi
+          docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            'REVOKE EXECUTE ON FUNCTION public.digiy_resa_resto_claim_site_by_email_v1(text) FROM PUBLIC'
+          echo 'RESTO_SYNTHETIC_UNSAFE_BACKUP_REJECTED'
       - name: Refuse altered aggregate without changing any records
         run: |
           set -euo pipefail

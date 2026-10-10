@@ -92,6 +92,18 @@ done
   sha256sum -c SHA256SUMS
 )
 
+# Reapply captured RESTO RPC permissions in isolated/nonproduction restore.
+resto_acl_restore_args=()
+if grep -q '^resto_owner_rpc_acl=verified_v1$' "$BACKUP_DIR/backup-status.txt"; then
+  [[ -s "$BACKUP_DIR/resto-owner-rpc-acl.sql" ]] ||
+    { echo "RESTO_OWNER_RPC_ACL_MISSING" >&2; exit 65; }
+  resto_acl_restore_args=(--file "$BACKUP_DIR/resto-owner-rpc-acl.sql")
+else
+  [[ ! -e "$BACKUP_DIR/resto-owner-rpc-acl.sql" ]] ||
+    { echo "RESTO_OWNER_RPC_ACL_STATUS_MISMATCH" >&2; exit 65; }
+  echo "RESTO_OWNER_RPC_ACL_NOT_CAPTURED: legacy archive." >&2
+fi
+
 # Ordre recommandé par Supabase : rôles, schéma, désactivation temporaire
 # des triggers, puis données COPY, le tout dans une seule transaction.
 psql \
@@ -101,6 +113,7 @@ psql \
   --file "$BACKUP_DIR/schema.sql" \
   --command 'SET session_replication_role = replica' \
   --file "$BACKUP_DIR/data.sql" \
+  "${resto_acl_restore_args[@]}" \
   --dbname "$RESTORE_DB_URL"
 
 if [[ "${RESTORE_MIGRATION_HISTORY:-NO}" == "YES" && -s "$BACKUP_DIR/history_schema.sql" && -s "$BACKUP_DIR/history_data.sql" ]]; then
@@ -128,6 +141,22 @@ JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public';
 SQL
 )"
+
+if [[ "${#resto_acl_restore_args[@]}" -gt 0 ]]; then
+  acl_result="$(psql "$RESTORE_DB_URL" -X -w -v ON_ERROR_STOP=1 -At -c "
+SELECT count(*) FILTER(WHERE has_function_privilege('anon',p.oid,'EXECUTE'))::text
+ || '|' || count(*)::text
+ || '|' || count(*) FILTER(WHERE has_function_privilege('authenticated',p.oid,'EXECUTE'))::text
+ || '|' || count(*) FILTER(WHERE has_function_privilege('service_role',p.oid,'EXECUTE'))::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname='public' AND p.proname IN (
+'digiy_resa_resto_claim_site_by_email_v1',
+'digiy_resa_resto_owner_refresh_no_shows_v1',
+'digiy_resa_resto_owner_set_booking_status_v1');")"
+  [[ "$acl_result" == '0|3|3|3' ]] ||
+    { echo "RESTO_OWNER_RPC_ACL_RESTORED_UNSAFE" >&2; exit 78; }
+  echo "RESTO_OWNER_RPC_ACL_OK: anon=0/3."
+fi
 
 printf 'Restauration de test réussie.\n'
 printf 'Tables public restaurées : %s\n' "$RESTORED_TABLE_COUNT"

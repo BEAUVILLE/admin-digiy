@@ -93,6 +93,21 @@ for f in roles.sql schema.sql data.sql SHA256SUMS backup-status.txt; do
   [[ -s "$backup_dir/$f" ]] || fail "ISOLATED_RESTORE_REQUIRED_FILE_MISSING"
 done
 ( cd "$backup_dir" && check_sha256_manifest SHA256SUMS >/dev/null 2>&1 ) || fail "ISOLATED_RESTORE_INTERNAL_CHECKSUM_FAILED"
+# New backup archives carry REVOKE/GRANT for three RESTO owner RPCs.
+# Older archives remain recoverable for DATA, but not as permission proofs.
+resto_acl_snapshot=NO
+if grep -q '^resto_owner_rpc_acl=verified_v1$' "$backup_dir/backup-status.txt"; then
+  [[ -s "$backup_dir/resto-owner-rpc-acl.sql" &&
+     ! -L "$backup_dir/resto-owner-rpc-acl.sql" ]] ||
+    fail "ISOLATED_RESTO_OWNER_RPC_ACL_MISSING"
+  [[ "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_resto_' "$backup_dir/resto-owner-rpc-acl.sql")" == 3 &&
+     "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_resto_' "$backup_dir/resto-owner-rpc-acl.sql")" == 3 ]] ||
+     fail "ISOLATED_RESTO_OWNER_RPC_ACL_INVALID"
+  resto_acl_snapshot=YES
+elif [[ -e "$backup_dir/resto-owner-rpc-acl.sql" ]]; then
+  fail "ISOLATED_RESTO_OWNER_RPC_ACL_STATUS_MISMATCH"
+fi
+
 echo "ISOLATED_ARCHIVE_INTEGRITY_OK: chiffre, checksums et fichiers SQL vérifiés."
 
 # Supabase runs PostgreSQL 17. Disposable container has NO NETWORK, NO
@@ -235,6 +250,10 @@ echo "ISOLATED_AUTH_AUDIT_COMPAT_OK: Auth audit column matched locally; no rows 
 # The classifier emits a vetted function identifier, never raw SQL or values.
 # The official Auth migrations own internal tables as supabase_admin.
 # Restore with the disposable DB's local schema owner; NEVER a remote URI.
+resto_acl_restore_args=()
+if [[ "$resto_acl_snapshot" == YES ]]; then
+  resto_acl_restore_args=(--file /restore/resto-owner-rpc-acl.sql)
+fi
 if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --single-transaction --variable ON_ERROR_STOP=1 \
   --variable VERBOSITY=verbose --variable SHOW_CONTEXT=never \
@@ -245,11 +264,33 @@ if ! docker exec "$container" psql -U supabase_admin -d postgres -X -w \
   --command '\echo DIGIY_RESTORE_STAGE_DATA' \
   --command 'SET session_replication_role = replica' \
   --file /restore/data.sql \
+  "${resto_acl_restore_args[@]}" \
   >"$tmpdir/sql-private.log" 2>&1; then
   python3 "$script_dir/classify-restore-sql-failure.py" "$tmpdir/sql-private.log" >&2
   fail "ISOLATED_RESTORE_SQL_FAILED"
 fi
 echo "ISOLATED_RESTORE_SQL_OK: rôles, schéma et données exécutés dans le conteneur."
+
+if [[ "$resto_acl_snapshot" == YES ]]; then
+  acl_proof="$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq \
+    -v ON_ERROR_STOP=1 -c "
+SELECT count(*) FILTER(WHERE has_function_privilege('anon',p.oid,'EXECUTE'))::text
+ || '|' || count(*)::text
+ || '|' || count(*) FILTER(WHERE has_function_privilege('authenticated',p.oid,'EXECUTE'))::text
+ || '|' || count(*) FILTER(WHERE has_function_privilege('service_role',p.oid,'EXECUTE'))::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname='public' AND (p.proname,pg_get_function_identity_arguments(p.oid)) IN (
+ ('digiy_resa_resto_claim_site_by_email_v1','p_slug text'),
+ ('digiy_resa_resto_owner_refresh_no_shows_v1','p_site_id uuid'),
+ ('digiy_resa_resto_owner_set_booking_status_v1','p_booking_id uuid, p_status text')
+);" 2>"$tmpdir/resto-owner-acl-check-private.log")" ||
+    fail "ISOLATED_RESTO_OWNER_RPC_ACL_QUERY_FAILED"
+  [[ "$acl_proof" == '0|3|3|3' ]] ||
+    fail "ISOLATED_RESTO_OWNER_RPC_ACL_RESTORED_UNSAFE"
+  echo "ISOLATED_RESTO_OWNER_RPC_ACL_OK: anon=0/3 authenticated=3/3 service_role=3/3."
+else
+  echo "ISOLATED_RESTO_OWNER_RPC_ACL_NOT_CAPTURED: legacy archive; permissions incompletes."
+fi
 # Probe only the no-session behavior; this does NOT prove authenticated owners.
 jwt_probe="$(docker exec "$container" psql -U postgres -d postgres -X -w -Atq \
   -v ON_ERROR_STOP=1 -c "SELECT auth.jwt() IS NULL;" \
