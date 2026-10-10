@@ -38,7 +38,7 @@ mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 cat > "$WORK_DIR/README.txt" <<EOF
 DIGIYLYFE — sauvegarde Supabase
 Créée en UTC : ${STAMP}
-Format : rôles SQL + schéma SQL + données SQL COPY + ACL propriétaire RESTO + inventaires + Storage optionnel
+Format : rôles SQL + schéma SQL + données SQL COPY + ACL propriétaire RESTO et V9 + inventaires + Storage optionnel
 Méthode : Supabase CLI officielle
 Restauration : scripts/verify-supabase-backup.sh puis scripts/restore-supabase-test.sh
 EOF
@@ -73,6 +73,20 @@ psql "$SUPABASE_DB_URL" -X -w -qAt \
 [[ "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_resto_' "$WORK_DIR/resto-owner-rpc-acl.sql")" == 3 &&
    "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_resto_' "$WORK_DIR/resto-owner-rpc-acl.sql")" == 3 ]] ||
   { echo "RESTO_OWNER_RPC_ACL_EXPORT_INCOMPLETE: backup refused." >&2; exit 78; }
+
+# V9 source has the same PostgreSQL default-PUBLIC EXECUTE trap as RESTO.
+# Capture 5 verified function ACLs + the protected launch table with read-only SQL.
+# Never trust a success marker unless source grants match the gate contract.
+psql "$SUPABASE_DB_URL" -X -w -qAt \
+  -v ON_ERROR_STOP=1 \
+  -f "scripts/export-resa-v9-acl.sql" \
+  >"$WORK_DIR/resa-v9-acl.sql" ||
+    { echo "RESA_V9_ACL_EXPORT_FAILED: backup refused." >&2; exit 78; }
+[[ "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_universal_' "$WORK_DIR/resa-v9-acl.sql")" == 5 &&
+   "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_universal_' "$WORK_DIR/resa-v9-acl.sql")" == 5 &&
+   "$(grep -c '^REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$WORK_DIR/resa-v9-acl.sql")" == 1 &&
+   "$(grep -c '^GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$WORK_DIR/resa-v9-acl.sql")" == 1 ]] ||
+  { echo "RESA_V9_ACL_EXPORT_INCOMPLETE: backup refused." >&2; exit 78; }
 
 # Conserver aussi l'historique des migrations quand il existe.
 MIGRATION_STATUS="absent"
@@ -190,7 +204,7 @@ if failures:
 PY
 fi
 
-for file in roles.sql schema.sql data.sql resto-owner-rpc-acl.sql; do
+for file in roles.sql schema.sql data.sql resto-owner-rpc-acl.sql resa-v9-acl.sql; do
   if [[ ! -s "$WORK_DIR/$file" ]]; then
     echo "Sauvegarde invalide : ${file} est absent ou vide." >&2
     exit 65
@@ -202,6 +216,7 @@ done
   echo "storage_backup=${STORAGE_STATUS}"
   echo "migration_history=${MIGRATION_STATUS}"
   echo "resto_owner_rpc_acl=verified_v1"
+  echo "resa_v9_acl=verified_v1"
 } > "$WORK_DIR/backup-status.txt"
 
 (
