@@ -51,7 +51,7 @@ WHERE n.nspname='public' AND p.proname IN (
  'digiy_resa_universal_pilot_gate_v1',
  'digiy_resa_universal_public_options_v1')
 UNION ALL
-SELECT 'REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls FROM PUBLIC, anon, authenticated, service_role;' || E'\\n' ||
+SELECT 'REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls FROM PUBLIC, anon, authenticated, service_role;' || chr(10) ||
        'GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls TO service_role;'
 ORDER BY 1;
 COMMIT;
