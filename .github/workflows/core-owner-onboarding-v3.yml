@@ -1,0 +1,32 @@
+name: CORE V3 — accès propriétaire avant livraison
+on:
+  pull_request:
+    paths:
+      - 'activations.html'
+      - 'audits/core-sql/V3_OWNER_ACCESS_PREFLIGHT_READONLY.sql'
+      - 'docs/CORE_OWNER_ONBOARDING_V3_20261010.md'
+      - 'tests/core-owner-onboarding-v3.test.cjs'
+      - '.github/workflows/core-owner-onboarding-v3.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'activations.html'
+      - 'audits/core-sql/V3_OWNER_ACCESS_PREFLIGHT_READONLY.sql'
+      - 'docs/CORE_OWNER_ONBOARDING_V3_20261010.md'
+      - 'tests/core-owner-onboarding-v3.test.cjs'
+      - '.github/workflows/core-owner-onboarding-v3.yml'
+permissions:
+  contents: read
+jobs:
+  readonly-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vérifier syntaxe
+        run: node --check tests/core-owner-onboarding-v3.test.cjs
+      - name: Vérifier audit lecture seule et portes propriétaires
+        run: node --test tests/core-owner-onboarding-v3.test.cjs
