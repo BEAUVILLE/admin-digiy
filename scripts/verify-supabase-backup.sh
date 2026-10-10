@@ -62,35 +62,16 @@ done
   cd "$BACKUP_DIR"
   sha256sum -c SHA256SUMS
 )
-if grep -q '^resto_owner_rpc_acl=verified_v1
 
-ROLE_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/roles.sql" || true)"
-SCHEMA_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/schema.sql" || true)"
-DATA_COPY_LINES="$(grep -Ec '^COPY ' "$BACKUP_DIR/data.sql" || true)"
 
-if [[ "$SCHEMA_LINES" == "0" ]]; then
-  echo "Le schéma SQL ne contient aucune instruction structurante reconnue." >&2
-  exit 65
-fi
-
-cat <<EOF
-Sauvegarde vérifiée avec succès.
-Dossier : $(basename "$BACKUP_DIR")
-Instructions rôles détectées : ${ROLE_LINES}
-Instructions schéma détectées : ${SCHEMA_LINES}
-Blocs COPY détectés : ${DATA_COPY_LINES}
-État :
-EOF
-cat "$BACKUP_DIR/backup-status.txt"
- "$BACKUP_DIR/backup-status.txt"; then
+if grep -q '^resto_owner_rpc_acl=verified_v1$' "$BACKUP_DIR/backup-status.txt"; then
   [[ -s "$BACKUP_DIR/resto-owner-rpc-acl.sql" ]] ||
     { echo "RESTO_OWNER_RPC_ACL_MISSING" >&2; exit 65; }
   [[ "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_resto_' "$BACKUP_DIR/resto-owner-rpc-acl.sql")" == 3 ]] ||
     { echo "RESTO_OWNER_RPC_ACL_INCOMPLETE" >&2; exit 65; }
 else
-  echo "ATTENTION: archive ancienne sans snapshot ACL RESTO." >&2
+  echo "ATTENTION: archive legacy sans capture des droits RESTO EXECUTE." >&2
 fi
-
 
 ROLE_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/roles.sql" || true)"
 SCHEMA_LINES="$(grep -Ec '^(CREATE|ALTER|GRANT|REVOKE|COMMENT)' "$BACKUP_DIR/schema.sql" || true)"
