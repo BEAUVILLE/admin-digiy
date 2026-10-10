@@ -287,4 +287,14 @@ if [[ "$result" != "$expected_blocked|$expected_blocked|0|1" ]]; then
   fail "ISOLATED_RESTORE_EXPECTED_MASTER_COUNTS_NOT_MET"
 fi
 echo "ISOLATED_RESTORE_PROOF_OK: $expected_blocked/$expected_blocked jours bloqués, 0 réservation MASTER, RPC principale présente."
+# RESTO archive snapshot proof is opt-in because older synthetic fixtures and
+# non-RESTO backups do not contain the restaurant schema. No extra credentials
+# or network connections; run only inside the already-isolated Docker container.
+if [[ -n "${DIGIY_EXPECTED_RESTO_COUNTS:-}" ]]; then
+  [[ -f "$script_dir/verify-resto-restored-snapshot.sh" ]] ||
+    fail "RESTO_ISOLATED_PROOF_SCRIPT_MISSING"
+  bash "$script_dir/verify-resto-restored-snapshot.sh" \
+    "$container" "$DIGIY_EXPECTED_RESTO_COUNTS" "$tmpdir" ||
+    fail "RESTO_ISOLATED_RESTORE_PROOF_FAILED"
+fi
 echo "ISOLATED_RESTORE_PRODUCTION_UNTOUCHED: aucune cible distante accessible depuis le conteneur."
