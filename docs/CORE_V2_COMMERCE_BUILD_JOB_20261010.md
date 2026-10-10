@@ -11,6 +11,28 @@ Migration Supabase enregistrée : `20261010065702 digiy_core_v2_private_professi
 
 **Important :** la création des deux tables est terminée, pas leur remplissage. Le rail de rapprochement des propriétaires et son workflow de validation indépendante doivent encore être réalisés avant tout `module_links.verification_status='verified'`.
 
+## Sauvegarde post-migration et passages de relais
+
+La **sauvegarde après** application du schéma CORE V2 est réussie. Workflow :
+<https://github.com/BEAUVILLE/admin-digiy/actions/runs/38025910667>, tentative 3,
+terminée le **10 octobre 2026 à 07:03 UTC**, artefact chiffré
+`digiy-supabase-2026-10-10T06-57-55Z` (1 426 621 octets).
+Avant migration, la tentative 2 du même workflow avait produit
+`digiy-supabase-2026-10-10T06-49-47Z` (1 424 893 octets).
+Les deux artefacts existent, non expirés au contrôle.
+**Limite :** réussite des exports/chiffrement/stockage GitHub, mais pas de
+restauration de cette archive récente ; copie S3/hors site non configurée.
+Rétention GitHub : 30 jours. Conserver une copie chiffrée et son SHA256 hors du dépôt.
+
+Missions suivantes, liées au vrai schéma actuel :
+- **COMMERCE** : <https://github.com/BEAUVILLE/mon-commerce/issues/19> — 1 site, 1 commande ; pas de caisse.
+- **BUILD** : <https://github.com/BEAUVILLE/digiy-build/issues/21> — préserver 3 artisans historiques, vérifier les comptes.
+- **JOB** : <https://github.com/BEAUVILLE/digiy-jobs/issues/22> — conserver 4 offres et établir le véritable propriétaire.
+
+Ces tickets ne constituent **pas** une activation de module ni une autorisation de
+copier des données personnelles. Les registres CORE restent volontairement vides
+jusqu'à validation de l'identité/provenance des professionnels.
+
 ## Registre CORE : contrat SQL
 
 Candidat : `audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql`.
