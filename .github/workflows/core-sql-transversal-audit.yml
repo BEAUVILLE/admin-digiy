@@ -1,0 +1,30 @@
+name: CORE SQL transversal V1 — audit en lecture seule
+on:
+  pull_request:
+    paths:
+      - 'audits/core-sql/**'
+      - 'docs/CORE_SQL_TRANSVERSAL_V1_20261010.md'
+      - 'tests/core-sql-transversal-audit.test.cjs'
+      - '.github/workflows/core-sql-transversal-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'audits/core-sql/**'
+      - 'docs/CORE_SQL_TRANSVERSAL_V1_20261010.md'
+      - 'tests/core-sql-transversal-audit.test.cjs'
+      - '.github/workflows/core-sql-transversal-audit.yml'
+permissions:
+  contents: read
+jobs:
+  readonly-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit SQL V1 - zéro mutation, zéro information client
+        run: |
+          node --check tests/core-sql-transversal-audit.test.cjs
+          node --test tests/core-sql-transversal-audit.test.cjs
