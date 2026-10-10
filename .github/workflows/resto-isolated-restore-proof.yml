@@ -1,0 +1,81 @@
+name: DIGIY RESTO — preuve restauration isolée PG17
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-resto-restored-snapshot.sh'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - 'tests/fixtures/resto-archive-synthetic-pg17.sql'
+      - 'docs/RESTO_RESTORE_PRIVATE_GATE_20261010.md'
+      - '.github/workflows/resto-isolated-restore-proof.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/verify-resto-restored-snapshot.sh'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - 'tests/fixtures/resto-archive-synthetic-pg17.sql'
+      - 'docs/RESTO_RESTORE_PRIVATE_GATE_20261010.md'
+      - '.github/workflows/resto-isolated-restore-proof.yml'
+permissions:
+  contents: read
+jobs:
+  resto-restore-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bash syntax (Mac Bash 3.2 compatible)
+        run: |
+          bash -n scripts/restore-supabase-github-isolated.sh
+          bash -n scripts/verify-resto-restored-snapshot.sh
+      - name: Create throwaway PostgreSQL 17 without network
+        run: |
+          set -euo pipefail
+          docker run --rm -d \
+            --name digiy-restore-ci-resto \
+            --network none \
+            -e POSTGRES_PASSWORD=synthetic_test_only \
+            postgres:17
+          echo 'RESTO_SYNTHETIC_NO_NETWORK_CONTAINER_READY'
+      - name: Populate synthetic restaurant shape
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            if docker exec digiy-restore-ci-resto pg_isready -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec -i digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 \
+            < tests/fixtures/resto-archive-synthetic-pg17.sql
+      - name: Positive RESTO snapshot proof
+        run: |
+          set -euo pipefail
+          bash scripts/verify-resto-restored-snapshot.sh digiy-restore-ci-resto '4|2|2|7|10|8|0|0|2' "$RUNNER_TEMP"
+      - name: Refuse altered aggregate without changing any records
+        run: |
+          set -euo pipefail
+          if bash scripts/verify-resto-restored-snapshot.sh digiy-restore-ci-resto '4|2|2|7|11|8|0|0|2' "$RUNNER_TEMP"; then
+            echo 'INVALID: altered baseline was accepted'
+            exit 1
+          fi
+      - name: Refuse missing RLS, repair only synthetic fixture afterward
+        run: |
+          set -euo pipefail
+          docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            'ALTER TABLE public.digiy_resa_resto_bookings DISABLE ROW LEVEL SECURITY'
+          if bash scripts/verify-resto-restored-snapshot.sh digiy-restore-ci-resto '4|2|2|7|10|8|0|0|2' "$RUNNER_TEMP"; then
+            echo 'INVALID: missing booking RLS was accepted'
+            exit 1
+          fi
+          docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            'ALTER TABLE public.digiy_resa_resto_bookings ENABLE ROW LEVEL SECURITY'
+      - name: Refuse missing RPC, restore only synthetic function afterward
+        run: |
+          set -euo pipefail
+          docker exec digiy-restore-ci-resto psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            'DROP FUNCTION public.digiy_resa_resto_public_availability_v1(text,date,integer,text)'
+          if bash scripts/verify-resto-restored-snapshot.sh digiy-restore-ci-resto '4|2|2|7|10|8|0|0|2' "$RUNNER_TEMP"; then
+            echo 'INVALID: missing public RESTO RPC was accepted'
+            exit 1
+          fi
+      - name: Destroy throwaway container
+        if: always()
+        run: docker rm -f digiy-restore-ci-resto >/dev/null 2>&1 || true
