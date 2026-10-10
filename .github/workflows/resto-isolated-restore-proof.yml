@@ -29,6 +29,8 @@ jobs:
         run: |
           bash -n scripts/restore-supabase-github-isolated.sh
           bash -n scripts/backup-supabase.sh
+          bash -n scripts/restore-supabase-test.sh
+          bash -n scripts/verify-supabase-backup.sh
           bash -n scripts/verify-resto-restored-snapshot.sh
       - name: Create throwaway PostgreSQL 17 without network
         run: |
