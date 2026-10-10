@@ -338,4 +338,14 @@ if [[ -n "${DIGIY_EXPECTED_RESTO_COUNTS:-}" ]]; then
     "$container" "$DIGIY_EXPECTED_RESTO_COUNTS" "$tmpdir" ||
     fail "RESTO_ISOLATED_RESTORE_PROOF_FAILED"
 fi
+# Optional V9 pilot proof, only with explicit operator-supplied archived
+# aggregate values. Never assume V9 exists in old snapshots or claim it
+# survived secure restoration just because SQL succeeded.
+if [[ -n "${DIGIY_EXPECTED_RESA_V9_COUNTS:-}" ]]; then
+  [[ -f "$script_dir/verify-resa-v9-restored-snapshot.sh" ]] ||
+    fail "RESA_V9_ISOLATED_PROOF_SCRIPT_MISSING"
+  bash "$script_dir/verify-resa-v9-restored-snapshot.sh" \
+    "$container" "$DIGIY_EXPECTED_RESA_V9_COUNTS" "$tmpdir" ||
+    fail "RESA_V9_ISOLATED_RESTORE_PROOF_FAILED"
+fi
 echo "ISOLATED_RESTORE_PRODUCTION_UNTOUCHED: aucune cible distante accessible depuis le conteneur."
