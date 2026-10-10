@@ -1,0 +1,71 @@
+name: DIGIY CORE V2 — registre privé PostgreSQL 17
+on:
+  pull_request:
+    paths:
+      - 'audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql'
+      - 'tests/core-v2-private-registry-*.sql'
+      - 'docs/CORE_V2_COMMERCE_BUILD_JOB_20261010.md'
+      - '.github/workflows/core-v2-private-registry.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql'
+      - 'tests/core-v2-private-registry-*.sql'
+      - 'docs/CORE_V2_COMMERCE_BUILD_JOB_20261010.md'
+      - '.github/workflows/core-v2-private-registry.yml'
+permissions:
+  contents: read
+jobs:
+  pg17-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: core_fixture
+          POSTGRES_PASSWORD: pg17_fixture_not_production
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d core_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGDATABASE: core_fixture
+      PGPASSWORD: pg17_fixture_not_production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer le client PostgreSQL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+      - name: Installer les objets synthétiques non privés
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/core-v2-private-registry-fixture.sql
+      - name: Appliquer CORE V2 dans PG17 isolé
+        run: psql -X -v ON_ERROR_STOP=1 -f audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql
+      - name: Contrôler RLS, absence de données et protections anti-doublon
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f tests/core-v2-private-registry-smoke.sql
+          test "$(psql -XAtqc 'SELECT count(*) FROM digiy_core_private.professionals')" = "0"
+          test "$(psql -XAtqc 'SELECT count(*) FROM digiy_core_private.module_links')" = "0"
+          echo CORE_V2_PRIVATE_REGISTRY_PG17_OK
+      - name: Interdire les lectures directes anonymes
+        run: |
+          if psql -X -v ON_ERROR_STOP=1 -c "SET ROLE anon; SELECT * FROM digiy_core_private.module_links LIMIT 1"; then
+            echo "::error::Unexpected anonymous access"
+            exit 1
+          fi
+          echo CORE_V2_ANON_ACCESS_DENIED_OK
+      - name: Refuser un second déploiement implicite
+        run: |
+          if psql -X -v ON_ERROR_STOP=1 -f audits/core-sql/candidates/CORE_V2_PRIVATE_REGISTRY_CANDIDATE.sql; then
+            echo "::error::Migration replay unexpectedly succeeded"
+            exit 1
+          fi
+          echo CORE_V2_REPLAY_FAIL_CLOSED_OK
