@@ -92,6 +92,73 @@ done
   sha256sum -c SHA256SUMS
 )
 
+# The verified RESTO ACL file is mandatory for archives advertising this
+# feature. Old archives remain restoreable but cannot prove owner's EXECUTE.
+resto_acl_restore_args=()
+if grep -q '^resto_owner_rpc_acl=verified_v1
+# des triggers, puis données COPY, le tout dans une seule transaction.
+psql \
+  --single-transaction \
+  --variable ON_ERROR_STOP=1 \
+  --file "$BACKUP_DIR/roles.sql" \
+  --file "$BACKUP_DIR/schema.sql" \
+  --command 'SET session_replication_role = replica' \
+  --file "$BACKUP_DIR/data.sql" \
+  "${resto_acl_restore_args[@]}" \
+  --dbname "$RESTORE_DB_URL"
+
+if [[ "${RESTORE_MIGRATION_HISTORY:-NO}" == "YES" && -s "$BACKUP_DIR/history_schema.sql" && -s "$BACKUP_DIR/history_data.sql" ]]; then
+  psql \
+    --single-transaction \
+    --variable ON_ERROR_STOP=1 \
+    --file "$BACKUP_DIR/history_schema.sql" \
+    --file "$BACKUP_DIR/history_data.sql" \
+    --dbname "$RESTORE_DB_URL"
+fi
+
+RESTORED_TABLE_COUNT="$(psql "$RESTORE_DB_URL" -X -v ON_ERROR_STOP=1 -At <<'SQL'
+SELECT count(*)
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind IN ('r', 'p')
+  AND n.nspname = 'public';
+SQL
+)"
+
+RESTORED_FUNCTION_COUNT="$(psql "$RESTORE_DB_URL" -X -v ON_ERROR_STOP=1 -At <<'SQL'
+SELECT count(*)
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public';
+SQL
+)"
+
+# Current RESTO owner RPC ACL must be restored when the archive carries it.
+if [[ "${#resto_acl_restore_args[@]}" -gt 0 ]]; then
+  ACL_VIOLATIONS="$(psql "$RESTORE_DB_URL" -X -w -v ON_ERROR_STOP=1 -At -c "
+  SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.proname IN (
+   'digiy_resa_resto_claim_site_by_email_v1',
+   'digiy_resa_resto_owner_refresh_no_shows_v1',
+   'digiy_resa_resto_owner_set_booking_status_v1')
+  AND has_function_privilege('anon',p.oid,'EXECUTE')")"
+  [[ "$ACL_VIOLATIONS" == 0 ]] ||
+    { echo 'RESTO_OWNER_RPC_ACL_RESTORED_UNSAFE' >&2; exit 78; }
+fi
+printf 'Restauration de test réussie.\n'
+printf 'Tables public restaurées : %s\n' "$RESTORED_TABLE_COUNT"
+printf 'Fonctions public présentes : %s\n' "$RESTORED_FUNCTION_COUNT"
+printf '%s\n' "La base de production n'a pas été modifiée."
+printf '%s\n' "Les objets Storage sont vérifiés séparément avant leur réimportation."
+ "$BACKUP_DIR/backup-status.txt"; then
+  [[ -s "$BACKUP_DIR/resto-owner-rpc-acl.sql" ]] ||
+    { echo "RESTO_OWNER_RPC_ACL_MISSING" >&2; exit 65; }
+  resto_acl_restore_args=(--file "$BACKUP_DIR/resto-owner-rpc-acl.sql")
+else
+  [[ ! -e "$BACKUP_DIR/resto-owner-rpc-acl.sql" ]] ||
+    { echo "RESTO_OWNER_RPC_ACL_STATUS_MISMATCH" >&2; exit 65; }
+  echo "RESTO_OWNER_RPC_ACL_NOT_CAPTURED: legacy archive; cannot prove restored EXECUTE permissions." >&2
+fi
 # Ordre recommandé par Supabase : rôles, schéma, désactivation temporaire
 # des triggers, puis données COPY, le tout dans une seule transaction.
 psql \
