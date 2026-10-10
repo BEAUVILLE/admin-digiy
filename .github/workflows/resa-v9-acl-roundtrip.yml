@@ -1,0 +1,79 @@
+name: V9 backup — ACL roundtrip PostgreSQL 17
+on:
+  pull_request:
+    paths:
+      - 'scripts/export-resa-v9-acl.sql'
+      - 'scripts/backup-supabase.sh'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - 'scripts/verify-resa-v9-restored-snapshot.sh'
+      - 'tests/fixtures/resa-v9-acl-synthetic-pg17.sql'
+      - '.github/workflows/resa-v9-acl-roundtrip.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/export-resa-v9-acl.sql'
+      - 'scripts/backup-supabase.sh'
+      - 'scripts/restore-supabase-github-isolated.sh'
+      - 'scripts/verify-resa-v9-restored-snapshot.sh'
+      - 'tests/fixtures/resa-v9-acl-synthetic-pg17.sql'
+      - '.github/workflows/resa-v9-acl-roundtrip.yml'
+permissions:
+  contents: read
+jobs:
+  acl-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify portable script syntax
+        run: |
+          bash -n scripts/backup-supabase.sh
+          bash -n scripts/restore-supabase-github-isolated.sh
+          bash -n scripts/verify-resa-v9-restored-snapshot.sh
+      - name: Create isolated PostgreSQL 17
+        run: |
+          docker run --rm -d --name digiy-v9-acl-ci --network none \
+            -e POSTGRES_PASSWORD=synthetic_only postgres:17
+      - name: Validate live-catalog export and reject ACL drift
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 40); do
+            if docker exec digiy-v9-acl-ci pg_isready -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec -i digiy-v9-acl-ci psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 \
+            < tests/fixtures/resa-v9-acl-synthetic-pg17.sql
+          docker exec -i digiy-v9-acl-ci psql -U postgres -d postgres -X -qAt \
+            -v ON_ERROR_STOP=1 < scripts/export-resa-v9-acl.sql \
+            > "$RUNNER_TEMP/resa-v9-acl.sql"
+          test "$(grep -c '^REVOKE ALL ON FUNCTION public.digiy_resa_universal_' "$RUNNER_TEMP/resa-v9-acl.sql")" = 5
+          test "$(grep -c '^GRANT EXECUTE ON FUNCTION public.digiy_resa_universal_' "$RUNNER_TEMP/resa-v9-acl.sql")" = 5
+          test "$(grep -c '^REVOKE ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$RUNNER_TEMP/resa-v9-acl.sql")" = 1
+          test "$(grep -c '^GRANT ALL ON TABLE public.digiy_resa_universal_launch_controls ' "$RUNNER_TEMP/resa-v9-acl.sql")" = 1
+          # Simulate dropped REVOKE statements and a leaked launch table.
+          docker exec digiy-v9-acl-ci psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c \
+            "GRANT EXECUTE ON FUNCTION public.digiy_resa_universal_request_v0(text,uuid,uuid,text,text,uuid) TO PUBLIC, anon, authenticated;
+             GRANT EXECUTE ON FUNCTION public.digiy_resa_universal_owner_manage_v2(uuid,text,text) TO PUBLIC, anon;
+             GRANT SELECT,UPDATE ON public.digiy_resa_universal_launch_controls TO anon, authenticated;"
+          if docker exec -i digiy-v9-acl-ci psql -U postgres -d postgres -X -qAt \
+             -v ON_ERROR_STOP=1 < scripts/export-resa-v9-acl.sql >/dev/null 2>&1; then
+            echo "FAIL: unsafe source grants did not abort backup" >&2
+            exit 1
+          fi
+          docker exec -i digiy-v9-acl-ci psql -U postgres -d postgres -X \
+            -v ON_ERROR_STOP=1 < "$RUNNER_TEMP/resa-v9-acl.sql" >/dev/null
+          good="$(docker exec digiy-v9-acl-ci psql -U postgres -d postgres -X -qAt -c \
+            "SELECT NOT has_function_privilege('anon','public.digiy_resa_universal_request_v0(text,uuid,uuid,text,text,uuid)','EXECUTE')
+             AND NOT has_function_privilege('authenticated','public.digiy_resa_universal_request_v0(text,uuid,uuid,text,text,uuid)','EXECUTE')
+             AND NOT has_function_privilege('anon','public.digiy_resa_universal_owner_manage_v2(uuid,text,text)','EXECUTE')
+             AND has_function_privilege('authenticated','public.digiy_resa_universal_owner_manage_v2(uuid,text,text)','EXECUTE')
+             AND NOT has_table_privilege('anon','public.digiy_resa_universal_launch_controls','SELECT')
+             AND NOT has_table_privilege('authenticated','public.digiy_resa_universal_launch_controls','UPDATE')
+             AND has_table_privilege('service_role','public.digiy_resa_universal_launch_controls','TRIGGER');")"
+          test "$good" = t
+          docker exec -i digiy-v9-acl-ci psql -U postgres -d postgres -X -qAt \
+            -v ON_ERROR_STOP=1 < scripts/export-resa-v9-acl.sql > /dev/null
+          echo "RESA_V9_SYNTHETIC_ACL_ROUNDTRIP_OK: private functions remain denied, table protected"
+      - name: Destroy isolated PostgreSQL
+        if: always()
+        run: docker rm -f digiy-v9-acl-ci >/dev/null 2>&1 || true
