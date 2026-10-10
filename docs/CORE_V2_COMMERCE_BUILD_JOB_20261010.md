@@ -52,10 +52,21 @@ Modules autorisés : EXPLORE, RESA, LOC, RESTO, DRIVER, COMMERCE, BUILD, JOB. **
 | Module | Tables/état | Remarque de réconciliation |
 |---|---|---|
 | COMMERCE | `digiy_commerce_sites` : 1 ; `digiy_commerce_products` : 0 ; `digiy_commerce_orders` : 1 | Commande historique conservée ; sites avec `auth_user_id uuid` ; produits reliés au site par FK ; ordre/client jamais inventés |
-| BUILD | `digiy_build_artisans` : 3 ; `digiy_build_pros` : 0 ; `digiy_build_requests` : 0 ; `digiy_build_jobs` : 0 | Ancien `artisans.owner_id` est `text`, nouveau `pros.owner_id` est `uuid`. 0/3 ancien `owner_id` respecte un format UUID ; **aucune conversion automatique** |
-| JOB | `digiy_jobs_offers_pro` : 4 ; `digiy_jobs_owner_workspaces` : 0 ; `digiy_jobs_missions_pro` : 0 | Les 4 offres ne correspondent pas à un workspace moderne. Les laisser telles quelles avant classification et inspection des clients historiques |
+| BUILD | `digiy_build_public_profiles` : **12**, dont **6 actives publiées** et 8 avec `owner_id` ; `digiy_build_artisans` : 3 ; `digiy_build_demandes` : **1** ; `digiy_build_pros` / `digiy_build_requests` / `digiy_build_jobs` : 0 | L'atelier propriétaire exploite `digiy_build_public_profiles` et non `digiy_build_pros` ; registre artisanal `owner_id text` distinct, aucun rapprochement automatique |
+| JOB | `digiy_jobs_offers_pro` : **4** (3 actives, 1 fermée) ; `digiy_jobs_candidates_pro` : **8** ; `digiy_jobs_recruiter_requests` : **1** ; `digiy_jobs_owner_workspaces` : 0 | Offres et candidatures historiques sans workspace moderne ; ne jamais afficher ni attribuer les données candidates sans Auth propriétaire et MFA vérifiés |
 
 Ces chiffres ne suffisent pas à conclure qu'une ligne est fausse ou qu'elle doit être supprimée. Aucun téléphone, identité client, CV ou message privé ne figure dans le rapport.
+
+### Avancement des dépôts métiers — 10 octobre 2026, après-midi
+
+- **MON COMMERCE V5** : [PR #20 fusionnée](https://github.com/BEAUVILLE/mon-commerce/pull/20), [Pages vert](https://github.com/BEAUVILLE/mon-commerce/actions/runs/38063812011). Garde téléphone avant accès produits/commandes, lignes panier rendues en `textContent` et message WhatsApp au nom de la boutique réelle. Aucune commande modifiée.
+- **DIGIY BUILD V3** : [PR #22 fusionnée](https://github.com/BEAUVILLE/digiy-build/pull/22), [Pages vert](https://github.com/BEAUVILLE/digiy-build/actions/runs/38064351657). MFA demandé **avant** la découverte du profil propriétaire même quand le slug manque ; aucune copie des artisans historiques ni demande supprimée.
+- **DIGIY JOBS V3** : [PR #23 fusionnée](https://github.com/BEAUVILLE/digiy-jobs/pull/23), [Pages vert](https://github.com/BEAUVILLE/digiy-jobs/actions/runs/38064037629). Action Fermer/Réactiver fondée sur le statut SQL de l'offre plutôt que sur des libellés affichés.
+- Les trois corrections ont passé leurs tests GitHub Actions sur `main`. **Il ne s'agit pas d'une validation manuelle du téléphone d'un propriétaire réel**, ni d'une migration des anciennes identités.
+
+**État de CORE SQL à cette date :** les deux tables privées sont déployées avec RLS + FORCE RLS, mais toujours **sans enregistrements d'identité ni liens vérifiés**. On ne crée aucun lien professionnel pour contourner les 8 candidatures JOB et les artisans BUILD historiques. L'accès aux candidatures JOB possède déjà une policy restrictive `digiy_owner_mfa_gate()` et une policy de lecture par espace recruteur actif ; `anon` n'a pas de privilège SELECT sur cette table. La lecture des commandes COMMERCE est liée au propriétaire en RLS ; la police spécifique MFA des commandes doit encore faire l'objet d'une analyse de compatibilité serveur ciblée avant tout changement de droits.
+
+**Prochain critère GO terrain :** essais téléphone de propriétaires réels pour COMMERCE et BUILD ; vérification d'identité recruteur pour JOB ; preuves SQL en lecture seule et restauration testée via Docker avant tout nouveau déploiement métier sensible. Pas de données de test injectées en production.
 
 ### Ordre de déploiement métier
 
@@ -81,4 +92,4 @@ Ces chiffres ne suffisent pas à conclure qu'une ligne est fausse ou qu'elle doi
 - CI : `.github/workflows/core-v2-private-registry.yml`
 - **Aucun lien individuel ajouté lors de cette préparation**. Tout rapprochement devra être basé sur la propriété authentifiée et auditable, pas sur le nom du module.
 
-**Livrable immédiat :** socle structurel CORE sécurisé **installé**, documentation métier et tests isolés. Les corrections COMMERCE/BUILD/JOB restent des chantiers distincts après validation du rail CORE.
+**Livrable immédiat :** socle structurel CORE sécurisé **installé**, documentation métier et tests isolés. Les premières corrections COMMERCE/BUILD/JOB sont intégrées et déployées ; la réconciliation d'identité CORE, l'audit serveur complémentaire et la recette téléphone restent des chantiers distincts.
