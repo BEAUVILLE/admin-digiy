@@ -1,0 +1,4 @@
+[functions.digiy-admin-session-v1]
+verify_jwt = false
+# Manual Supabase Auth getUser + membership checks happen inside the Edge handler.
+# This snippet must be merged into the deployed supabase/config.toml at rollout.
