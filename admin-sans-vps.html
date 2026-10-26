@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>DIGIY · Accès Admin Supabase sans VPS (prototype)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#07140f;color:#eefaf1;display:grid;place-items:center;padding:20px}
+main{width:min(100%,450px);border:1px solid #375145;border-radius:20px;padding:24px;background:#0c2419}
+h1{margin-top:6px;font-size:25px}p{line-height:1.5;color:#c0d4c9}
+label{display:block;margin:18px 0 6px;font-size:13px;font-weight:700}
+input{width:100%;padding:13px 12px;border-radius:10px;border:1px solid #53705d;background:#091a13;color:#fff;font:inherit}
+button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;margin-top:12px;padding:13px 16px;background:#eac24a;color:#132216;font-weight:800;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#243e2d;color:#f5f6ee}
+.hidden{display:none}#message{min-height:2em;color:#e5d791;overflow-wrap:anywhere}
+.note{font-size:12px;color:#a7c1b0;margin-bottom:18px}#screen{margin-top:15px;padding:15px;background:#162d21;border-radius:12px}
+</style>
+</head>
+<body>
+<main>
+<div>🦅 DIGIYLYFE · Sécurité</div>
+<h1>Admin sans VPS</h1>
+<p class="note">Prototype indépendant. Ne remplace pas encore le cockpit de production.</p>
+<div id="emailStage">
+  <p>Première étape : confirmer ton identité avec l'email administrateur déjà autorisé.</p>
+  <label for="email">Email administrateur</label>
+  <input type="email" id="email" autocomplete="email">
+  <button id="send" type="button">Envoyer mon lien sécurisé</button>
+</div>
+<div id="pinStage" class="hidden">
+  <p>Identité Supabase confirmée. Saisis ton PIN administrateur habituel.</p>
+  <label for="pin">PIN admin</label>
+  <input id="pin" type="password" autocomplete="one-time-code" inputmode="numeric">
+  <button type="button" id="login">Ouvrir une session</button>
+</div>
+<div id="screen" class="hidden">
+  <strong>Session administrateur confirmée</strong>
+  <p>Ce prototype ne donne encore accès à aucune opération métier.</p>
+  <button id="check" class="secondary" type="button">Vérifier la session</button>
+  <button id="logout" class="secondary" type="button">Fermer la session</button>
+</div>
+<p id="message" role="status" aria-live="polite"></p>
+<p class="note">Si le prototype ne fonctionne pas, utilise le cockpit actuel. Ne partage jamais ton PIN.</p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const url='https://wesqmwjjtsefyjnluosj.supabase.co';
+  const publishable='sb_publishable_tGHItRgeWDmGjnd0CK1DVQ_BIep4Ug3';
+  const api=url+'/functions/v1/digiy-admin-session-v1';
+  const sb=window.supabase.createClient(url,publishable,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const $=id=>document.getElementById(id), msg=t=>{$('message').textContent=t;};
+  const store='digiy_serverless_admin_token_v1';
+  const token=()=>sessionStorage.getItem(store)||'';
+  const setStage=stage=>{
+    $('emailStage').classList.toggle('hidden',stage!=='email');
+    $('pinStage').classList.toggle('hidden',stage!=='pin');
+    $('screen').classList.toggle('hidden',stage!=='screen');
+  };
+  async function identity(){
+    const {data:{session}}=await sb.auth.getSession();
+    return session;
+  }
+  async function call(action,payload={}){
+    const session=await identity();
+    if(!session?.access_token)throw Error('Session email manquante. Reconnecte-toi avec ton lien.');
+    const res=await fetch(api,{method:'POST',headers:{
+      'apikey':publishable,
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+session.access_token
+    },body:JSON.stringify({action,...payload})});
+    const data=await res.json().catch(()=>({ok:false,error:'invalid_json'}));
+    if(!res.ok||!data.ok)throw Error(data.error||'Accès refusé');
+    return data;
+  }
+  async function refresh(){
+    const s=await identity();
+    if(!s){sessionStorage.removeItem(store);setStage('email');return;}
+    if(!token()){setStage('pin');return;}
+    try{await call('check',{token:token()});setStage('screen');}
+    catch{sessionStorage.removeItem(store);setStage('pin');}
+  }
+  $('send').onclick=async()=>{
+    const email=$('email').value.trim();
+    if(!email){msg('Email requis');return;}
+    $('send').disabled=true;
+    try{
+      const dest=new URL('admin-sans-vps.html',location.href).href;
+      const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:dest}});
+      if(error)throw error;
+      msg('Si cet email est autorisé, le lien de connexion est envoyé.');
+    }catch{msg('Envoi impossible : vérifier la configuration Auth et les URL autorisées.');}
+    finally{$('send').disabled=false;}
+  };
+  $('login').onclick=async()=>{
+    const pin=$('pin').value.trim();
+    $('login').disabled=true;
+    try{
+      const result=await call('login',{pin});
+      $('pin').value='';
+      sessionStorage.setItem(store,result.token);
+      setStage('screen');msg('Connexion confirmée. PIN inchangé.');
+    }catch(e){$('pin').value='';msg('Connexion refusée : '+e.message);}
+    finally{$('login').disabled=false;}
+  };
+  $('check').onclick=async()=>{
+    try{await call('check',{token:token()});msg('Session active.');}
+    catch{sessionStorage.removeItem(store);setStage('pin');msg('Session expirée.');}
+  };
+  $('logout').onclick=async()=>{
+    try{if(token())await call('logout',{token:token()});}catch{}
+    sessionStorage.removeItem(store);
+    await sb.auth.signOut();
+    setStage('email');msg('Session terminée.');
+  };
+  sb.auth.onAuthStateChange(()=>{Promise.resolve().then(refresh).catch(()=>setStage('email'));});
+  refresh().catch(()=>setStage('email'));
+})();
+</script>
+</body>
+</html>
