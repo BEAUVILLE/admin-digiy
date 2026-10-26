@@ -435,11 +435,15 @@ async function handleLogin(req: Request): Promise<Response> {
       return json({ ok: false, error: "pin_invalide" }, 400);
     }
 
+    // The admin login RPC must only be called from this trusted backend.
+    // service_role is already configured server-side; never expose it to the browser.
+    // Deploy this backend change AND verify a real admin login before applying
+    // the follow-up SQL that revokes anon/authenticated execution.
     const rpcRes = await callSupabaseRPC("admin_login", {
       p_pin: pin,
       p_user_agent: userAgent,
       p_ip: ip,
-    });
+    }, true);
 
     if (rpcRes.error) {
       return json({ ok: false, error: rpcRes.error }, 500);
