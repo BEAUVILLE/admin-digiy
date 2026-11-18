@@ -57,10 +57,20 @@ small{color:var(--muted)}
 <div class="notice"><strong>État de référence : 9 octobre 2026.</strong> Les états sont vérifiés dans GitHub, pas déduits de l'apparence d'une page. Une PR fusionnée prouve le code présent sur <code>main</code>, pas un service déjà déployé ou testé de bout en bout. Ce registre ne consulte ni ne modifie Supabase et ne contient aucune donnée client ni accès propriétaire.</div>
 </header>
 <div class="metrics" aria-label="Synthèse contrôlée">
-<div class="metric"><strong>16</strong><span>PR du dépôt RÉSA MULTI fusionnées et vérifiées (#1–#16)</span></div>
+<div class="metric"><strong>16</strong><span>PR du dépôt RÉSA MULTI vérifiées au 9 octobre (#1–#16)</span></div>
 <div class="metric"><strong>3</strong><span>Fiches chauffeurs classées comme présences réelles dans la vitrine GitHub</span></div>
 <div class="metric"><strong>7</strong><span>Cartes modèles / tests, explicitement séparées des professionnels réels</span></div>
 </div>
+<section class="area" id="etat-2026-11-18">
+<h2>🗓️ Mise à jour du 18 novembre 2026</h2>
+<p>État du code contrôlé sur <code>main</code>. La référence du 9 octobre est conservée ci-dessous.</p>
+<ul>
+<li><strong>Vitrine publique.</strong> Dix langues proposées, dont le wolof et le chinois. Le nombre de modèles affiché est calculé à partir des cartes présentes. <a href="https://github.com/BEAUVILLE/digiy-resa-table-resto/pull/42">Correctif des cartes ↗</a></li>
+<li><strong>Demande et planning publics.</strong> Le formulaire de demande et le planning ont reçu leurs traductions. La langue choisie suit les liens entre les écrans concernés. <a href="https://github.com/BEAUVILLE/digiy-resa-table-resto/pull/41">Correctifs publics ↗</a></li>
+<li><strong>Cockpit propriétaire MASTER.</strong> Le modèle propose dix langues pour l’accès et les principales commandes, dont la préparation groupée des créneaux et les retours de gestion. <a href="https://github.com/BEAUVILLE/digiy-master-modeles/blob/main/MASTER-MAITRE-RESA-V1/gestion.html">Code MASTER ↗</a></li>
+</ul>
+<p><strong>Contrôle restant.</strong> Vérifier le déploiement, puis le parcours sur mobile depuis la demande publique jusqu’à la décision d’un propriétaire connecté sur une instance de test.</p>
+</section>
 <section class="area" id="fonctionnel">
 <h2>✅ Fonctions codées et fusionnées</h2>
 <p>Preuves GitHub. L'état d'activation réel doit être vérifié sur le service concerné.</p>
@@ -117,7 +127,7 @@ small{color:var(--muted)}
 <ol>
 <li><strong>TEST BEAUTY :</strong> refaire le parcours client → prestation → sept jours → demande → notification → confirmation/refus côté propriétaire, sur mobile et avec une vraie session de test.</li>
 <li><strong>Protection des données :</strong> vérifier les droits réellement appliqués dans Supabase, l'accès owner_id, les RPC et l'absence de données personnelles dans la vitrine publique.</li>
-<li><strong>Clarté des cartes :</strong> le code source contient 7 entrées <code>DEMO</code> mais un libellé traduit annonce « 6 exemples ». Corriger la présentation seulement après validation, sans inventer de professionnels.</li>
+<li><strong>Clarté des cartes :</strong> le décalage entre les 7 cartes <code>DEMO</code> et le libellé « 6 exemples » a été corrigé dans le code. Vérifier le compteur sur la page publiée.</li>
 <li><strong>Fiches réelles :</strong> recontrôler les trois liens chauffeurs et l'état MASTER public ; une entrée <code>REAL</code> dans le code ne démontre pas à elle seule qu'une activité est ouverte aujourd'hui.</li>
 <li><strong>Modules complémentaires :</strong> beauté et DRIVER disposent de preuves spécifiques ; bien-être, onglerie, événementiel et navette restent des modèles sur la vitrine. Ne pas annoncer un moteur complet de chacun sans test réel.</li>
 <li><strong>Déploiement :</strong> confronter le contenu de <code>main</code> aux pages effectivement servies avant de parler de livraison publique.</li>
@@ -134,5 +144,5 @@ small{color:var(--muted)}
 <a href="https://github.com/BEAUVILLE/digiy-resa-table-resto/pull/16">PR #16 · FICHE ↗</a>
 </div>
 </section>
-<p class="footer">DIGIY CORE · RÉSA MULTI · État GitHub vérifié le 09/10/2026 · Lecture seule, sans clés ni données personnelles.</p>
+<p class="footer">DIGIY CORE · RÉSA MULTI · Référence du 09/10/2026 · Mise à jour GitHub du 18/11/2026 · Lecture seule, sans clés ni données personnelles.</p>
 </main></body></html>
