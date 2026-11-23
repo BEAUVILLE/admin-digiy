@@ -43,7 +43,7 @@ test('frontières RESTO / RÉSA MULTI / LOC, moteur BEAUTY et libre confirmation
  assert.match(multi,/🗓️ RÉSA MULTI : RÉSERVER \/ RDV/);
  assert.match(multi,/🏠 LOC : DORMIR \/ LOUER/);
  assert.match(multi,/demande de rendez-vous n'est pas une confirmation automatique/);
- assert.match(multi,/7 entrées/);
+ assert.match(multi,/7 cartes <code>DEMO<\/code>/); // Libellé réellement documenté dans le registre RÉSA MULTI.
  assert.ok(resto.includes('Rien sous le tapis'));
 });
 
