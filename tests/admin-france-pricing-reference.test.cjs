@@ -15,7 +15,7 @@ for(const page of ['finances-v2.html','finances.html']){
  assert.ok(html.includes('Exemple de 1re adhésion : 1 015 € HT'),'Exemple LOC HT manquant');
  assert.ok(html.includes('765 € HT')&&html.includes('250 € HT'),'LOC sous-comptes manquants');
  const match=html.match(/function recurringEurMonthly\(d\)\{[\s\S]*?\n\}\nfunction activePaid/);
- assert.ok(match,'Fonction d'évaluation MRR EUR manquante');
+ assert.ok(match,"Fonction d’évaluation MRR EUR manquante");
  const src=match[0].replace(/\nfunction activePaid$/,'');
  const price=d=>Number(d.price_eur??0);
  const calc=Function('price',src+'\nreturn recurringEurMonthly;')(price);
